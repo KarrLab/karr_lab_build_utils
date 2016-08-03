@@ -1,0 +1,14 @@
+# compiled files
+*.pyc
+
+# test reports
+tests/reports
+
+# coverage file
+.coverage*
+
+# .rst-formatted README
+README.rst
+
+# compiled documentation
+docs/_build

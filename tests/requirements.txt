@@ -1,0 +1,5 @@
+coverage
+coveralls
+junit2html
+nose
+nose2unitth
