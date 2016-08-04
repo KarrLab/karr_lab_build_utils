@@ -1,5 +1,5 @@
 from pip.req import parse_requirements
-from setuptools import setup
+from setuptools import setup, find_packages
 import os
 
 # version
@@ -19,7 +19,7 @@ setup(
     author_email="jonrkarr@gmail.com",
     license="MIT",
     keywords='unit test coverage API documentation nose xunit junit unitth HTML Coveralls Sphinx',
-    packages=["karr_lab_build_utils"],
+    packages=find_packages(),
     package_data={
         'karr_lab_build_utils': 'lib',
     },
