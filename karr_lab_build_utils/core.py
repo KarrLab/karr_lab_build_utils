@@ -272,6 +272,12 @@ class BuildHelper(object):
             # Split nose-style XML report into UnitTH-style reports for each package
             if not os.path.isdir(os.path.join(self.proj_tests_unitth_dir, build_num)):
                 os.makedirs(os.path.join(self.proj_tests_unitth_dir, build_num))
+            for path in glob(os.path.join(self.proj_tests_unitth_dir)):
+                if os.path.isdir(path):
+                    os.rmdir(path)
+                else:
+                    os.remove(path)
+
             Nose2UnitthConverter.run(build_file_path, os.path.join(self.proj_tests_unitth_dir, build_num))
 
             # Make HTML report from nose-style test XML report
