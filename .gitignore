@@ -1,6 +1,10 @@
 # compiled files
 *.pyc
 
+#distribution files
+build/
+dist/
+
 # test reports
 tests/reports
 
