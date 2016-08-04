@@ -20,7 +20,7 @@ This package performs several aspects of the Karr Lab's build system:
 ## Usage
 ```
 karr-lab-build-utils-install-requirements
-karr-lab-build-utils-run-tests --test_path /path/to/tests --with_xml_file --with_coverage
+karr-lab-build-utils-run-tests --test_path /path/to/tests --with_xml_report --with_coverage
 karr-lab-build-utils-make-and-archive-reports
 ```
 
