@@ -158,12 +158,12 @@ class BuildHelper(object):
         """ Install requirements """
 
         # requirements for package
-        subprocess.check_call(['sudo', 'pip', 'install', '-r', 'requirements.txt'])
+        subprocess.check_call(['pip', 'install', '-r', 'requirements.txt'])
 
         # requirements for testing and documentation
-        subprocess.check_call(['sudo', 'apt-get', 'install', 'libffi-dev'])
-        subprocess.check_call(['sudo', 'pip', 'install', '-r', os.path.join(self.proj_tests_dir, 'requirements.txt')])
-        subprocess.check_call(['sudo', 'pip', 'install', '-r', os.path.join(self.proj_docs_dir, 'requirements.txt')])
+        subprocess.check_call(['apt-get', 'install', 'libffi-dev'])
+        subprocess.check_call(['pip', 'install', '-r', os.path.join(self.proj_tests_dir, 'requirements.txt')])
+        subprocess.check_call(['pip', 'install', '-r', os.path.join(self.proj_docs_dir, 'requirements.txt')])
 
     ########################
     # Running tests
