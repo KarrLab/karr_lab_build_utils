@@ -546,8 +546,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     self.assertTrue(sftp.isfile(os.path.join(buildHelper.serv_docs_build_html_dir, 'index.html')))
 
     def test_dummy_test(self):
-        with self._env:
-            pass
+        pass
 
     def call_cli(self, command, arguments=[]):
         with self._env:
