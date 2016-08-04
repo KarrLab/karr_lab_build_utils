@@ -7,3 +7,4 @@ nose2unitth
 pysftp
 Sphinx
 sphinx_rtd_theme
+unitth

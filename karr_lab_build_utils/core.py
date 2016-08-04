@@ -9,6 +9,7 @@
 from glob import glob
 from junit2htmlreport.parser import Junit as JunitParser
 from nose2unitth.core import Converter as Nose2UnitthConverter
+from unitth.core import UnitTH
 import iocapture
 import os
 import pysftp
@@ -212,7 +213,7 @@ class BuildHelper(object):
         """
 
         """ test reports """
-        # create directory with test result history        
+        # create directory with test result history
         self.download_nose_test_report_history_from_lab_server()
         shutil.copyfile(
             os.path.join(self.proj_tests_nose_dir, self.proj_tests_nose_latest_filename),
@@ -253,7 +254,7 @@ class BuildHelper(object):
         sftp = self.connect_to_lab_server()
 
         with iocapture.capture() as captured:
-            with sftp.cd(os.path.join(self.code_server_base_dir, self.project_name)):          
+            with sftp.cd(os.path.join(self.code_server_base_dir, self.project_name)):
                 sftp.makedirs(self.serv_tests_nose_dir)
                 sftp.get_d(self.serv_tests_nose_dir, self.proj_tests_nose_dir)
 
@@ -267,7 +268,7 @@ class BuildHelper(object):
         if not os.path.isdir(self.proj_tests_unitth_dir):
             os.makedirs(self.proj_tests_unitth_dir)
 
-        #remove old UnitTH input
+        # remove old UnitTH input
         for path in os.listdir(self.proj_tests_unitth_dir):
             full_path = os.path.join(self.proj_tests_unitth_dir, path)
             if os.path.isdir(full_path):
@@ -282,7 +283,7 @@ class BuildHelper(object):
 
             # Split nose-style XML report into UnitTH-style reports for each package
             if not os.path.isdir(os.path.join(self.proj_tests_unitth_dir, build_num)):
-                os.makedirs(os.path.join(self.proj_tests_unitth_dir, build_num))            
+                os.makedirs(os.path.join(self.proj_tests_unitth_dir, build_num))
 
             Nose2UnitthConverter.run(build_file_path, os.path.join(self.proj_tests_unitth_dir, build_num))
 
@@ -294,15 +295,11 @@ class BuildHelper(object):
         if not os.path.isdir(self.proj_tests_html_dir):
             os.makedirs(self.proj_tests_html_dir)
 
-        subprocess.check_call(''
-            + 'java '
-            + '-Dunitth.generate.exectimegraphs=true '
-            + '-Dunitth.xml.report.filter= '
-            + '-Dunitth.html.report.path=. '
-            + ('-Dunitth.report.dir=%s ' % self.proj_tests_html_dir)
-            + '-jar lib/unitth/unitth.jar '
-            + os.path.join(self.proj_tests_unitth_dir, '*'), 
-            shell=True)
+        UnitTH.run(os.path.join(self.proj_tests_unitth_dir, '*'),
+                   xml_report_filter='',
+                   html_report_path='.',
+                   generate_exec_time_graphs=True,
+                   html_report_dir=self.proj_tests_html_dir)
 
     def archive_test_reports(self):
         """ Archive test report:
@@ -438,7 +435,7 @@ class BuildHelper(object):
                                                password=self.code_server_password,
                                                cnopts=cnopts
                                                )
-                self._sftp.makedirs(os.path.join(self.code_server_base_dir, self.project_name))                
+                self._sftp.makedirs(os.path.join(self.code_server_base_dir, self.project_name))
 
         return self._sftp
 

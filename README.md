@@ -1,7 +1,8 @@
-[![PyPI package](https://badge.fury.io/py/Karr-Lab-build-utils.svg)](https://pypi.python.org/pypi/Karr-Lab-build-utils)
+[![PyPI package](https://img.shields.io/pypi/v/Karr-Lab-build-utils.svg)](https://pypi.python.org/pypi/Karr-Lab-build-utils)
 [![Documentation](https://readthedocs.org/projects/karr-lab-build-utils/badge/?version=latest)](http://karr-lab-build-utils.readthedocs.org)
 [![Test results](https://circleci.com/gh/KarrLab/Karr-Lab-build-utils.svg?style=shield)](https://circleci.com/gh/KarrLab/Karr-Lab-build-utils)
 [![Test coverage](https://coveralls.io/repos/github/KarrLab/Karr-Lab-build-utils/badge.svg)](https://coveralls.io/github/KarrLab/Karr-Lab-build-utils)
+[![License](https://img.shields.io/github/license/KarrLab/Karr-Lab-build-utils.svg)](LICENSE.txt)
 
 # Karr Lab build utilities
 
@@ -22,11 +23,32 @@ This package performs several aspects of the Karr Lab's build system:
   pip install Karr-Lab-build-utils
   ```
 
-## Usage
+## Example usage
+
+### Command line
 ```
+CIRCLE_PROJECT_REPONAME=Karr-Lab-build-utils
+CIRCLE_BUILD_NUM=1
+CODE_SERVER_PASSWORD=*******
 karr-lab-build-utils-install-requirements
 karr-lab-build-utils-run-tests --test_path /path/to/tests --with_xml_report --with_coverage
 karr-lab-build-utils-make-and-archive-reports
+```
+
+### CircleCI build configuration
+```
+machine:
+  python:
+    version: 2.7.11
+dependencies:
+  pre:
+    - pip install Karr-Lab-build-utils
+    - karr-lab-build-utils-install-requirements
+test:
+  override:
+    - karr-lab-build-utils-run-tests --test_path tests --with_xml_report --with_coverage
+  post:
+    - karr-lab-build-utils-make-and-archive-reports
 ```
 
 ## Documentation
