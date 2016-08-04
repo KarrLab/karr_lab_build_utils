@@ -5,7 +5,7 @@ dependencies:
   pre:
     - pip install wheel
     - python setup.py bdist_wheel
-    - pip install -I dist/Karr_Lab_build_utils-0.0.1-py2.py3-none-any.whl
+    - pip install -I dist/Karr_Lab_build_utils-*-py2.py3-none-any.whl
     - karr-lab-build-utils-install-requirements
 test:
   override:
