@@ -15,6 +15,7 @@ import os
 import pysftp
 import shutil
 import subprocess
+import sys
 import tempfile
 
 
@@ -198,8 +199,14 @@ class BuildHelper(object):
                 raise BuildHelperError('Package directory not set')
             cmd.append('--with-coverage')
             cmd.append('--cover-package=%s' % self.package_dir)
-
-        subprocess.check_call(cmd)
+        
+        try:
+            subprocess.check_call(cmd)
+        except subprocess.CalledProcessError:            
+            sys.exit(1)
+        except Exception:
+            exc_info = sys.exc_info()
+            raise exc_info[1], None, exc_info[2]
 
         if with_xml_report and self.build_test_dir:
             shutil.copyfile(abs_nose_latest_filename, os.path.join(self.build_test_dir, 'nose.xml'))
