@@ -1,5 +1,2 @@
-# library
-recursive-include lib *
-
 # license
 include LICENSE.txt
