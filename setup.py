@@ -1,4 +1,3 @@
-from pip.req import parse_requirements
 from setuptools import setup, find_packages
 import os
 
@@ -6,8 +5,7 @@ import os
 version = '0.0.1'
 
 # parse requirements.txt
-requirements = parse_requirements('requirements.txt')
-install_requires = [str(ir.req) for ir in requirements]
+install_requires = [line.rstrip() for line in open('requirements.txt')]
 
 setup(
     name="Karr-Lab-build-utils",
