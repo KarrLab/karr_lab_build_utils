@@ -264,6 +264,17 @@ class BuildHelper(object):
             :obj:`BuildHelperError`: 
         """
 
+        if not os.path.isdir(self.proj_tests_unitth_dir):
+            os.makedirs(self.proj_tests_unitth_dir)
+
+        #remove old UnitTH input
+        for path in os.listdir(self.proj_tests_unitth_dir):
+            full_path = os.path.join(self.proj_tests_unitth_dir, path)
+            if os.path.isdir(full_path):
+                shutil.rmtree(full_path)
+            else:
+                os.remove(full_path)
+
         # Make XML and HTML test reports that are readable UnitTH
         for build_file_path in glob(os.path.join(self.proj_tests_nose_dir, "[0-9]*.xml")):
             build_base_name = os.path.basename(build_file_path)
@@ -271,12 +282,7 @@ class BuildHelper(object):
 
             # Split nose-style XML report into UnitTH-style reports for each package
             if not os.path.isdir(os.path.join(self.proj_tests_unitth_dir, build_num)):
-                os.makedirs(os.path.join(self.proj_tests_unitth_dir, build_num))
-            for path in glob(os.path.join(self.proj_tests_unitth_dir)):
-                if os.path.isdir(path):
-                    os.rmdir(path)
-                else:
-                    os.remove(path)
+                os.makedirs(os.path.join(self.proj_tests_unitth_dir, build_num))            
 
             Nose2UnitthConverter.run(build_file_path, os.path.join(self.proj_tests_unitth_dir, build_num))
 
