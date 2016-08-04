@@ -161,7 +161,7 @@ class BuildHelper(object):
         subprocess.check_call(['pip', 'install', '-r', 'requirements.txt'])
 
         # requirements for testing and documentation
-        subprocess.check_call(['apt-get', 'install', 'libffi-dev'])
+        subprocess.check_call(['sudo', 'apt-get', 'install', 'libffi-dev'])
         subprocess.check_call(['pip', 'install', '-r', os.path.join(self.proj_tests_dir, 'requirements.txt')])
         subprocess.check_call(['pip', 'install', '-r', os.path.join(self.proj_docs_dir, 'requirements.txt')])
 
@@ -377,7 +377,7 @@ class BuildHelper(object):
 
         # create `proj_docs_static_dir`, if necessary
         if not os.path.isdir(self.proj_docs_static_dir):
-            sys.mkdir(self.proj_docs_static_dir)
+            os.mkdir(self.proj_docs_static_dir)
 
         # compile API documentation
         if not self.package_dir:

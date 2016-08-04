@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 
 import os
@@ -20,7 +21,7 @@ def main():
     args = parser.parse_args()
 
     buildHelper = BuildHelper()
-    buildHelper.run_tests()
+    buildHelper.make_and_archive_reports()
 
 if __name__ == "__main__":
     main()
