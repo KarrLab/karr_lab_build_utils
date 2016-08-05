@@ -82,7 +82,7 @@ class BuildHelper(object):
     DEFAULT_PROJ_TESTS_DIR = 'tests'
     # :obj:`str`: default local directory with test code
 
-    DEFAULT_PROJ_TESTS_NOSE_LATEST_FILENAME = 'latest.xml'
+    DEFAULT_PROJ_TESTS_NOSE_LATEST_FILENAME = 'latest'
     # :obj:`str`: default file name to store latest XML test report
 
     DEFAULT_PROJ_TESTS_NOSE_DIR = 'tests/reports/nose'
@@ -216,9 +216,11 @@ class BuildHelper(object):
             :obj:`BuildHelperError`: If package directory not set
         """
 
-        abs_nose_latest_filename = os.path.join(self.proj_tests_nose_dir, self.proj_tests_nose_latest_filename)
-        abs_nose_latest_filename_2 = os.path.join(self.proj_tests_nose_dir, '2.%s' % self.proj_tests_nose_latest_filename)
-        abs_nose_latest_filename_3 = os.path.join(self.proj_tests_nose_dir, '3.%s' % self.proj_tests_nose_latest_filename)
+        abs_nose_artifact_filename_2 = os.path.join(self.build_test_dir, 'nose.2.xml')
+        abs_nose_artifact_filename_3 = os.path.join(self.build_test_dir, 'nose.3.xml')
+        abs_nose_latest_filename = os.path.join(self.proj_tests_nose_dir, '%s.xml' % self.proj_tests_nose_latest_filename)
+        abs_nose_latest_filename_2 = os.path.join(self.proj_tests_nose_dir, '%s.2.xml' % self.proj_tests_nose_latest_filename)
+        abs_nose_latest_filename_3 = os.path.join(self.proj_tests_nose_dir, '%s.3.xml' % self.proj_tests_nose_latest_filename)
 
         """ python 2"""
         if self.machine_python_2:
@@ -226,7 +228,7 @@ class BuildHelper(object):
         
             if with_xml_report:
                 cmd.append('--with-xunit')
-                cmd.append('--xunit-file=%s' % abs_nose_latest_filename)
+                cmd.append('--xunit-file=%s' % abs_nose_artifact_filename_2)
 
                 if not os.path.isdir(self.proj_tests_nose_dir):
                     os.makedirs(self.proj_tests_nose_dir)
@@ -240,6 +242,8 @@ class BuildHelper(object):
             try:
                 subprocess.check_call(cmd)
             except subprocess.CalledProcessError:
+               if with_xml_report:
+                    shutil.copyfile(abs_nose_artifact_filename_2, abs_nose_latest_filename_2)
                sys.exit(1)
             except Exception:
                 t, v, tb = sys.exc_info()
@@ -249,7 +253,7 @@ class BuildHelper(object):
                     raise(t, v, tb)
 
             if with_xml_report:
-                shutil.copyfile(abs_nose_latest_filename, abs_nose_latest_filename_2)
+                shutil.copyfile(abs_nose_artifact_filename_2, abs_nose_latest_filename_2)
 
         """ python 3"""
         if self.machine_python_3:
@@ -257,7 +261,7 @@ class BuildHelper(object):
         
             if with_xml_report:
                 cmd.append('--with-xunit')
-                cmd.append('--xunit-file=%s' % abs_nose_latest_filename)
+                cmd.append('--xunit-file=%s' % abs_nose_artifact_filename_3)
 
                 if not os.path.isdir(self.proj_tests_nose_dir):
                     os.makedirs(self.proj_tests_nose_dir)
@@ -271,6 +275,8 @@ class BuildHelper(object):
             try:
                 subprocess.check_call(cmd)
             except subprocess.CalledProcessError:
+                if with_xml_report:
+                    shutil.copyfile(abs_nose_artifact_filename_3, abs_nose_latest_filename_3)
                 sys.exit(1)
             except Exception:
                 t, v, tb = sys.exc_info()
@@ -280,11 +286,16 @@ class BuildHelper(object):
                     raise(t, v, tb)
 
             if with_xml_report:
-                shutil.copyfile(abs_nose_latest_filename, abs_nose_latest_filename_3)
+                shutil.copyfile(abs_nose_artifact_filename_3, abs_nose_latest_filename_3)
 
         """ archive results """
         if with_xml_report and self.build_test_dir:
-            shutil.copyfile(abs_nose_latest_filename, os.path.join(self.build_test_dir, 'nose.xml'))
+            if self.machine_python_2:
+                shutil.copyfile(abs_nose_artifact_filename_2, os.path.join(self.build_test_dir, 'nose.xml'))
+                shutil.copyfile(abs_nose_artifact_filename_2, abs_nose_latest_filename)
+            if self.machine_python_2:
+                shutil.copyfile(abs_nose_artifact_filename_3, os.path.join(self.build_test_dir, 'nose.xml'))
+                shutil.copyfile(abs_nose_artifact_filename_3, abs_nose_latest_filename)
 
     def make_and_archive_reports(self):
         """ Make and archive reports;
@@ -298,7 +309,7 @@ class BuildHelper(object):
         # create directory with test result history
         self.download_nose_test_report_history_from_lab_server()
         shutil.copyfile(
-            os.path.join(self.proj_tests_nose_dir, self.proj_tests_nose_latest_filename),
+            os.path.join(self.proj_tests_nose_dir, '%s.xml' % self.proj_tests_nose_latest_filename),
             os.path.join(self.proj_tests_nose_dir, "%d.xml" % self.build_num)
         )
 

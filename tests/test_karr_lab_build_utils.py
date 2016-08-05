@@ -95,8 +95,8 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         buildHelper = self._buildHelper
 
         if self.TEST_API:
-            if os.path.isfile(os.path.join(buildHelper.proj_tests_nose_dir, buildHelper.proj_tests_nose_latest_filename)):
-                os.remove(os.path.join(buildHelper.proj_tests_nose_dir, buildHelper.proj_tests_nose_latest_filename))
+            if os.path.isfile(os.path.join(buildHelper.proj_tests_nose_dir, '%s.xml' % buildHelper.proj_tests_nose_latest_filename)):
+                os.remove(os.path.join(buildHelper.proj_tests_nose_dir, '%s.xml' % buildHelper.proj_tests_nose_latest_filename))
             if os.path.isfile(buildHelper.proj_cov_filename):
                 os.remove(buildHelper.proj_cov_filename)
 
@@ -104,12 +104,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                                   with_xml_report=True, with_coverage=True)
 
             self.assertTrue(os.path.isfile(os.path.join(buildHelper.proj_tests_nose_dir,
-                                                        buildHelper.proj_tests_nose_latest_filename)))
+                                                        '%s.xml' % buildHelper.proj_tests_nose_latest_filename)))
             self.assertTrue(os.path.isfile(buildHelper.proj_cov_filename))
 
         if self.TEST_CLI:
-            if os.path.isfile(os.path.join(buildHelper.proj_tests_nose_dir, buildHelper.proj_tests_nose_latest_filename)):
-                os.remove(os.path.join(buildHelper.proj_tests_nose_dir, buildHelper.proj_tests_nose_latest_filename))
+            if os.path.isfile(os.path.join(buildHelper.proj_tests_nose_dir, '%s.xml' % buildHelper.proj_tests_nose_latest_filename)):
+                os.remove(os.path.join(buildHelper.proj_tests_nose_dir, '%s.xml' % buildHelper.proj_tests_nose_latest_filename))
             if os.path.isfile(buildHelper.proj_cov_filename):
                 os.remove(buildHelper.proj_cov_filename)
 
@@ -120,7 +120,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             ])
 
             self.assertTrue(os.path.isfile(os.path.join(buildHelper.proj_tests_nose_dir,
-                                                        buildHelper.proj_tests_nose_latest_filename)))
+                                                        '%s.xml' % buildHelper.proj_tests_nose_latest_filename)))
             self.assertTrue(os.path.isfile(buildHelper.proj_cov_filename))
 
     def test_make_and_archive_reports(self):
@@ -129,11 +129,11 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                               with_xml_report=True, with_coverage=True)
 
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, buildHelper.proj_tests_nose_latest_filename),
+            os.path.join(buildHelper.proj_tests_nose_dir, '%s.xml' % buildHelper.proj_tests_nose_latest_filename),
             os.path.join(buildHelper.proj_tests_nose_dir, '10000000000000001.xml')
         )
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, buildHelper.proj_tests_nose_latest_filename),
+            os.path.join(buildHelper.proj_tests_nose_dir, '%s.xml' % buildHelper.proj_tests_nose_latest_filename),
             os.path.join(buildHelper.proj_tests_nose_dir, '10000000000000002.xml')
         )
 
@@ -162,11 +162,11 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         for report_filename in glob(os.path.join(buildHelper.proj_tests_nose_dir, "[0-9]*.xml")):
             os.remove(report_filename)
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, buildHelper.proj_tests_nose_latest_filename),
+            os.path.join(buildHelper.proj_tests_nose_dir, '%s.xml' % buildHelper.proj_tests_nose_latest_filename),
             os.path.join(buildHelper.proj_tests_nose_dir, '10000000000000001.xml')
         )
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, buildHelper.proj_tests_nose_latest_filename),
+            os.path.join(buildHelper.proj_tests_nose_dir, '%s.xml' % buildHelper.proj_tests_nose_latest_filename),
             os.path.join(buildHelper.proj_tests_nose_dir, '10000000000000002.xml')
         )
 
@@ -207,15 +207,15 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         for report_filename in glob(os.path.join(buildHelper.proj_tests_nose_dir, "[0-9]*.xml")):
             os.remove(report_filename)
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, buildHelper.proj_tests_nose_latest_filename),
+            os.path.join(buildHelper.proj_tests_nose_dir, '%s.xml' % buildHelper.proj_tests_nose_latest_filename),
             os.path.join(buildHelper.proj_tests_nose_dir, "%d.xml" % buildHelper.build_num)
         )
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, buildHelper.proj_tests_nose_latest_filename),
+            os.path.join(buildHelper.proj_tests_nose_dir, '%s.xml' % buildHelper.proj_tests_nose_latest_filename),
             os.path.join(buildHelper.proj_tests_nose_dir, '10000000000000001.xml')
         )
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, buildHelper.proj_tests_nose_latest_filename),
+            os.path.join(buildHelper.proj_tests_nose_dir, '%s.xml' % buildHelper.proj_tests_nose_latest_filename),
             os.path.join(buildHelper.proj_tests_nose_dir, '10000000000000002.xml')
         )
         buildHelper.make_test_history_report()
@@ -279,15 +279,15 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         for report_filename in glob(os.path.join(buildHelper.proj_tests_nose_dir, "[0-9]*.xml")):
             os.remove(report_filename)
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, buildHelper.proj_tests_nose_latest_filename),
+            os.path.join(buildHelper.proj_tests_nose_dir, '%s.xml' % buildHelper.proj_tests_nose_latest_filename),
             os.path.join(buildHelper.proj_tests_nose_dir, "%d.xml" % buildHelper.build_num)
         )
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, buildHelper.proj_tests_nose_latest_filename),
+            os.path.join(buildHelper.proj_tests_nose_dir, '%s.xml' % buildHelper.proj_tests_nose_latest_filename),
             os.path.join(buildHelper.proj_tests_nose_dir, '10000000000000001.xml')
         )
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, buildHelper.proj_tests_nose_latest_filename),
+            os.path.join(buildHelper.proj_tests_nose_dir, '%s.xml' % buildHelper.proj_tests_nose_latest_filename),
             os.path.join(buildHelper.proj_tests_nose_dir, '10000000000000002.xml')
         )
         buildHelper.make_test_history_report()
