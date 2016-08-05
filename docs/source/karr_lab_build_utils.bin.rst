@@ -92,6 +92,14 @@ karr_lab_build_utils.bin.run_tests module
     :undoc-members:
     :show-inheritance:
 
+karr_lab_build_utils.bin.setup_machine module
+---------------------------------------------
+
+.. automodule:: karr_lab_build_utils.bin.setup_machine
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 karr_lab_build_utils.bin.upload_coverage_report_to_coveralls module
 -------------------------------------------------------------------
 

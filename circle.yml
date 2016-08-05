@@ -1,11 +1,12 @@
 machine:
   python:
     version: 2.7.11
-dependencies:
-  pre:
-    - pip install wheel
+  post:
     - python setup.py bdist_wheel
     - pip install -I dist/Karr_Lab_build_utils-*-py2.py3-none-any.whl
+    - karr-lab-build-utils-setup-machine
+dependencies:
+  pre:
     - karr-lab-build-utils-install-requirements
 test:
   override:

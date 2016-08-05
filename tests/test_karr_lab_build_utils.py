@@ -8,15 +8,19 @@
 
 from glob import glob
 from karr_lab_build_utils.core import BuildHelper
-from test.test_support import EnvironmentVarGuard
 import iocapture
 import shutil
 import subprocess
 import os
 import pysftp
+import sys
 import tempfile
 import unittest
 
+if sys.version_info >= (3, 0, 0):
+    from test.support import EnvironmentVarGuard
+else:
+    from test.test_support import EnvironmentVarGuard
 
 class TestKarrLabBuildUtils(unittest.TestCase):
     TEST_API = True
@@ -68,6 +72,15 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         env.set('CODE_SERVER_PASSWORD', self._buildHelper.code_server_password)
 
         self._env = env
+
+    def test_setup_machine(self):
+        buildHelper = self._buildHelper
+
+        if self.TEST_API:
+            buildHelper.setup_machine()
+
+        if self.TEST_CLI:
+            self.call_cli('setup_machine')
 
     def test_install_requirements(self):
         buildHelper = self._buildHelper
@@ -140,6 +153,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         if self.TEST_CLI:
             self.call_cli('download_nose_test_report_history_from_lab_server')
 
+    @unittest.skip('Redundant with test_make_and_archive_reports')
     def test_make_test_history_report(self):
         buildHelper = self._buildHelper
         buildHelper.run_tests(test_path='tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test',
@@ -184,6 +198,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 buildHelper.proj_tests_unitth_dir, '10000000000000002', 'index.html')))
             self.assertTrue(os.path.isfile(os.path.join(buildHelper.proj_tests_html_dir, 'index.html')))
 
+    @unittest.skip('Redundant with test_make_and_archive_reports')
     def test_archive_test_reports(self):
         buildHelper = self._buildHelper
         buildHelper.run_tests(test_path='tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test',
@@ -327,6 +342,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                                                              buildHelper.build_num, 'index.html')))
                     self.assertTrue(sftp.isfile(os.path.join(buildHelper.serv_tests_html_dir, 'index.html')))
 
+    @unittest.skip('Redundant with test_make_and_archive_reports')
     def test_make_html_coverage_report(self):
         buildHelper = self._buildHelper
         buildHelper.run_tests(test_path='tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test',
@@ -348,6 +364,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
             self.assertTrue(os.path.isfile(os.path.join(buildHelper.proj_cov_html_dir, 'index.html')))
 
+    @unittest.skip('Redundant with test_make_and_archive_reports')
     def test_archive_coverage_report(self):
         buildHelper = self._buildHelper
         buildHelper.run_tests(test_path='tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test',
@@ -463,6 +480,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 with sftp.cd(os.path.join(buildHelper.code_server_base_dir, buildHelper.project_name)):
                     self.assertTrue(sftp.isfile(os.path.join(buildHelper.serv_cov_html_dir, 'index.html')))
 
+    @unittest.skip('Redundant with test_make_and_archive_reports')
     def test_make_documentation(self):
         buildHelper = self._buildHelper
 
@@ -482,6 +500,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
             self.assertTrue(os.path.isfile(os.path.join(buildHelper.proj_docs_build_html_dir, 'index.html')))
 
+    @unittest.skip('Redundant with test_make_and_archive_reports')
     def test_archive_documentation(self):
         """ setup """
         buildHelper = self._buildHelper
@@ -550,4 +569,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
     def call_cli(self, command, arguments=[]):
         with self._env:
-            subprocess.check_call(['python', 'karr_lab_build_utils/bin/%s.py' % command] + arguments)
+            if self._buildHelper.machine_python_2:
+                subprocess.check_call(['python2', 'karr_lab_build_utils/bin/%s.py' % command] + arguments)
+            if self._buildHelper.machine_python_3:
+                subprocess.check_call(['python3', 'karr_lab_build_utils/bin/%s.py' % command] + arguments)

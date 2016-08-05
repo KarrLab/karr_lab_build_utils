@@ -31,6 +31,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
+            'karr-lab-build-utils-setup_machine = karr_lab_build_utils.bin.setup_machine:main',
             'karr-lab-build-utils-install-requirements = karr_lab_build_utils.bin.install_requirements:main',
             'karr-lab-build-utils-run-tests = karr_lab_build_utils.bin.run_tests:main',
             'karr-lab-build-utils-make-and-archive-reports = karr_lab_build_utils.bin.make_and_archive_reports:main',
