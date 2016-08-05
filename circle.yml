@@ -9,15 +9,16 @@ machine:
         pip install -I dist/Karr_Lab_build_utils-*-py2.py3-none-any.whl
         karr-lab-build-utils-setup-machine
         pip3 install -I dist/Karr_Lab_build_utils-*-py2.py3-none-any.whl
+dependencies:
+  pre:
     - | 
         pip uninstall -y junit2html
-        git clone https://github.com/jonrkarr/junit2html.git
-        cd junit2html
+        pip3 uninstall -y junit2html
+        git clone https://github.com/jonrkarr/junit2html.git ~/junit2html
+        cd ~/junit2html
         python setup.py sdist
         pip install -I dist/junit2html-*.tar.gz
         pip3 install -I dist/junit2html-*.tar.gz
-dependencies:
-  pre:
     - karr-lab-build-utils-install-requirements
 test:
   override:
