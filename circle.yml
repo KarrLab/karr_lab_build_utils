@@ -13,7 +13,7 @@ machine:
         pip uninstall -y junit2html
         git clone https://github.com/jonrkarr/junit2html.git
         cd junit2html
-        python setup.py bdist_wheel
+        python setup.py sdist
         pip install -I dist/junit2html-*-py2.py3-none-any.whl
         pip3 install -I dist/junit2html-*-py2.py3-none-any.whl
 dependencies:
