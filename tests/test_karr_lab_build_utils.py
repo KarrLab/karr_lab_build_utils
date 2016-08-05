@@ -342,7 +342,6 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                                                              buildHelper.build_num, 'index.html')))
                     self.assertTrue(sftp.isfile(os.path.join(buildHelper.serv_tests_html_dir, 'index.html')))
 
-    @unittest.skip('Redundant with test_make_and_archive_reports')
     def test_make_html_coverage_report(self):
         buildHelper = self._buildHelper
         buildHelper.run_tests(test_path='tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test',

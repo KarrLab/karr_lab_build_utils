@@ -6,6 +6,7 @@
 :License: MIT
 """
 
+from coverage import coverage
 from glob import glob
 from junit2htmlreport.parser import Junit as JunitParser
 from nose2unitth.core import Converter as Nose2UnitthConverter
@@ -424,7 +425,9 @@ class BuildHelper(object):
         if not os.path.isdir(self.proj_cov_html_dir):
             os.makedirs(self.proj_cov_html_dir)
         map(os.remove, glob(os.path.join(self.proj_cov_html_dir, '*')))
-        subprocess.check_call(['coverage', 'html', '-d', self.proj_cov_html_dir])
+        coverage_doc = coverage()
+        coverage_doc.load()
+        coverage_doc.html_report(directory=self.proj_cov_html_dir)
 
     def archive_coverage_report(self):
         """ Archive coverage report:
