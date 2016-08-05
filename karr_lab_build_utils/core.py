@@ -169,6 +169,7 @@ class BuildHelper(object):
     # Setup machine
     ########################
     def setup_machine(self):
+        """ Setup machine (e.g. set python version) """
         cmd = ['pyenv', 'global']
         if self.machine_python_2:
             cmd.append(self.machine_python_2)

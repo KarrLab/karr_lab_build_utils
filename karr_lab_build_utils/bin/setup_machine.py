@@ -9,11 +9,7 @@ import argparse
 
 
 def main():
-    """ Command line program to archive a coverage report:
-    * Copy report to artifacts directory
-    * Upload report to Coveralls
-    * Upload HTML report to lab server
-    """
+    """ Command line program to setup machine (e.g. set python version) """
 
     parser = argparse.ArgumentParser(description='Setup machine')
     args = parser.parse_args()
