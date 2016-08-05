@@ -2,7 +2,7 @@
 [![Documentation](https://readthedocs.org/projects/karr-lab-build-utils/badge/?version=latest)](http://karr-lab-build-utils.readthedocs.org)
 [![Test results](https://circleci.com/gh/KarrLab/Karr-Lab-build-utils.svg?style=shield)](https://circleci.com/gh/KarrLab/Karr-Lab-build-utils)
 [![Test coverage](https://coveralls.io/repos/github/KarrLab/Karr-Lab-build-utils/badge.svg)](https://coveralls.io/github/KarrLab/Karr-Lab-build-utils)
-[![License](https://img.shields.io/github/license/KarrLab/Karr-Lab-build-utils.svg)](LICENSE.txt)
+[![License](https://img.shields.io/github/license/KarrLab/Karr-Lab-build-utils.svg)](LICENSE)
 
 # Karr Lab build utilities
 
@@ -55,7 +55,7 @@ test:
 Please see the [API documentation](http://Karr-Lab-build-utils.readthedocs.io).
 
 ## License
-The build utilities are released under the [MIT license](LICENSE.txt).
+The build utilities are released under the [MIT license](LICENSE).
 
 ## Development team
 This package was developed by [Jonathan Karr](http://www.karrlab.org) at the Icahn School of Medicine at Mount Sinai in New York, USA.
