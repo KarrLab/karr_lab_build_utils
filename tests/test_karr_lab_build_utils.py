@@ -64,11 +64,11 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
     def setUp(self):
         env = EnvironmentVarGuard()
-        env.set('CIRCLE_PROJECT_REPONAME', TestKarrLabBuildUtils.PROJECT_NAME)
+        env.set('CIRCLE_PROJECT_REPONAME', self._buildHelper.project_name)
         env.set('CIRCLE_BUILD_NUM', '%d' % self._buildHelper.build_num)
         env.set('CIRCLE_ARTIFACTS', self._buildHelper.build_artifacts_dir)
         env.set('CIRCLE_TEST_REPORTS', self._buildHelper.build_test_dir)
-        env.set('COVERALLS_REPO_TOKEN', TestKarrLabBuildUtils.COVERALLS_REPO_TOKEN)
+        env.set('COVERALLS_REPO_TOKEN', self._buildHelper.coveralls_token)
         env.set('CODE_SERVER_PASSWORD', self._buildHelper.code_server_password)
 
         self._env = env
@@ -414,7 +414,6 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
             self.assertTrue(os.path.isfile(abs_cov_filename))
 
-    @unittest.skip("Redundant with test_archive_coverage_report")
     def test_upload_coverage_report_to_coveralls(self):
         buildHelper = self._buildHelper
         buildHelper.run_tests(test_path='tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test',

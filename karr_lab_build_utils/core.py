@@ -7,6 +7,7 @@
 """
 
 from coverage import coverage
+from coveralls import Coveralls
 from glob import glob
 from junit2htmlreport.parser import Junit as JunitParser
 from nose2unitth.core import Converter as Nose2UnitthConverter
@@ -58,6 +59,8 @@ class BuildHelper(object):
         serv_tests_html_dir (:obj:`str`): server directory where HTML test history report should be saved
         serv_cov_html_dir (:obj:`str`): server directory where HTML coverage report should be saved
         serv_docs_build_html_dir (:obj:`str`): server directory where generated HTML documentation should be saved
+
+        coveralls_token (:obj:`str`): coveralls token
 
         build_artifacts_dir (:obj:`str`): directory which CircleCI will record with each build
         build_test_dir (:obj:`str`): directory where CircleCI will look for test results
@@ -155,11 +158,14 @@ class BuildHelper(object):
         self.proj_docs_static_dir = BuildHelper.DEFAULT_PROJ_DOCS_STATIC_DIR
         self.proj_docs_source_dir = BuildHelper.DEFAULT_PROJ_DOCS_SOURCE_DIR
         self.proj_docs_build_html_dir = BuildHelper.DEFAULT_PROJ_DOCS_BUILD_HTML_DIR
+
         self.serv_tests_nose_dir = BuildHelper.DEFAULT_SERV_TESTS_NOSE_DIR
         self.serv_tests_unitth_dir = BuildHelper.DEFAULT_SERV_TESTS_UNITTH_DIR
         self.serv_tests_html_dir = BuildHelper.DEFAULT_SERV_TESTS_HTML_DIR
         self.serv_cov_html_dir = BuildHelper.DEFAULT_SERV_COV_HTML_DIR
         self.serv_docs_build_html_dir = BuildHelper.DEFAULT_SERV_DOCS_BUILD_HTML_DIR
+
+        self.coveralls_token = os.getenv('COVERALLS_REPO_TOKEN')
 
         self.build_artifacts_dir = os.getenv('CIRCLE_ARTIFACTS')
         self.build_test_dir = os.getenv('CIRCLE_TEST_REPORTS')
@@ -448,8 +454,8 @@ class BuildHelper(object):
 
     def upload_coverage_report_to_coveralls(self):
         """ Upload coverage report to Coveralls """
-        if os.getenv('COVERALLS_REPO_TOKEN'):
-            subprocess.check_call('coveralls')
+        if self.coveralls_token:
+            Coveralls(True, repo_token=self.coveralls_token, service_name='circle-ci', service_job_id=self.build_num).wear()
 
     def upload_html_coverage_report_to_lab_server(self):
         """ Upload HTML coverage report to lab server """
