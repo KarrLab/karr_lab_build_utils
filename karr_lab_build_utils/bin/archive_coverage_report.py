@@ -12,7 +12,6 @@ def main():
     """ Command line program to archive a coverage report:
     * Copy report to artifacts directory
     * Upload report to Coveralls
-    * Upload HTML report to lab server
     """
 
     parser = argparse.ArgumentParser(description='Archive coverage report')

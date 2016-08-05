@@ -379,35 +379,17 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             if os.path.isfile(abs_cov_filename):
                 os.remove(abs_cov_filename)
 
-            with iocapture.capture() as captured:
-                with sftp.cd(os.path.join(buildHelper.code_server_base_dir, buildHelper.project_name)):
-                    if sftp.isfile(os.path.join(buildHelper.serv_cov_html_dir, 'index.html')):
-                        sftp.remove(os.path.join(buildHelper.serv_cov_html_dir, 'index.html'))
-
             buildHelper.archive_coverage_report()
 
             self.assertTrue(os.path.isfile(abs_cov_filename))
-
-            with iocapture.capture() as captured:
-                with sftp.cd(os.path.join(buildHelper.code_server_base_dir, buildHelper.project_name)):
-                    self.assertTrue(sftp.isfile(os.path.join(buildHelper.serv_cov_html_dir, 'index.html')))
 
         if self.TEST_CLI:
             if os.path.isfile(abs_cov_filename):
                 os.remove(abs_cov_filename)
 
-            with iocapture.capture() as captured:
-                with sftp.cd(os.path.join(buildHelper.code_server_base_dir, buildHelper.project_name)):
-                    if sftp.isfile(os.path.join(buildHelper.serv_cov_html_dir, 'index.html')):
-                        sftp.remove(os.path.join(buildHelper.serv_cov_html_dir, 'index.html'))
-
             self.call_cli('archive_coverage_report')
 
             self.assertTrue(os.path.isfile(abs_cov_filename))
-
-            with iocapture.capture() as captured:
-                with sftp.cd(os.path.join(buildHelper.code_server_base_dir, buildHelper.project_name)):
-                    self.assertTrue(sftp.isfile(os.path.join(buildHelper.serv_cov_html_dir, 'index.html')))
 
     @unittest.skip("Redundant with test_archive_coverage_report")
     def test_copy_coverage_report_to_artifacts_directory(self):

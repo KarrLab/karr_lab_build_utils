@@ -14,7 +14,7 @@ def main():
     * Generate HTML test history reports
     * Generate HTML coverage reports
     * Generate HTML API documentation
-    * Archive reports to lab server and Coveralls
+    * Archive coverage reports to Coveralls
     """
 
     parser = argparse.ArgumentParser(description='Make and archive reports')

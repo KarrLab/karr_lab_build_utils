@@ -302,7 +302,7 @@ class BuildHelper(object):
         * Generate HTML test history reports
         * Generate HTML coverage reports
         * Generate HTML API documentation
-        * Archive reports to lab server and Coveralls
+        * Archive reports to Coveralls
         """
 
         """ test reports """
@@ -320,12 +320,8 @@ class BuildHelper(object):
         self.archive_test_reports()
 
         """ coverage """
-        # Create HTML report
-        self.make_html_coverage_report()
-
         # Copy coverage report to artifacts directory
         # Upload coverage report to Coveralls
-        # Upload coverage report to lab server
         self.archive_coverage_report()
 
         """ documentation """
@@ -434,7 +430,6 @@ class BuildHelper(object):
         """ Archive coverage report:
         * Copy report to artifacts directory
         * Upload report to Coveralls
-        * Upload HTML report to lab server
         """
 
         # copy to artifacts directory
@@ -442,9 +437,6 @@ class BuildHelper(object):
 
         # upload to Coveralls
         self.upload_coverage_report_to_coveralls()
-
-        # upload to lab server
-        self.upload_html_coverage_report_to_lab_server()
 
     def copy_coverage_report_to_artifacts_directory(self):
         """ Copy coverage report to CircleCI artifacts directory """
