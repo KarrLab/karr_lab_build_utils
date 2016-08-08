@@ -2,26 +2,25 @@ machine:
   python:
     version: 2.7.11
   post:
-    - pip install wheel    
-    - | 
-        cd $CIRCLE_PROJECT_REPONAME
-        python setup.py bdist_wheel
-        pip install -I dist/Karr_Lab_build_utils-*-py2.py3-none-any.whl
-        karr-lab-build-utils-setup-machine
-        pip3 install -I dist/Karr_Lab_build_utils-*-py2.py3-none-any.whl
+    - pyenv global 2.7.11 3.5.1
 dependencies:
   pre:
     - | 
-        pip uninstall -y junit2html
-        pip3 uninstall -y junit2html
         git clone https://github.com/jonrkarr/junit2html.git ~/junit2html
         cd ~/junit2html
         python setup.py sdist
-        pip install -I dist/junit2html-*.tar.gz
+        pip2 install -I dist/junit2html-*.tar.gz
         pip3 install -I dist/junit2html-*.tar.gz
-    - karr-lab-build-utils-install-requirements
+    - python setup.py sdist
+    - pip2 install dist/Karr-Lab-build-utils-*.tar.gz
+    - pip3 install dist/Karr-Lab-build-utils-*.tar.gz
+    - pip2 install Karr-Lab-build-utils
+    - pip3 install Karr-Lab-build-utils
+    - karr-lab-build-utils-2 install-requirements
+    - karr-lab-build-utils-3 install-requirements
 test:
   override:
-    - karr-lab-build-utils-run-tests --test_path tests --with_xml_report --with_coverage
+    - karr-lab-build-utils-2 run-tests tests --with-xunit --with-coverage
+    - karr-lab-build-utils-3 run-tests tests --with-xunit --with-coverage
   post:
-    - karr-lab-build-utils-make-and-archive-reports
+    - karr-lab-build-utils make-and-archive-reports
