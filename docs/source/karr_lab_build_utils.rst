@@ -1,13 +1,6 @@
 karr_lab_build_utils package
 ============================
 
-Subpackages
------------
-
-.. toctree::
-
-    karr_lab_build_utils.bin
-
 Submodules
 ----------
 
