@@ -2,6 +2,7 @@ cement
 coveralls
 coverage
 ftputil
+GitPython
 junit2html
 nose
 nose2unitth
