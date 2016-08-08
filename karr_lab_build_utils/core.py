@@ -221,6 +221,9 @@ class BuildHelper(object):
             if self.build_test_dir:
                 shutil.copyfile(abs_nose_latest_filename, abs_nose_artifact_filename)
 
+        if with_coverage:
+            shutil.move('.coverage', '.coverage.{}'.format(py_v))
+
         if not result:
             sys.exit(1)
 
@@ -229,7 +232,8 @@ class BuildHelper(object):
         * Generate HTML test history reports
         * Generate HTML coverage reports
         * Generate HTML API documentation
-        * Archive reports to Coveralls
+        * Archive coverage report to Coveralls
+        * Archive HTML coverage report to lab sever
         """
 
         """ test reports """
@@ -246,8 +250,13 @@ class BuildHelper(object):
         self.archive_test_reports()
 
         """ coverage """
+        # Merge coverage reports
+        # Generate HTML report
         # Copy coverage report to artifacts directory
         # Upload coverage report to Coveralls
+        # Upload HTML coverage report to lab server
+        self.combine_coverage_reports()
+        self.make_html_coverage_report()
         self.archive_coverage_report()
 
         """ documentation """
@@ -334,13 +343,23 @@ class BuildHelper(object):
     ########################
     # Coverage reports
     ########################
+    def combine_coverage_reports(self):
+        data_paths = []
+        for name in glob('.coverage.*'):
+            data_path = tempfile.mktemp()
+            shutil.copyfile(name, data_path)
+            data_paths.append(data_path)
+
+        coverage_doc = coverage()
+        coverage_doc.combine(data_paths=data_paths)
+        coverage_doc.save()
 
     def make_html_coverage_report(self):
         """ Make HTML coverage report from `proj_cov_filename` """
         if not os.path.isdir(self.proj_cov_html_dir):
             os.makedirs(self.proj_cov_html_dir)
         map(os.remove, glob(os.path.join(self.proj_cov_html_dir, '*')))
-        coverage_doc = coverage()
+        coverage_doc = coverage(data_file='.coverage')
         coverage_doc.load()
         coverage_doc.html_report(directory=self.proj_cov_html_dir)
 
@@ -348,6 +367,7 @@ class BuildHelper(object):
         """ Archive coverage report:
         * Copy report to artifacts directory
         * Upload report to Coveralls
+        * Upload HTML report to lab server
         """
 
         # copy to artifacts directory
@@ -362,7 +382,8 @@ class BuildHelper(object):
     def copy_coverage_report_to_artifacts_directory(self):
         """ Copy coverage report to CircleCI artifacts directory """
         if self.build_artifacts_dir:
-            shutil.copyfile(self.proj_cov_filename, os.path.join(self.build_artifacts_dir, self.proj_cov_filename))
+            for name in glob('.coverage.*'):
+                shutil.copyfile(name, os.path.join(self.build_artifacts_dir, name))
 
     def upload_coverage_report_to_coveralls(self):
         """ Upload coverage report to Coveralls """

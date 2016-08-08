@@ -18,6 +18,7 @@ class BaseController(CementBaseController):
         """ Archive a coverage report:
         * Copy report to artifacts directory
         * Upload report to Coveralls
+        * Upload HTML report to lab server
         """
         buildHelper = BuildHelper()
         buildHelper.archive_coverage_report()
@@ -37,6 +38,12 @@ class BaseController(CementBaseController):
         """
         buildHelper = BuildHelper()
         buildHelper.archive_test_reports()
+
+    @expose(help='Combine coverage reports (.coverage.*) into a single file (.coverage)')
+    def combine_coverage_reports(self):
+        """ Combine coverage reports """
+        buildHelper = BuildHelper()
+        buildHelper.combine_coverage_reports()
 
     @expose(help='Copy coverage report to CircleCI artifacts directory')
     def copy_coverage_report_to_artifacts_directory(self):
@@ -62,7 +69,8 @@ class BaseController(CementBaseController):
         * Generate HTML test history reports
         * Generate HTML coverage reports
         * Generate HTML API documentation
-        * Archive coverage reports to Coveralls
+        * Archive coverage report to Coveralls
+        * Archive HTML coverage report to lab server
         """
         buildHelper = BuildHelper()
         buildHelper.make_and_archive_reports()

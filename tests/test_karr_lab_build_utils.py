@@ -57,7 +57,8 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         buildHelper = self.construct_build_helper()
 
         """ test API """
-        latest_full_filename = os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(buildHelper.proj_tests_nose_latest_filename, buildHelper.get_python_version()))
+        latest_full_filename = os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(
+            buildHelper.proj_tests_nose_latest_filename, buildHelper.get_python_version()))
         if os.path.isfile(latest_full_filename):
             os.remove(latest_full_filename)
         if os.path.isfile(buildHelper.proj_cov_filename):
@@ -67,7 +68,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                               with_xunit=True, with_coverage=True)
 
         self.assertTrue(os.path.isfile(latest_full_filename))
-        self.assertTrue(os.path.isfile(buildHelper.proj_cov_filename))
+        self.assertTrue(os.path.isfile('.coverage.{}'.format(buildHelper.get_python_version())))
 
         """ test CLI """
         argv = ['run-tests', TestKarrLabBuildUtils.DUMMY_TEST, '--with-xunit', '--with-coverage']
@@ -84,11 +85,13 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         py_v = buildHelper.get_python_version()
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(buildHelper.proj_tests_nose_latest_filename, py_v)),
+            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(
+                buildHelper.proj_tests_nose_latest_filename, py_v)),
             os.path.join(buildHelper.proj_tests_nose_dir, '{0:d}.{1:s}.xml'.format(10000000000000001, py_v))
         )
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(buildHelper.proj_tests_nose_latest_filename, py_v)),
+            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(
+                buildHelper.proj_tests_nose_latest_filename, py_v)),
             os.path.join(buildHelper.proj_tests_nose_dir, '{0:d}.{1:s}.xml'.format(10000000000000002, py_v))
         )
 
@@ -117,12 +120,16 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         for report_filename in glob(os.path.join(buildHelper.proj_tests_nose_dir, "[0-9]*.*.xml")):
             os.remove(report_filename)
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(buildHelper.proj_tests_nose_latest_filename, buildHelper.get_python_version())),
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:d}.{1:s}.xml'.format(10000000000000001, buildHelper.get_python_version()))
+            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(
+                buildHelper.proj_tests_nose_latest_filename, buildHelper.get_python_version())),
+            os.path.join(buildHelper.proj_tests_nose_dir, '{0:d}.{1:s}.xml'.format(
+                10000000000000001, buildHelper.get_python_version()))
         )
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(buildHelper.proj_tests_nose_latest_filename, buildHelper.get_python_version())),
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:d}.{1:s}.xml'.format(10000000000000002, buildHelper.get_python_version()))
+            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(
+                buildHelper.proj_tests_nose_latest_filename, buildHelper.get_python_version())),
+            os.path.join(buildHelper.proj_tests_nose_dir, '{0:d}.{1:s}.xml'.format(
+                10000000000000002, buildHelper.get_python_version()))
         )
 
         """ test API """
@@ -153,22 +160,25 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         for report_filename in glob(os.path.join(buildHelper.proj_tests_nose_dir, "[0-9]*.*.xml")):
             os.remove(report_filename)
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(buildHelper.proj_tests_nose_latest_filename, py_v)),
+            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(
+                buildHelper.proj_tests_nose_latest_filename, py_v)),
             os.path.join(buildHelper.proj_tests_nose_dir, '{0:d}.{1:s}.xml'.format(buildHelper.build_num, py_v))
         )
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(buildHelper.proj_tests_nose_latest_filename, py_v)),
+            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(
+                buildHelper.proj_tests_nose_latest_filename, py_v)),
             os.path.join(buildHelper.proj_tests_nose_dir, '{0:d}.{1:s}.xml'.format(10000000000000001, py_v))
         )
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(buildHelper.proj_tests_nose_latest_filename, py_v)),
+            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(
+                buildHelper.proj_tests_nose_latest_filename, py_v)),
             os.path.join(buildHelper.proj_tests_nose_dir, '{0:d}.{1:s}.xml'.format(10000000000000002, py_v))
         )
         buildHelper.make_test_history_report()
 
-        """ test API """        
+        """ test API """
         buildHelper.archive_test_reports()
-        
+
         """ test CLI """
         with KarrLabBuildUtilsCli(argv=['archive-test-reports']) as app:
             app.run()
@@ -183,15 +193,18 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         for report_filename in glob(os.path.join(buildHelper.proj_tests_nose_dir, "[0-9]*.*.xml")):
             os.remove(report_filename)
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(buildHelper.proj_tests_nose_latest_filename, py_v)),
+            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(
+                buildHelper.proj_tests_nose_latest_filename, py_v)),
             os.path.join(buildHelper.proj_tests_nose_dir, '{0:d}.{1:s}.xml'.format(buildHelper.build_num, py_v))
         )
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(buildHelper.proj_tests_nose_latest_filename, py_v)),
+            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(
+                buildHelper.proj_tests_nose_latest_filename, py_v)),
             os.path.join(buildHelper.proj_tests_nose_dir, '{0:d}.{1:s}.xml'.format(10000000000000001, py_v))
         )
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(buildHelper.proj_tests_nose_latest_filename, py_v)),
+            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(
+                buildHelper.proj_tests_nose_latest_filename, py_v)),
             os.path.join(buildHelper.proj_tests_nose_dir, '{0:d}.{1:s}.xml'.format(10000000000000002, py_v))
         )
         buildHelper.make_test_history_report()
@@ -199,30 +212,70 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         """ test API """
         with buildHelper.get_connection_to_lab_server() as ftp:
             if ftp.path.isfile(ftp.path.join(buildHelper.serv_tests_nose_dir, '{0:d}.{1:s}.xml'.format(buildHelper.build_num, py_v))):
-                ftp.remove(ftp.path.join(buildHelper.serv_tests_nose_dir, '{0:d}.{1:s}.xml'.format(buildHelper.build_num, py_v)))
+                ftp.remove(ftp.path.join(buildHelper.serv_tests_nose_dir,
+                                         '{0:d}.{1:s}.xml'.format(buildHelper.build_num, py_v)))
 
             if ftp.path.isfile(ftp.path.join(buildHelper.serv_tests_unitth_dir, '{0:d}.{1:s}'.format(buildHelper.build_num, py_v), 'index.html')):
-                ftp.remove(ftp.path.join(buildHelper.serv_tests_unitth_dir, '{0:d}.{1:s}'.format(buildHelper.build_num, py_v), 'index.html'))
+                ftp.remove(ftp.path.join(buildHelper.serv_tests_unitth_dir,
+                                         '{0:d}.{1:s}'.format(buildHelper.build_num, py_v), 'index.html'))
 
             if ftp.path.isfile(ftp.path.join(buildHelper.serv_tests_html_dir, 'index.html')):
                 ftp.remove(ftp.path.join(buildHelper.serv_tests_html_dir, 'index.html'))
 
-        buildHelper.upload_test_reports_to_lab_server()        
+        buildHelper.upload_test_reports_to_lab_server()
 
         with buildHelper.get_connection_to_lab_server() as ftp:
             self.assertTrue(ftp.path.isfile(ftp.path.join(
-                buildHelper.serv_tests_nose_dir, '{0:d}.{1:s}.xml'.format(buildHelper.build_num, py_v))))            
-            self.assertTrue(ftp.path.isfile(ftp.path.join(buildHelper.serv_tests_unitth_dir, '{0:d}.{1:s}'.format(buildHelper.build_num, py_v), 'index.html')))
+                buildHelper.serv_tests_nose_dir, '{0:d}.{1:s}.xml'.format(buildHelper.build_num, py_v))))
+            self.assertTrue(ftp.path.isfile(ftp.path.join(buildHelper.serv_tests_unitth_dir,
+                                                          '{0:d}.{1:s}'.format(buildHelper.build_num, py_v), 'index.html')))
             self.assertTrue(ftp.path.isfile(ftp.path.join(buildHelper.serv_tests_html_dir, 'index.html')))
 
         """ test CLI """
         with KarrLabBuildUtilsCli(argv=['upload-test-reports-to-lab-server']) as app:
             app.run()
 
+    def combine_coverage_reports(self):
+        for name in glob('.coverage*'):
+            os.remove(name)
+
+        buildHelper = self.construct_build_helper()
+        buildHelper.run_tests(test_path='tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test',
+                              with_xunit=True, with_coverage=True)
+        shutil.move('.coverage.{}'.format(buildHelper.get_python_version()), '.coverage.1')
+        shutil.copyfile('.coverage.1', '.coverage.2')
+
+        """ test API """
+        if os.path.isfile('.coverage'):
+            os.remove('.coverage')
+        self.assertTrue(os.path.isfile('.coverage.1'))
+        self.assertTrue(os.path.isfile('.coverage.2'))
+
+        buildHelper.combine_coverage_reports()
+
+        self.assertTrue(os.path.isfile('.coverage'))
+        self.assertTrue(os.path.isfile('.coverage.1'))
+        self.assertTrue(os.path.isfile('.coverage.2'))
+
+        """ test CLI """
+        if os.path.isfile('.coverage'):
+            os.remove('.coverage')
+        self.assertTrue(os.path.isfile('.coverage.1'))
+        self.assertTrue(os.path.isfile('.coverage.2'))
+
+        with KarrLabBuildUtilsCli(argv=['combine-coverage-reports']) as app:
+            app.run()
+
+        self.assertTrue(os.path.isfile('.coverage'))
+        self.assertTrue(os.path.isfile('.coverage.1'))
+        self.assertTrue(os.path.isfile('.coverage.2'))
+
+
     def test_make_html_coverage_report(self):
         buildHelper = self.construct_build_helper()
         buildHelper.run_tests(test_path='tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test',
                               with_xunit=True, with_coverage=True)
+        shutil.move('.coverage.{}'.format(buildHelper.get_python_version()), '.coverage')
 
         """ test API """
         if os.path.isdir(buildHelper.proj_cov_html_dir):
@@ -241,17 +294,11 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         buildHelper.run_tests(test_path='tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test',
                               with_xunit=True, with_coverage=True)
 
+        buildHelper.combine_coverage_reports()
         buildHelper.make_html_coverage_report()
 
-        abs_cov_filename = os.path.join(buildHelper.build_artifacts_dir, buildHelper.proj_cov_filename)
-
         """ test API """
-        if os.path.isfile(abs_cov_filename):
-            os.remove(abs_cov_filename)
-
         buildHelper.archive_coverage_report()
-
-        self.assertTrue(os.path.isfile(abs_cov_filename))
 
         """ test CLI """
         with KarrLabBuildUtilsCli(argv=['archive-coverage-report']) as app:
@@ -262,15 +309,19 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         buildHelper.run_tests(test_path='tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test',
                               with_xunit=True, with_coverage=True)
 
-        abs_cov_filename = os.path.join(buildHelper.build_artifacts_dir, buildHelper.proj_cov_filename)
+        abs_cov_filename = os.path.join(buildHelper.build_artifacts_dir, '.coverage')
+        abs_cov_filename_v = os.path.join(buildHelper.build_artifacts_dir, '.coverage.{}'.format(buildHelper.get_python_version()))
 
         """ test API """
         if os.path.isfile(abs_cov_filename):
             os.remove(abs_cov_filename)
+        if os.path.isfile(abs_cov_filename_v):
+            os.remove(abs_cov_filename_v)
 
         buildHelper.copy_coverage_report_to_artifacts_directory()
 
-        self.assertTrue(os.path.isfile(abs_cov_filename))
+        self.assertFalse(os.path.isfile(abs_cov_filename))
+        self.assertTrue(os.path.isfile(abs_cov_filename_v))
 
         """ test CLI """
         with KarrLabBuildUtilsCli(argv=['copy-coverage-report-to-artifacts-directory']) as app:
@@ -281,7 +332,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         buildHelper.run_tests(test_path='tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test',
                               with_xunit=True, with_coverage=True)
 
-        buildHelper.make_html_coverage_report()
+        shutil.move('.coverage.{}'.format(buildHelper.get_python_version()), '.coverage')
 
         """ test API """
         buildHelper.upload_coverage_report_to_coveralls()
@@ -295,6 +346,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         buildHelper.run_tests(test_path='tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test',
                               with_xunit=True, with_coverage=True)
 
+        shutil.move('.coverage.{}'.format(buildHelper.get_python_version()), '.coverage')
         buildHelper.make_html_coverage_report()
 
         """ test API """
