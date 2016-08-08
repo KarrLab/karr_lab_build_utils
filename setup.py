@@ -1,5 +1,6 @@
 from setuptools import setup, find_packages
 import os
+import sys
 
 # version
 version = '0.0.3'
@@ -30,6 +31,9 @@ setup(
         'Programming Language :: Python',
     ],
     entry_points={
-        'console_scripts': ['karr-lab-build-utils = karr_lab_build_utils.__main__:main'],
+        'console_scripts': [
+            'karr-lab-build-utils = karr_lab_build_utils.__main__:main',
+            'karr-lab-build-utils-{:d} = karr_lab_build_utils.__main__:main'.format(sys.version_info[0]),
+            ],
     },
 )
