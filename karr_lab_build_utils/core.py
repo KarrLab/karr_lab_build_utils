@@ -15,6 +15,7 @@ from nose2unitth.core import Converter as Nose2UnitthConverter
 from sphinx import build_main as sphinx_build
 from sphinx.apidoc import main as sphinx_apidoc
 from unitth.core import UnitTH
+import git
 import nose
 import os
 import pip
@@ -133,6 +134,12 @@ class BuildHelper(object):
         self.code_server_base_dir = os.getenv('CODE_SERVER_BASE_DIR', BuildHelper.DEFAULT_CODE_SERVER_BASE_DIR)
 
         self.project_name = os.getenv('CIRCLE_PROJECT_REPONAME', '')
+        if not self.project_name:
+            try:
+                repo = git.Repo('.')
+                self.project_name, _ = os.path.splitext(os.path.basename(repo.remote().url))
+            except git.exc.InvalidGitRepositoryError as err:
+                pass
         self.build_num = int(float(os.getenv('CIRCLE_BUILD_NUM', 0)))
         self.package_dir = self.project_name.lower().replace('-', '_')
 
@@ -198,7 +205,6 @@ class BuildHelper(object):
         py_v = BuildHelper.get_python_version()
         abs_nose_latest_filename = os.path.join(
             self.proj_tests_nose_dir, '{0}.{1}.xml'.format(self.proj_tests_nose_latest_filename, py_v))
-        abs_nose_artifact_filename = os.path.join(self.build_test_dir, '{0}.{1}.xml'.format('nose', py_v))
 
         argv = ['nosetests', test_path]
 
@@ -217,9 +223,9 @@ class BuildHelper(object):
 
         result = nose.run(argv=argv)
 
-        if with_xunit:
-            if self.build_test_dir:
-                shutil.copyfile(abs_nose_latest_filename, abs_nose_artifact_filename)
+        if with_xunit and self.build_test_dir:
+            abs_nose_artifact_filename = os.path.join(self.build_test_dir, '{0}.{1}.xml'.format('nose', py_v))
+            shutil.copyfile(abs_nose_latest_filename, abs_nose_artifact_filename)
 
         if with_coverage:
             shutil.move('.coverage', '.coverage.{}'.format(py_v))
@@ -420,7 +426,7 @@ class BuildHelper(object):
         # build HTML documentation
         result = sphinx_build(['sphinx-build', self.proj_docs_dir, self.proj_docs_build_html_dir])
         if result != 0:
-            sys.exit(result)        
+            sys.exit(result)
 
     def archive_documentation(self):
         """ Archive documentation:
