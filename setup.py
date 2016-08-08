@@ -12,7 +12,7 @@ setup(
     version=version,
     description="Karr Lab build utilities",
     url="https://github.com/KarrLab/Karr-Lab-build-utils",
-    download_url='https://github.com/KarrLab/Karr-Lab-build-utils/tarball/%s' % version,
+    download_url='https://github.com/KarrLab/Karr-Lab-build-utils/tarball/{}'.format(version),
     author="Jonathan Karr",
     author_email="jonrkarr@gmail.com",
     license="MIT",

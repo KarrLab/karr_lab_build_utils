@@ -12,12 +12,13 @@ from ftputil import FTPHost
 from glob import glob
 from junit2htmlreport.parser import Junit as JunitParser
 from nose2unitth.core import Converter as Nose2UnitthConverter
+from sphinx import build_main as sphinx_build
+from sphinx.apidoc import main as sphinx_apidoc
 from unitth.core import UnitTH
 import nose
 import os
 import pip
 import shutil
-import sphinx
 import subprocess
 import sys
 import tempfile
@@ -71,7 +72,7 @@ class BuildHelper(object):
     DEFAULT_CODE_SERVER_USERNAME = 'karrlab_code'
     # :obj:`str`: default username for server where reports should be uploaded
 
-    DEFAULT_CODE_SERVER_BASE_DIR = '/home/karrlab_code/code.karrlab.org'
+    DEFAULT_CODE_SERVER_BASE_DIR = '/code.karrlab.org'
     # :obj:`str`: default base directory on server where reports should be uploaded
 
     DEFAULT_PROJ_TESTS_DIR = 'tests'
@@ -194,8 +195,10 @@ class BuildHelper(object):
             :obj:`BuildHelperError`: If package directory not set
         """
 
-        abs_nose_latest_filename = os.path.join(self.proj_tests_nose_dir, self.proj_tests_nose_latest_filename + '.xml')
-        abs_nose_artifact_filename = os.path.join(self.build_test_dir, 'nose.xml')
+        py_v = BuildHelper.get_python_version()
+        abs_nose_latest_filename = os.path.join(
+            self.proj_tests_nose_dir, '{0}.{1}.xml'.format(self.proj_tests_nose_latest_filename, py_v))
+        abs_nose_artifact_filename = os.path.join(self.build_test_dir, '{0}.{1}.xml'.format('nose', py_v))
 
         argv = ['nosetests', test_path]
 
@@ -232,10 +235,9 @@ class BuildHelper(object):
         """ test reports """
         # create directory with test result history
         self.download_nose_test_report_history_from_lab_server()
-        shutil.copyfile(
-            os.path.join(self.proj_tests_nose_dir, '{}.xml'.format(self.proj_tests_nose_latest_filename)),
-            os.path.join(self.proj_tests_nose_dir, "{:d}.xml".format(self.build_num))
-        )
+
+        for file in glob(os.path.join(self.proj_tests_nose_dir, '{0}.{1}.xml'.format(self.proj_tests_nose_latest_filename, '*'))):
+            shutil.copyfile(file, file.replace(self.proj_tests_nose_latest_filename, str(self.build_num)))
 
         # make report of test history
         self.make_test_history_report()
@@ -261,7 +263,7 @@ class BuildHelper(object):
 
         if not os.path.isdir(self.proj_tests_nose_dir):
             os.makedirs(self.proj_tests_nose_dir)
-        for report_filename in glob(os.path.join(self.proj_tests_nose_dir, "[0-9]*.xml")):
+        for report_filename in glob(os.path.join(self.proj_tests_nose_dir, "[0-9]*.*.xml")):
             os.remove(report_filename)
 
         with self.get_connection_to_lab_server() as ftp:
@@ -282,18 +284,18 @@ class BuildHelper(object):
                 os.remove(full_path)
 
         # Make XML and HTML test reports that are readable UnitTH
-        for build_file_path in glob(os.path.join(self.proj_tests_nose_dir, "[0-9]*.xml")):
+        for build_file_path in glob(os.path.join(self.proj_tests_nose_dir, "[0-9]*.*.xml")):
             build_base_name = os.path.basename(build_file_path)
-            build_num = os.path.splitext(build_base_name)[0]
+            build_num_py_v = os.path.splitext(build_base_name)[0]
 
             # Split nose-style XML report into UnitTH-style reports for each package
-            if not os.path.isdir(os.path.join(self.proj_tests_unitth_dir, build_num)):
-                os.makedirs(os.path.join(self.proj_tests_unitth_dir, build_num))
+            if not os.path.isdir(os.path.join(self.proj_tests_unitth_dir, build_num_py_v)):
+                os.makedirs(os.path.join(self.proj_tests_unitth_dir, build_num_py_v))
 
-            Nose2UnitthConverter.run(build_file_path, os.path.join(self.proj_tests_unitth_dir, build_num))
+            Nose2UnitthConverter.run(build_file_path, os.path.join(self.proj_tests_unitth_dir, build_num_py_v))
 
             # Make HTML report from nose-style test XML report
-            with open(os.path.join(os.path.join(self.proj_tests_unitth_dir, build_num, 'index.html')), 'wb') as html_file:
+            with open(os.path.join(os.path.join(self.proj_tests_unitth_dir, build_num_py_v, 'index.html')), 'wb') as html_file:
                 html_file.write(JunitParser(build_file_path).html().encode('utf-8'))
 
         # Make HTML test history report
@@ -320,14 +322,14 @@ class BuildHelper(object):
             if not ftp.path.isdir(self.serv_tests_nose_dir):
                 ftp.makedirs(self.serv_tests_nose_dir)
 
-            ftp.upload(os.path.join(self.proj_tests_nose_dir, '%d.xml' % self.build_num),
-                       ftp.path.join(self.serv_tests_nose_dir, '%d.xml' % self.build_num))
-            self.upload_dir_to_lab_server(ftp,
-                                          os.path.join(self.proj_tests_unitth_dir, '%d' % self.build_num),
-                                          ftp.path.join(self.serv_tests_unitth_dir, '%d' % self.build_num))
-            self.upload_dir_to_lab_server(ftp,
-                                          self.proj_tests_html_dir,
-                                          self.serv_tests_html_dir)
+            for name in glob(os.path.join(self.proj_tests_nose_dir, '{0:d}.{1:s}.xml'.format(self.build_num, '*'))):
+                ftp.upload(name, self.serv_tests_nose_dir + name[len(self.proj_tests_nose_dir):])
+
+            for name in glob(os.path.join(self.proj_tests_unitth_dir, '{0:d}.{1:s}'.format(self.build_num, '*'))):
+                self.upload_dir_to_lab_server(ftp, name, self.serv_tests_unitth_dir +
+                                              name[len(self.proj_tests_unitth_dir):])
+
+            self.upload_dir_to_lab_server(ftp, self.proj_tests_html_dir, self.serv_tests_html_dir)
 
     ########################
     # Coverage reports
@@ -353,6 +355,9 @@ class BuildHelper(object):
 
         # upload to Coveralls
         self.upload_coverage_report_to_coveralls()
+
+        # upload to lab server
+        self.upload_html_coverage_report_to_lab_server()
 
     def copy_coverage_report_to_artifacts_directory(self):
         """ Copy coverage report to CircleCI artifacts directory """
@@ -389,12 +394,12 @@ class BuildHelper(object):
         # compile API documentation
         if not self.package_dir:
             raise BuildHelperError('Package directory not set')
-        sphinx.apidoc.main(argv=['sphinx-apidoc', '-f', '-o', self.proj_docs_source_dir, self.package_dir])
+        sphinx_apidoc(argv=['sphinx-apidoc', '-f', '-o', self.proj_docs_source_dir, self.package_dir])
 
         # build HTML documentation
-        result = sphinx.build_main(['sphinx-build', self.proj_docs_dir, self.proj_docs_build_html_dir])
+        result = sphinx_build(['sphinx-build', self.proj_docs_dir, self.proj_docs_build_html_dir])
         if result != 0:
-            sys.exit(result)
+            sys.exit(result)        
 
     def archive_documentation(self):
         """ Archive documentation:
@@ -481,6 +486,10 @@ class BuildHelper(object):
             :obj:`BuildHelperError`
         """
         raise BuildHelperError(err)
+
+    @staticmethod
+    def get_python_version():
+        return '{0[0]:d}.{0[1]:d}.{0[2]:d}'.format(sys.version_info)
 
 
 class BuildHelperError(Exception):
