@@ -173,16 +173,19 @@ class BuildHelper(object):
         """ Install requirements """
 
         # requirements for package
-        reqs = [str(ir.req) for ir in pip.req.parse_requirements('requirements.txt')]
+        with open('requirements.txt', 'r') as file:
+            reqs = [line.rstrip() for line in file.readlines()]
         pip.main(['install'] + reqs)
 
         # requirements for testing and documentation
         subprocess.check_call(['sudo', 'apt-get', 'install', 'libffi-dev'])
 
-        reqs = [str(ir.req) for ir in pip.req.parse_requirements(os.path.join(self.proj_tests_dir, 'requirements.txt'))]
+        with open(os.path.join(self.proj_tests_dir, 'requirements.txt'), 'r') as file:
+            reqs = [line.rstrip() for line in file.readlines()]
         pip.main(['install'] + reqs)
 
-        reqs = [str(ir.req) for ir in pip.req.parse_requirements(os.path.join(self.proj_docs_dir, 'requirements.txt'))]
+        with open(os.path.join(self.proj_docs_dir, 'requirements.txt'), 'r') as file:
+            reqs = [line.rstrip() for line in file.readlines()]
         pip.main(['install'] + reqs)
 
     ########################
