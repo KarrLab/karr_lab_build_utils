@@ -4,6 +4,7 @@
 #distribution files
 build/
 dist/
+*.egg-info
 
 # test reports
 tests/reports
