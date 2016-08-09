@@ -1,2 +1,12 @@
+configparser
+coverage
+coveralls
+ftputil
+GitPython
+junit2html
+karr_lab_build_utils
+nose
+nose2unitth
 Sphinx
 sphinx_rtd_theme
+unitth
