@@ -8,12 +8,14 @@ dependencies:
     - pip2 install git+git://github.com/jonrkarr/junit2html.git
     - pip3 install git+git://github.com/jonrkarr/junit2html.git
     - pip2 install -e .
-    - pip3 install -e .
     - karr-lab-build-utils-2 install-requirements
+    - pip3 install -e .
     - karr-lab-build-utils-3 install-requirements
 test:
   override:
+    - pip2 install -e .
     - karr-lab-build-utils-2 run-tests tests --with-xunit --with-coverage
+    - pip3 install -e .
     - karr-lab-build-utils-3 run-tests tests --with-xunit --with-coverage
   post:
     - karr-lab-build-utils make-and-archive-reports
