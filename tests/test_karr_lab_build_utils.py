@@ -235,7 +235,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with KarrLabBuildUtilsCli(argv=['upload-test-reports-to-lab-server']) as app:
             app.run()
 
-    def combine_coverage_reports(self):
+    def test_combine_coverage_reports(self):
         for name in glob('.coverage*'):
             os.remove(name)
 
@@ -417,4 +417,4 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             app.run()
 
     def test_dummy_test(self):
-        pass
+        buildHelper = self.construct_build_helper()

@@ -41,7 +41,6 @@ class BuildHelper(object):
 
         project_name (:obj:`str`): name of project, e.g. GitHub repository name
         build_num (:obj:`int`): CircleCI build number
-        package_dir (:obj:`str`): package directories to generate coverage reports for and document
 
         proj_tests_dir (:obj:`str`): local directory with test code
         proj_tests_nose_latest_filename (:obj:`str`): file name to store latest XML test report
@@ -141,7 +140,6 @@ class BuildHelper(object):
             except git.exc.InvalidGitRepositoryError as err:
                 pass
         self.build_num = int(float(os.getenv('CIRCLE_BUILD_NUM', 0)))
-        self.package_dir = self.project_name.lower().replace('-', '_')
 
         self.proj_tests_dir = BuildHelper.DEFAULT_PROJ_TESTS_DIR
         self.proj_tests_nose_latest_filename = BuildHelper.DEFAULT_PROJ_TESTS_NOSE_LATEST_FILENAME
@@ -213,25 +211,26 @@ class BuildHelper(object):
 
         if with_xunit:
             argv.append('--with-xunit')
-            argv.append('--xunit-file={}'.format(abs_nose_latest_filename))
+            
+            argv.append('--xunit-file')
+            argv.append(abs_nose_latest_filename)
 
             if not os.path.isdir(self.proj_tests_nose_dir):
                 os.makedirs(self.proj_tests_nose_dir)
 
         if with_coverage:
-            if not self.package_dir:
-                raise BuildHelperError('Package directory not set')
-            argv.append('--with-coverage')
-            argv.append('--cover-package={}'.format(self.package_dir))
+            cov = coverage(data_file='.coverage', data_suffix=py_v)
+            cov.start()
 
         result = nose.run(argv=argv)
+
+        if with_coverage:
+            cov.stop()
+            cov.save()
 
         if with_xunit and self.build_test_dir:
             abs_nose_artifact_filename = os.path.join(self.build_test_dir, '{0}.{1}.xml'.format('nose', py_v))
             shutil.copyfile(abs_nose_latest_filename, abs_nose_artifact_filename)
-
-        if with_coverage:
-            shutil.move('.coverage', '.coverage.{}'.format(py_v))
 
         if not result:
             sys.exit(1)
@@ -422,9 +421,12 @@ class BuildHelper(object):
             os.mkdir(self.proj_docs_static_dir)
 
         # compile API documentation
-        if not self.package_dir:
-            raise BuildHelperError('Package directory not set')
-        sphinx_apidoc(argv=['sphinx-apidoc', '-f', '-o', self.proj_docs_source_dir, self.package_dir])
+        from ConfigParser import ConfigParser
+        parser = ConfigParser()
+        parser.read('setup.cfg')
+        packages = parser.get('sphinx-apidocs', 'packages').strip().split('\n')
+        for package in packages:
+            sphinx_apidoc(argv=['sphinx-apidoc', '-f', '-o', self.proj_docs_source_dir, package])
 
         # build HTML documentation
         result = sphinx_build(['sphinx-build', self.proj_docs_dir, self.proj_docs_build_html_dir])
