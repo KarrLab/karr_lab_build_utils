@@ -270,6 +270,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.assertTrue(os.path.isfile('.coverage.1'))
         self.assertTrue(os.path.isfile('.coverage.2'))
 
+        # cleanup
+        os.remove('.coverage.1')
+        os.remove('.coverage.2')
+
 
     def test_make_html_coverage_report(self):
         buildHelper = self.construct_build_helper()
