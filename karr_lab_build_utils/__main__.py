@@ -1,6 +1,8 @@
 from cement.core.foundation import CementApp
 from cement.core.controller import CementBaseController, expose
 from karr_lab_build_utils.core import BuildHelper
+import karr_lab_build_utils
+import sys
 
 
 class BaseController(CementBaseController):
@@ -112,6 +114,11 @@ class BaseController(CementBaseController):
         """ Upload XML and HTML test reports to lab server """
         buildHelper = BuildHelper()
         buildHelper.upload_test_reports_to_lab_server()
+
+    @expose(help='Get version')
+    def get_version(self):
+        """ Get version """
+        print('{0:s} (Python {1[0]:d}.{1[1]:d}.{1[2]:d})'.format(karr_lab_build_utils.__version__, sys.version_info))
 
 
 class RunTestsController(CementBaseController):
