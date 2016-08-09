@@ -1,19 +1,17 @@
 from setuptools import setup, find_packages
+import karr_lab_build_utils
 import os
 import sys
-
-# version
-version = '0.0.4'
 
 # parse requirements.txt
 install_requires = [line.rstrip() for line in open('requirements.txt')]
 
 setup(
     name="Karr-Lab-build-utils",
-    version=version,
+    version=karr_lab_build_utils.__version__,
     description="Karr Lab build utilities",
     url="https://github.com/KarrLab/Karr-Lab-build-utils",
-    download_url='https://github.com/KarrLab/Karr-Lab-build-utils/tarball/{}'.format(version),
+    download_url='https://github.com/KarrLab/Karr-Lab-build-utils/tarball/{}'.format(karr_lab_build_utils.__version__),
     author="Jonathan Karr",
     author_email="jonrkarr@gmail.com",
     license="MIT",
