@@ -118,7 +118,8 @@ class BaseController(CementBaseController):
     @expose(help='Get version')
     def get_version(self):
         """ Get version """
-        print('{0:s} (Python {1[0]:d}.{1[1]:d}.{1[2]:d})'.format(karr_lab_build_utils.__version__, sys.version_info))
+        buildHelper = BuildHelper()
+        print(buildHelper.get_version())
 
 
 class RunTestsController(CementBaseController):

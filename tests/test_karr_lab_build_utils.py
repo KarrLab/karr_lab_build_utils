@@ -440,5 +440,17 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with KarrLabBuildUtilsCli(argv=['upload-documentation-to-lab-server']) as app:
                 app.run()
 
+    def test_get_version(self):
+        """ setup """
+        buildHelper = self.construct_build_helper()
+
+        """ test API """
+        buildHelper.get_version()
+
+        """ test CLI """
+        with self.construct_environment():
+            with KarrLabBuildUtilsCli(argv=['get-version']) as app:
+                app.run()
+
     def test_dummy_test(self):
         buildHelper = self.construct_build_helper()

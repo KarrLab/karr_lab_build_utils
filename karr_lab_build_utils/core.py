@@ -17,6 +17,7 @@ from sphinx import build_main as sphinx_build
 from sphinx.apidoc import main as sphinx_apidoc
 from unitth.core import UnitTH
 import git
+import karr_lab_build_utils
 import nose
 import os
 import pip
@@ -445,6 +446,9 @@ class BuildHelper(object):
 
         with self.get_connection_to_lab_server() as ftp:
             self.upload_dir_to_lab_server(ftp, self.proj_docs_build_html_dir, self.serv_docs_build_html_dir)
+
+    def get_version(self):
+        return '{0:s} (Python {1[0]:d}.{1[1]:d}.{1[2]:d})'.format(karr_lab_build_utils.__version__, sys.version_info)
 
     def get_connection_to_lab_server(self):
         """ Connect to lab server
