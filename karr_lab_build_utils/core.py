@@ -6,7 +6,7 @@
 :License: MIT
 """
 
-from ConfigParser import ConfigParser
+from configparser import ConfigParser
 from coverage import coverage
 from coveralls import Coveralls
 from ftputil import FTPHost
