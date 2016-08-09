@@ -6,6 +6,7 @@ import sys
 
 
 class BaseController(CementBaseController):
+    """ Base controller for command line application """
 
     class Meta:
         label = 'base'
@@ -123,7 +124,9 @@ class BaseController(CementBaseController):
 
 
 class RunTestsController(CementBaseController):
-    """ Run unit tests located at `test-path`. 
+    """ Controller for run_tests.
+
+    Run unit tests located at `test-path`. 
     Optionally, generate a coverage report. 
     Optionally, save the results to an XML file.
     """
@@ -150,7 +153,7 @@ class RunTestsController(CementBaseController):
 
 
 class App(CementApp):
-
+    """ Command line application """
     class Meta:
         label = 'karr-lab-build-utils'
         base_controller = 'base'
