@@ -6,6 +6,7 @@
 :License: MIT
 """
 
+from ConfigParser import ConfigParser
 from coverage import coverage
 from coveralls import Coveralls
 from ftputil import FTPHost
@@ -211,7 +212,7 @@ class BuildHelper(object):
 
         if with_xunit:
             argv.append('--with-xunit')
-            
+
             argv.append('--xunit-file')
             argv.append(abs_nose_latest_filename)
 
@@ -420,8 +421,7 @@ class BuildHelper(object):
         if not os.path.isdir(self.proj_docs_static_dir):
             os.mkdir(self.proj_docs_static_dir)
 
-        # compile API documentation
-        from ConfigParser import ConfigParser
+        # compile API documentation        
         parser = ConfigParser()
         parser.read('setup.cfg')
         packages = parser.get('sphinx-apidocs', 'packages').strip().split('\n')

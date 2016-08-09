@@ -1,4 +1,5 @@
 cement
+ConfigParser
 coveralls
 coverage
 ftputil
