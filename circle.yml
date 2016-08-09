@@ -7,12 +7,8 @@ dependencies:
   pre:
     - pip2 install git+git://github.com/jonrkarr/junit2html.git
     - pip3 install git+git://github.com/jonrkarr/junit2html.git
-    - pip2 install wheel
-    - pip3 install wheel
-    - python2 setup.py bdist_wheel
-    - python3 setup.py bdist_wheel
-    - pip2 install dist/Karr_Lab_build_utils-*-py2-none-any.whl
-    - pip3 install dist/Karr_Lab_build_utils-*-py3-none-any.whl
+    - pip2 install -e .
+    - pip3 install -e .
     - karr-lab-build-utils-2 install-requirements
     - karr-lab-build-utils-3 install-requirements
 test:

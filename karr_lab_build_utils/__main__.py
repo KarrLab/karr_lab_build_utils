@@ -1,7 +1,3 @@
-import os
-import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-
 from cement.core.foundation import CementApp
 from cement.core.controller import CementBaseController, expose
 from karr_lab_build_utils.core import BuildHelper
