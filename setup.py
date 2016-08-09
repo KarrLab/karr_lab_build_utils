@@ -3,7 +3,7 @@ import os
 import sys
 
 # version
-version = '0.0.3'
+version = '0.0.4'
 
 # parse requirements.txt
 install_requires = [line.rstrip() for line in open('requirements.txt')]
