@@ -61,19 +61,22 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     def test_run_tests(self):
         buildHelper = self.construct_build_helper()
 
+        py_v = buildHelper.get_python_version()
+
         """ test API """
-        latest_full_filename = os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(
-            buildHelper.proj_tests_nose_latest_filename, buildHelper.get_python_version()))
-        if os.path.isfile(latest_full_filename):
-            os.remove(latest_full_filename)
-        if os.path.isfile(buildHelper.proj_cov_filename):
-            os.remove(buildHelper.proj_cov_filename)
+        latest_results_filename = os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(
+            buildHelper.proj_tests_nose_latest_filename, py_v))
+        lastest_cov_filename = '.coverage.{}'.format(py_v)
+        if os.path.isfile(latest_results_filename):
+            os.remove(latest_results_filename)
+        if os.path.isfile(lastest_cov_filename):
+            os.remove(lastest_cov_filename)
 
         buildHelper.run_tests(test_path='tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test',
                               with_xunit=True, with_coverage=True)
 
-        self.assertTrue(os.path.isfile(latest_full_filename))
-        self.assertTrue(os.path.isfile('.coverage.{}'.format(buildHelper.get_python_version())))
+        self.assertTrue(os.path.isfile(latest_results_filename))
+        self.assertTrue(os.path.isfile(lastest_cov_filename))
 
         """ test CLI """
         argv = ['run-tests', TestKarrLabBuildUtils.DUMMY_TEST, '--with-xunit', '--with-coverage']
@@ -247,9 +250,6 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 app.run()
 
     def test_combine_coverage_reports(self):
-        for name in glob('.coverage*'):
-            os.remove(name)
-
         buildHelper = self.construct_build_helper()
         buildHelper.run_tests(test_path='tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test',
                               with_xunit=True, with_coverage=True)
