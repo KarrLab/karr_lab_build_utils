@@ -5,12 +5,8 @@ machine:
     - pyenv global 2.7.11 3.5.1
 dependencies:
   pre:
-    - | 
-        git clone https://github.com/jonrkarr/junit2html.git ~/junit2html
-        cd ~/junit2html
-        python setup.py sdist
-        pip2 install dist/junit2html-*.tar.gz
-        pip3 install dist/junit2html-*.tar.gz
+    - pip2 install git+git://github.com/jonrkarr/junit2html.git
+    - pip3 install git+git://github.com/jonrkarr/junit2html.git
     - pip2 install wheel
     - pip3 install wheel
     - python2 setup.py bdist_wheel
