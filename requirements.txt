@@ -1,4 +1,5 @@
 cement
+codeclimate-test-reporter
 configparser
 coveralls
 coverage

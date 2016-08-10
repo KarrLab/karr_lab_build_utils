@@ -2,6 +2,7 @@
 [![Documentation](https://readthedocs.org/projects/karr-lab-build-utils/badge/?version=latest)](http://karr-lab-build-utils.readthedocs.org)
 [![Test results](https://circleci.com/gh/KarrLab/Karr-Lab-build-utils.svg?style=shield)](https://circleci.com/gh/KarrLab/Karr-Lab-build-utils)
 [![Test coverage](https://coveralls.io/repos/github/KarrLab/Karr-Lab-build-utils/badge.svg)](https://coveralls.io/github/KarrLab/Karr-Lab-build-utils)
+[![Code analysis](https://codeclimate.com/github/KarrLab/Karr-Lab-build-utils/badges/gpa.svg)](https://codeclimate.com/github/KarrLab/Karr-Lab-build-utils)
 [![License](https://img.shields.io/github/license/KarrLab/Karr-Lab-build-utils.svg)](LICENSE)
 
 # Karr Lab build utilities

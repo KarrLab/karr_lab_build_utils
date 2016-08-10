@@ -6,6 +6,7 @@
 :License: MIT
 """
 
+from codeclimate_test_reporter.components.runner import Runner as CodeClimateRunner
 from configparser import ConfigParser
 from coverage import coverage
 from coveralls import Coveralls
@@ -33,7 +34,7 @@ class BuildHelper(object):
     * Generate HTML test history reports
     * Generate HTML coverage reports
     * Generate HTML API documentation
-    * Archive reports to lab server and Coveralls
+    * Archive reports to lab server, Coveralls, and Code Climate
 
     Attributes:
         code_server_hostname (:obj:`str`): hostname of server where reports should be uploaded
@@ -62,7 +63,8 @@ class BuildHelper(object):
         serv_cov_html_dir (:obj:`str`): server directory where HTML coverage report should be saved
         serv_docs_build_html_dir (:obj:`str`): server directory where generated HTML documentation should be saved
 
-        coveralls_token (:obj:`str`): coveralls token
+        coveralls_token (:obj:`str`): Coveralls token
+        code_climate_token (:obj:`str`): Code Climate token
 
         build_artifacts_dir (:obj:`str`): directory which CircleCI will record with each build
         build_test_dir (:obj:`str`): directory where CircleCI will look for test results
@@ -145,6 +147,7 @@ class BuildHelper(object):
         self.serv_docs_build_html_dir = BuildHelper.DEFAULT_SERV_DOCS_BUILD_HTML_DIR
 
         self.coveralls_token = os.getenv('COVERALLS_REPO_TOKEN')
+        self.code_climate_token = os.getenv('CODECLIMATE_REPO_TOKEN')
 
         self.build_artifacts_dir = os.getenv('CIRCLE_ARTIFACTS')
         self.build_test_dir = os.getenv('CIRCLE_TEST_REPORTS')
@@ -225,7 +228,7 @@ class BuildHelper(object):
         * Generate HTML test history reports
         * Generate HTML coverage reports
         * Generate HTML API documentation
-        * Archive coverage report to Coveralls
+        * Archive coverage report to Coveralls and Code Climate
         * Archive HTML coverage report to lab sever
         """
 
@@ -246,7 +249,7 @@ class BuildHelper(object):
         # Merge coverage reports
         # Generate HTML report
         # Copy coverage report to artifacts directory
-        # Upload coverage report to Coveralls
+        # Upload coverage report to Coveralls and Code Climate
         # Upload HTML coverage report to lab server
         self.combine_coverage_reports()
         self.make_html_coverage_report()
@@ -359,7 +362,7 @@ class BuildHelper(object):
     def archive_coverage_report(self):
         """ Archive coverage report:
         * Copy report to artifacts directory
-        * Upload report to Coveralls
+        * Upload report to Coveralls and Code Climate
         * Upload HTML report to lab server
         """
 
@@ -368,6 +371,9 @@ class BuildHelper(object):
 
         # upload to Coveralls
         self.upload_coverage_report_to_coveralls()
+
+        # upload to Code Climate
+        self.upload_coverage_report_to_code_climate()
 
         # upload to lab server
         self.upload_html_coverage_report_to_lab_server()
@@ -383,6 +389,17 @@ class BuildHelper(object):
         if self.coveralls_token:
             Coveralls(True, repo_token=self.coveralls_token,
                       service_name='circle-ci', service_job_id=self.build_num).wear()
+
+    def upload_coverage_report_to_code_climate(self):
+        """ Upload coverage report to Code Climate 
+
+        Raises:
+            :obj:`BuildHelperError`: If error uploading code coverage to Code Climate
+        """
+        if self.code_climate_token:
+            result = CodeClimateRunner(['--token', self.code_climate_token, '--file', '.coverage']).run()
+            if result != 0:
+                raise BuildHelperError('Error uploading coverage report to Code Climate')
 
     def upload_html_coverage_report_to_lab_server(self):
         """ Upload HTML coverage report to lab server """

@@ -24,6 +24,7 @@ else:
 class TestKarrLabBuildUtils(unittest.TestCase):
     PROJECT_NAME = 'Karr-Lab-build-utils'
     COVERALLS_REPO_TOKEN = ''
+    CODECLIMATE_REPO_TOKEN = ''
     DUMMY_TEST = 'tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test'
 
     @staticmethod
@@ -34,6 +35,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         env.set('CIRCLE_ARTIFACTS', tempfile.mkdtemp())
         env.set('CIRCLE_TEST_REPORTS', tempfile.mkdtemp())
         env.set('COVERALLS_REPO_TOKEN', TestKarrLabBuildUtils.COVERALLS_REPO_TOKEN)
+        env.set('CODECLIMATE_REPO_TOKEN', TestKarrLabBuildUtils.CODECLIMATE_REPO_TOKEN)
         if not os.getenv('CIRCLECI'):
             with open('tests/fixtures/CODE_SERVER_PASSWORD', 'r') as file:
                 env.set('CODE_SERVER_PASSWORD', file.read())
@@ -359,6 +361,21 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         """ test CLI """
         with self.construct_environment():
             with KarrLabBuildUtilsCli(argv=['upload-coverage-report-to-coveralls']) as app:
+                app.run()
+
+    def test_upload_coverage_report_to_code_climate(self):
+        buildHelper = self.construct_build_helper()
+        buildHelper.run_tests(test_path='tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test',
+                              with_xunit=True, with_coverage=True)
+
+        shutil.move('.coverage.{}'.format(buildHelper.get_python_version()), '.coverage')
+
+        """ test API """
+        buildHelper.upload_coverage_report_to_code_climate()
+
+        """ test CLI """
+        with self.construct_environment():
+            with KarrLabBuildUtilsCli(argv=['upload-coverage-report-to-code-climate']) as app:
                 app.run()
 
     def test_upload_html_coverage_report_to_lab_server(self):
