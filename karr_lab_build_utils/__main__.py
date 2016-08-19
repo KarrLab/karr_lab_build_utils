@@ -15,6 +15,7 @@ class BaseController(CementBaseController):
     @expose(help='Archive coverage report')
     def archive_coverage_report(self):
         """ Archive a coverage report:
+
         * Copy report to artifacts directory
         * Upload report to Coveralls and Code Climate
         * Upload HTML report to lab server
@@ -25,6 +26,7 @@ class BaseController(CementBaseController):
     @expose(help='Archive documentation')
     def archive_documentation(self):
         """ Archive documentation:
+
         * Upload documentation to lab server
         """
         buildHelper = BuildHelper()
@@ -33,6 +35,7 @@ class BaseController(CementBaseController):
     @expose(help='Archive test reports')
     def archive_test_reports(self):
         """ Archive test report:
+        
         * Upload XML and HTML test reports to lab server
         """
         buildHelper = BuildHelper()
@@ -64,7 +67,8 @@ class BaseController(CementBaseController):
 
     @expose(help='Make and archive reports')
     def make_and_archive_reports(self):
-        """ Make and archive reports;
+        """ Make and archive reports:
+        
         * Generate HTML test history reports
         * Generate HTML coverage reports
         * Generate HTML API documentation

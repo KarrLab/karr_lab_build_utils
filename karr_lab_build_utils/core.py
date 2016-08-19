@@ -30,6 +30,7 @@ import tempfile
 
 class BuildHelper(object):
     """ Utility class to help build projects:
+
     * Run tests
     * Generate HTML test history reports
     * Generate HTML coverage reports
@@ -224,7 +225,8 @@ class BuildHelper(object):
             sys.exit(1)
 
     def make_and_archive_reports(self):
-        """ Make and archive reports;
+        """ Make and archive reports:
+
         * Generate HTML test history reports
         * Generate HTML coverage reports
         * Generate HTML API documentation
@@ -315,6 +317,7 @@ class BuildHelper(object):
 
     def archive_test_reports(self):
         """ Archive test report:
+
         * Upload XML and HTML test reports to lab server
         """
 
@@ -361,6 +364,7 @@ class BuildHelper(object):
 
     def archive_coverage_report(self):
         """ Archive coverage report:
+
         * Copy report to artifacts directory
         * Upload report to Coveralls and Code Climate
         * Upload HTML report to lab server
@@ -436,6 +440,7 @@ class BuildHelper(object):
 
     def archive_documentation(self):
         """ Archive documentation:
+        
         * Upload documentation to lab server
         """
 
