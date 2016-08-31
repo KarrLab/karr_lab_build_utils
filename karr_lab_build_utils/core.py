@@ -18,7 +18,6 @@ from sphinx import build_main as sphinx_build
 from sphinx.apidoc import main as sphinx_apidoc
 from unitth.core import UnitTH
 import git
-import iocapture
 import karr_lab_build_utils
 import nose
 import os
