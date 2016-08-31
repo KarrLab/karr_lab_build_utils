@@ -18,6 +18,7 @@ from sphinx import build_main as sphinx_build
 from sphinx.apidoc import main as sphinx_apidoc
 from unitth.core import UnitTH
 import git
+import iocapture
 import karr_lab_build_utils
 import nose
 import os
@@ -162,7 +163,8 @@ class BuildHelper(object):
         # requirements for package
         with open('requirements.txt', 'r') as file:
             reqs = [line.rstrip() for line in file.readlines()]
-        pip.main(['install'] + reqs)
+        if pip.main(['install'] + reqs):
+            raise Exception('pip failure')
 
         # requirements for testing and documentation
         subprocess.check_call(['sudo', 'apt-get', 'install', 'libffi-dev'])
