@@ -359,7 +359,7 @@ class BuildHelper(object):
         if not os.path.isdir(self.proj_cov_html_dir):
             os.makedirs(self.proj_cov_html_dir)
         map(os.remove, glob(os.path.join(self.proj_cov_html_dir, '*')))
-        coverage_doc = coverage(data_file='.coverage')
+        coverage_doc = coverage(data_file='.coverage', config_file=True)
         coverage_doc.load()
         coverage_doc.html_report(directory=self.proj_cov_html_dir)
 
