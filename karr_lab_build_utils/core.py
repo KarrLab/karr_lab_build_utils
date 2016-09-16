@@ -184,6 +184,10 @@ class BuildHelper(object):
         Optionally, generate a coverage report.
         Optionally, save the results to `xml_file`.
 
+        To configure coverage, place a .coveragerc configuration file in the root directory
+        of the repository - the same directory that holds .coverage. Documentation of coverage
+        configuration is in https://coverage.readthedocs.io/en/coverage-4.2/config.html
+
         Args:
             test_path (:obj:`str`, optional): path to tests that should be run
             with_coverage (:obj:`bool`, optional): whether or not coverage should be assessed
@@ -209,7 +213,7 @@ class BuildHelper(object):
                 os.makedirs(self.proj_tests_nose_dir)
 
         if with_coverage:
-            cov = coverage(data_file='.coverage', data_suffix=py_v)
+            cov = coverage(data_file='.coverage', data_suffix=py_v, config_file=True)
             cov.start()
 
         result = nose.run(argv=argv)
@@ -356,10 +360,6 @@ class BuildHelper(object):
 
     def make_html_coverage_report(self):
         """ Make HTML coverage report from `proj_cov_filename` 
-        
-        To configure coverage, place a .coveragerc configuration file in the root directory
-        of the rest, the same directory that holds .coverage. Documentation of coverage
-        configuration is in https://coverage.readthedocs.io/en/coverage-4.2/config.html
         """
         if not os.path.isdir(self.proj_cov_html_dir):
             os.makedirs(self.proj_cov_html_dir)
