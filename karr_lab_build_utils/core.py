@@ -355,7 +355,12 @@ class BuildHelper(object):
         coverage_doc.save()
 
     def make_html_coverage_report(self):
-        """ Make HTML coverage report from `proj_cov_filename` """
+        """ Make HTML coverage report from `proj_cov_filename` 
+        
+        To configure coverage, place a .coveragerc configuration file in the root directory
+        of the rest, the same directory that holds .coverage. Documentation of coverage
+        configuration is in https://coverage.readthedocs.io/en/coverage-4.2/config.html
+        """
         if not os.path.isdir(self.proj_cov_html_dir):
             os.makedirs(self.proj_cov_html_dir)
         map(os.remove, glob(os.path.join(self.proj_cov_html_dir, '*')))
