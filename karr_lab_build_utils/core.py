@@ -160,8 +160,8 @@ class BuildHelper(object):
         """ Install requirements """
 
         # requirements for package
-        '''
         with open('requirements.txt', 'r') as file:
+            failures = False
             for req in [line.rstrip() for line in file.readlines()]:
                 req = req[:req.find( '#' )].strip()
                 if req:
@@ -172,7 +172,9 @@ class BuildHelper(object):
                         (type, value, traceback) = sys.exc_info()
                         sys.stderr.write( "pip install of '{}' fails; exception type/value: '{}'/'{}'\n".format(
                             req, type, value ) )
-                    # raise Exception('pip failure')
+                        failures = True
+            if failures:
+                raise Exception('pip failure')
 
         '''
         try:
@@ -182,6 +184,7 @@ class BuildHelper(object):
             sys.stderr.write( "pip install of 'requirements.txt' fails; exception type/value: "
                 "'{}'/'{}'\n".format( type, value ) )
             raise Exception('pip install failure')
+        '''
 
 
         # requirements for testing and documentation
