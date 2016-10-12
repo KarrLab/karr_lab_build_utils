@@ -160,14 +160,18 @@ class BuildHelper(object):
         """ Install requirements """
 
         # requirements for package
+        '''
         with open('requirements.txt', 'r') as file:
             for req in [line.rstrip() for line in file.readlines()]:
-                try:
-                    pip.main(['install'] + [req])
-                except:
-                    (type, value, traceback) = sys.exc_info()
-                    sys.stderr.write( "pip install of '{}' fails; exception type/value: '{}'/'{}'\n".format(
-                        req, type, value ) )
+                req = req[:req.find( '#' )].strip()
+                if req:
+                    try:
+                        sys.stderr.write( "calling 'pip.main(['install'] + [{}])\n".format(req) )
+                        pip.main(['install'] + [req])
+                    except:
+                        (type, value, traceback) = sys.exc_info()
+                        sys.stderr.write( "pip install of '{}' fails; exception type/value: '{}'/'{}'\n".format(
+                            req, type, value ) )
                     # raise Exception('pip failure')
 
         '''
@@ -175,10 +179,10 @@ class BuildHelper(object):
             pip.main(['install', '-r', 'requirements.txt'] )
         except:
             (type, value, traceback) = sys.exc_info()
-            sys.stderr.write( "pip install of '{}' fails; exception type/value: '{}'/'{}'\n".format(
-                'requirements.txt', type, value ) )
+            sys.stderr.write( "pip install of 'requirements.txt' fails; exception type/value: "
+                "'{}'/'{}'\n".format( type, value ) )
+            raise Exception('pip install failure')
 
-        '''
 
         # requirements for testing and documentation
         subprocess.check_call(['sudo', 'apt-get', 'install', 'libffi-dev'])
