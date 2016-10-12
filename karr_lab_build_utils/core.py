@@ -187,13 +187,17 @@ class BuildHelper(object):
         # requirements for testing and documentation
         subprocess.check_call(['sudo', 'apt-get', 'install', 'libffi-dev'])
 
-        with open(os.path.join(self.proj_tests_dir, 'requirements.txt'), 'r') as file:
-            reqs = [line.rstrip() for line in file.readlines()]
-        pip.main(['install'] + reqs)
+        tests_req = os.path.join(self.proj_tests_dir, 'requirements.txt')
+        if os.path.isfile(tests_req):
+            with open(tests_req, 'r') as file:
+                reqs = [line.rstrip() for line in file.readlines()]
+            pip.main(['install'] + reqs)
 
-        with open(os.path.join(self.proj_docs_dir, 'requirements.txt'), 'r') as file:
-            reqs = [line.rstrip() for line in file.readlines()]
-        pip.main(['install'] + reqs)
+        docs_req = os.path.join(self.proj_docs_dir, 'requirements.txt')
+        if os.path.isfile(docs_req):
+            with open(docs_req, 'r') as file:
+                reqs = [line.rstrip() for line in file.readlines()]
+            pip.main(['install'] + reqs)
 
     ########################
     # Running tests
