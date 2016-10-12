@@ -161,6 +161,15 @@ class BuildHelper(object):
 
         # requirements for package
         with open('requirements.txt', 'r') as file:
+            reqs = [line.rstrip() for line in file.readlines()]
+            try:
+                pip.main(['install'] + reqs)
+            except:
+                (type, value, traceback) = sys.exc_info()
+                sys.stderr.write( "pip install of '{}' fails; exception type/value: '{}'/'{}'\n".format(
+                    str(reqs), type, value ) )
+                raise Exception('pip failure')
+            """
             failures = False
             for req in [line.rstrip() for line in file.readlines()]:
                 req = req[:req.find( '#' )].strip()
@@ -175,6 +184,7 @@ class BuildHelper(object):
                         failures = True
             if failures:
                 raise Exception('pip failure')
+            """
 
         '''
         try:
