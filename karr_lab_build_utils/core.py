@@ -161,9 +161,24 @@ class BuildHelper(object):
 
         # requirements for package
         with open('requirements.txt', 'r') as file:
-            reqs = [line.rstrip() for line in file.readlines()]
-        if pip.main(['install'] + reqs):
-            raise Exception('pip failure')
+            for req in [line.rstrip() for line in file.readlines()]:
+                try:
+                    pip.main(['install'] + req)
+                except:
+                    (type, value, traceback) = sys.exc_info()
+                    sys.stderr.write( "pip install of '{}' fails; exception type/value: '{}'/'{}'\n".format(
+                        req, type, value ) )
+                    # raise Exception('pip failure')
+
+        '''
+        try:
+            pip.main(['install', '-r', 'requirements.txt'] )
+        except:
+            (type, value, traceback) = sys.exc_info()
+            sys.stderr.write( "pip install of '{}' fails; exception type/value: '{}'/'{}'\n".format(
+                'requirements.txt', type, value ) )
+
+        '''
 
         # requirements for testing and documentation
         subprocess.check_call(['sudo', 'apt-get', 'install', 'libffi-dev'])
