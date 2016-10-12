@@ -3,3 +3,7 @@ coveralls
 junit2html
 nose
 nose2unitth
+# install our public wc_utilities repo
+git+https://github.com/KarrLab/wc_utilities.git
+# install wheel of our public log repo
+-e git+https://github.com/KarrLab/log#egg=log
