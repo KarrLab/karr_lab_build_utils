@@ -163,7 +163,7 @@ class BuildHelper(object):
         with open('requirements.txt', 'r') as file:
             for req in [line.rstrip() for line in file.readlines()]:
                 try:
-                    pip.main(['install'] + req)
+                    pip.main(['install'] + [req])
                 except:
                     (type, value, traceback) = sys.exc_info()
                     sys.stderr.write( "pip install of '{}' fails; exception type/value: '{}'/'{}'\n".format(
