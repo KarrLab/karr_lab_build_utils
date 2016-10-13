@@ -26,7 +26,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-
+import subprocess
 
 class BuildHelper(object):
     """ Utility class to help build projects:
@@ -160,6 +160,13 @@ class BuildHelper(object):
         """ Install requirements """
 
         # requirements for package
+        req_file = 'requirements.txt'
+        if not os.path.isfile(req_file):
+            raise Exception("no pip requirements file '{}' available in '{}'".format(req_file,
+                os.getcwd()))
+
+        subprocess.call( ['pip', 'install', '--requirement', req_file] )
+        '''
         with open('requirements.txt', 'r') as file:
             reqs = [line.rstrip() for line in file.readlines()]
             try:
@@ -169,7 +176,8 @@ class BuildHelper(object):
                 sys.stderr.write( "pip install of '{}' fails; exception type/value: '{}'/'{}'\n".format(
                     str(reqs), type, value ) )
                 raise Exception('pip failure')
-            """
+        '''
+        """
             failures = False
             for req in [line.rstrip() for line in file.readlines()]:
                 req = req[:req.find( '#' )].strip()
@@ -184,18 +192,17 @@ class BuildHelper(object):
                         failures = True
             if failures:
                 raise Exception('pip failure')
-            """
+        """
 
         '''
         try:
-            pip.main(['install', '-r', 'requirements.txt'] )
+            pip.main(['pip', 'install', '-r', 'requirements.txt'] )
         except:
             (type, value, traceback) = sys.exc_info()
             sys.stderr.write( "pip install of 'requirements.txt' fails; exception type/value: "
                 "'{}'/'{}'\n".format( type, value ) )
             raise Exception('pip install failure')
         '''
-
 
         # requirements for testing and documentation
         subprocess.check_call(['sudo', 'apt-get', 'install', 'libffi-dev'])
