@@ -166,43 +166,6 @@ class BuildHelper(object):
                 os.getcwd()))
 
         subprocess.call( ['pip', 'install', '--requirement', req_file] )
-        '''
-        with open('requirements.txt', 'r') as file:
-            reqs = [line.rstrip() for line in file.readlines()]
-            try:
-                pip.main(['install'] + reqs)
-            except:
-                (type, value, traceback) = sys.exc_info()
-                sys.stderr.write( "pip install of '{}' fails; exception type/value: '{}'/'{}'\n".format(
-                    str(reqs), type, value ) )
-                raise Exception('pip failure')
-        '''
-        """
-            failures = False
-            for req in [line.rstrip() for line in file.readlines()]:
-                req = req[:req.find( '#' )].strip()
-                if req:
-                    try:
-                        sys.stderr.write( "calling 'pip.main(['install'] + [{}])\n".format(req) )
-                        pip.main(['install'] + [req])
-                    except:
-                        (type, value, traceback) = sys.exc_info()
-                        sys.stderr.write( "pip install of '{}' fails; exception type/value: '{}'/'{}'\n".format(
-                            req, type, value ) )
-                        failures = True
-            if failures:
-                raise Exception('pip failure')
-        """
-
-        '''
-        try:
-            pip.main(['pip', 'install', '-r', 'requirements.txt'] )
-        except:
-            (type, value, traceback) = sys.exc_info()
-            sys.stderr.write( "pip install of 'requirements.txt' fails; exception type/value: "
-                "'{}'/'{}'\n".format( type, value ) )
-            raise Exception('pip install failure')
-        '''
 
         # requirements for testing and documentation
         subprocess.check_call(['sudo', 'apt-get', 'install', 'libffi-dev'])
@@ -244,7 +207,8 @@ class BuildHelper(object):
         abs_nose_latest_filename = os.path.join(
             self.proj_tests_nose_dir, '{0}.{1}.xml'.format(self.proj_tests_nose_latest_filename, py_v))
 
-        argv = ['nosetests', test_path]
+        # let nosetests run tests with capturer
+        argv = ['nosetests', '--nocapture', test_path]
 
         if with_xunit:
             argv.append('--with-xunit')
