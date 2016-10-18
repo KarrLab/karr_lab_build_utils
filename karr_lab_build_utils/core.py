@@ -208,7 +208,7 @@ class BuildHelper(object):
             self.proj_tests_nose_dir, '{0}.{1}.xml'.format(self.proj_tests_nose_latest_filename, py_v))
 
         # let nosetests run tests with capturer
-        argv = ['nosetests', '--nocapture', test_path]
+        argv = ['nosetests', test_path, '--nocapture']
 
         if with_xunit:
             argv.append('--with-xunit')
