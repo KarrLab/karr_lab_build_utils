@@ -1,10 +1,21 @@
 from setuptools import setup, find_packages
 import karr_lab_build_utils
+import re
 import os
 import sys
 
 # parse requirements.txt
-install_requires = [line.rstrip() for line in open('requirements.txt')]
+install_requires = []
+dependency_links = []
+for line in open('requirements.txt'):
+    pkg_src = line.rstrip()
+    match = re.match('^git\+git://github.com/KarrLab/(.*?)\.git$', pkg_src)
+    if match:
+        dependency_links.append(pkg_src)
+        pkg_id = match.group(1)
+    else:
+        pkg_id = pkg_src
+    install_requires.append(pkg_id)
 
 setup(
     name="Karr-Lab-build-utils",
@@ -21,6 +32,7 @@ setup(
         'karr_lab_build_utils': ['lib'],
     },
     install_requires=install_requires,
+    dependency_links=dependency_links,
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
@@ -32,6 +44,6 @@ setup(
         'console_scripts': [
             'karr-lab-build-utils = karr_lab_build_utils.__main__:main',
             'karr-lab-build-utils-{:d} = karr_lab_build_utils.__main__:main'.format(sys.version_info[0]),
-            ],
+        ],
     },
 )
