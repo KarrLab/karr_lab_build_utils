@@ -1,7 +1,8 @@
 from setuptools import setup, find_packages
 import karr_lab_build_utils
-import re
 import os
+import pip
+import re
 import sys
 
 #install junit2html from GitHub
