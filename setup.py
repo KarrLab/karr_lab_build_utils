@@ -13,7 +13,8 @@ for line in open('requirements.txt'):
     if match:
         pkg_id = match.group(1)
 
-        pkg_src = pkg_src.replace('git+git://github.com/', 'git+ssh://git@github.com/')
+        pkg_src = pkg_src.replace('git+git://github.com/', 'https://github.com/')
+        pkg_src = pkg_src.replace('.git', '/tarball/master')
         pkg_src = pkg_src.replace('>=', '-')
         dependency_links.append(pkg_src)
     else:
