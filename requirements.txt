@@ -6,7 +6,7 @@ coveralls
 coverage
 ftputil
 GitPython
-git+git://github.com/KarrLab/junit2html.git
+git+git://github.com/KarrLab/junit2html.git#egg=junit2html>=4
 nose
 nose2unitth
 Sphinx
