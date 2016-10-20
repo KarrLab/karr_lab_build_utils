@@ -11,7 +11,7 @@ for line in open('requirements.txt'):
     pkg_src = line.rstrip()
     match = re.match('^git\+git://github.com/KarrLab/(.*?)\.git$', pkg_src)
     if match:
-        dependency_links.append(pkg_src)
+        dependency_links.append(pkg_src.replace('git+git://', 'git+ssh://'))
         pkg_id = match.group(1)
     else:
         pkg_id = pkg_src
