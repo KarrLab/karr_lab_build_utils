@@ -11,12 +11,14 @@ for line in open('requirements.txt'):
     pkg_src = line.rstrip()
     match = re.match('^git\+git://github.com/KarrLab/(.*?)\.git$', pkg_src)
     if match:
-        dependency_links.append(pkg_src.replace('git+git://github.com/', 'git+ssh://git@github.com/'))
         pkg_id = match.group(1)
+        pkg_src = pkg_src.replace('git+git://github.com/', 'git+ssh://git@github.com/')
+        pkg_src = pkg_src.replace('.git', '/tarball/master')
+        dependency_links.append(pkg_src)
     else:
         pkg_id = pkg_src
     install_requires.append(pkg_id)
-    
+
 setup(
     name="Karr-Lab-build-utils",
     version=karr_lab_build_utils.__version__,
