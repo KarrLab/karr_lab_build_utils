@@ -4,6 +4,9 @@ import re
 import os
 import sys
 
+#install junit2html from GitHub
+pip.main(['install', 'git+git://github.com/KarrLab/junit2html.git'])
+
 # parse requirements.txt
 install_requires = []
 for line in open('requirements.txt'):
