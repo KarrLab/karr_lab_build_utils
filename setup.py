@@ -16,10 +16,7 @@ for line in open('requirements.txt'):
     else:
         pkg_id = pkg_src
     install_requires.append(pkg_id)
-
-print(dependency_links)
-exit(0)
-
+    
 setup(
     name="Karr-Lab-build-utils",
     version=karr_lab_build_utils.__version__,
