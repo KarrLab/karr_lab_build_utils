@@ -17,6 +17,7 @@ from nose2unitth.core import Converter as Nose2UnitthConverter
 from sphinx import build_main as sphinx_build
 from sphinx.apidoc import main as sphinx_apidoc
 from unitth.core import UnitTH
+import abduct
 import git
 import karr_lab_build_utils
 import nose
@@ -160,27 +161,30 @@ class BuildHelper(object):
         """ Install requirements """
 
         # requirements for package
-        req_file = 'requirements.txt'
-        if not os.path.isfile(req_file):
-            raise Exception("no pip requirements file '{}' available in '{}'".format(req_file,
-                os.getcwd()))
-
-        subprocess.call( ['pip', 'install', '--requirement', req_file] )
+        self.install_requirements_pypi('requirements.txt')
 
         # requirements for testing and documentation
         subprocess.check_call(['sudo', 'apt-get', 'install', 'libffi-dev'])
 
-        tests_req = os.path.join(self.proj_tests_dir, 'requirements.txt')
-        if os.path.isfile(tests_req):
-            with open(tests_req, 'r') as file:
-                reqs = [line.rstrip() for line in file.readlines()]
-            pip.main(['install'] + reqs)
+        self.install_requirements_pypi(os.path.join(self.proj_tests_dir, 'requirements.txt'))
+        self.install_requirements_pypi(os.path.join(self.proj_docs_dir, 'requirements.txt'))
 
-        docs_req = os.path.join(self.proj_docs_dir, 'requirements.txt')
-        if os.path.isfile(docs_req):
-            with open(docs_req, 'r') as file:
-                reqs = [line.rstrip() for line in file.readlines()]
-            pip.main(['install'] + reqs)
+    def install_requirements_pypi(self, req_file):
+        if not os.path.isfile(req_file):
+            return
+
+        with abduct.captured(abduct.err()) as stderr:
+            result = pip.main(['install', '-r', req_file])
+            long_err_msg = stderr.getvalue()
+
+        if result:
+            sep = 'During handling of the above exception, another exception occurred:\n\n'
+            i_sep = long_err_msg.find(sep)
+            short_err_msg = long_err_msg[i_sep + len(sep):]
+
+            sys.stderr.write(short_err_msg)
+            sys.stderr.flush()
+            sys.exit(1)
 
     ########################
     # Running tests

@@ -1,7 +1,6 @@
 coverage
 coveralls
-junit2html
+git+git://github.com/KarrLab/junit2html.git
 nose
 nose2unitth
-# install wheel of our public log repo
---editable=git+https://github.com/KarrLab/log#egg=log
+git+git://github.com/KarrLab/log.git

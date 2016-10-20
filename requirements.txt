@@ -5,7 +5,7 @@ coveralls
 coverage
 ftputil
 GitPython
-# junit2html # already loaded by circle.yml; this would install junit2html from PyPI, which doesn't support python 3
+git+git://github.com/KarrLab/junit2html.git
 nose
 nose2unitth
 Sphinx
