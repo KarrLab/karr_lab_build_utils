@@ -3,4 +3,4 @@ coveralls
 git+git://github.com/KarrLab/junit2html.git#egg=junit2html>=4
 nose
 nose2unitth
-git+git://github.com/KarrLab/log.git
+git+git://github.com/KarrLab/log.git#egg=log>=2016.10.12

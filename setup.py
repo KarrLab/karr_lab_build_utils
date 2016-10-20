@@ -6,21 +6,15 @@ import sys
 
 # parse requirements.txt
 install_requires = []
-dependency_links = []
 for line in open('requirements.txt'):
     pkg_src = line.rstrip()
-    match = re.match('^git\+git://github.com/.*?/.*?\.git#egg=(.*?)$', pkg_src)
+    match = re.match('^.+#egg=(.*?)$', pkg_src)
     if match:
         pkg_id = match.group(1)
-
-        pkg_src = pkg_src.replace('git+git://github.com/', 'https://github.com/')
-        pkg_src = pkg_src.replace('.git', '/tarball/master')
-        pkg_src = pkg_src.replace('>=', '-')
-        dependency_links.append(pkg_src)
     else:
         pkg_id = pkg_src
     install_requires.append(pkg_id)
-
+    
 setup(
     name="Karr-Lab-build-utils",
     version=karr_lab_build_utils.__version__,
@@ -36,7 +30,6 @@ setup(
         'karr_lab_build_utils': ['lib'],
     },
     install_requires=install_requires,
-    dependency_links=dependency_links,
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
