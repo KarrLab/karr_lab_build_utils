@@ -5,9 +5,6 @@ import pip
 import re
 import sys
 
-#install junit2html from GitHub
-pip.main(['install', 'git+git://github.com/KarrLab/junit2html.git'])
-
 # parse requirements.txt
 install_requires = []
 for line in open('requirements.txt'):
@@ -15,6 +12,7 @@ for line in open('requirements.txt'):
     match = re.match('^.+#egg=(.*?)$', pkg_src)
     if match:
         pkg_id = match.group(1)
+        pip.main(['install', pkg_src])
     else:
         pkg_id = pkg_src
     install_requires.append(pkg_id)
