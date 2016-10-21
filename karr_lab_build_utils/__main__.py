@@ -54,10 +54,10 @@ class BaseController(CementBaseController):
         buildHelper.copy_coverage_report_to_artifacts_directory()
 
     @expose(help='Download XML test report history from lab server')
-    def download_nose_test_report_history_from_lab_server(self):
+    def download_xml_test_report_history_from_lab_server(self):
         """ Download XML test report history from lab server """
         buildHelper = BuildHelper()
-        buildHelper.download_nose_test_report_history_from_lab_server()
+        buildHelper.download_xml_test_report_history_from_lab_server()
 
     @expose(help='Install requirements')
     def install_requirements(self):

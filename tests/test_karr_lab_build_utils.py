@@ -61,13 +61,22 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 app.run()
 
     def test_run_tests(self):
-        buildHelper = self.construct_build_helper()
+        #pytest
+        #buildHelper = self.construct_build_helper()
+        #buildHelper.test_runner = 'pytest'
+        #self.help_run_tests(buildHelper)
 
+        #nose
+        buildHelper = self.construct_build_helper()
+        buildHelper.test_runner = 'nose'
+        self.exec_runner(buildHelper)
+
+    def exec_runner(self, buildHelper):
         py_v = buildHelper.get_python_version()
 
         """ test API """
-        latest_results_filename = os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(
-            buildHelper.proj_tests_nose_latest_filename, py_v))
+        latest_results_filename = os.path.join(buildHelper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
+            buildHelper.proj_tests_xml_latest_filename, py_v))
         lastest_cov_filename = '.coverage.{}'.format(py_v)
         if os.path.isfile(latest_results_filename):
             os.remove(latest_results_filename)
@@ -96,14 +105,14 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         py_v = buildHelper.get_python_version()
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(
-                buildHelper.proj_tests_nose_latest_filename, py_v)),
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:d}.{1:s}.xml'.format(10000000000000001, py_v))
+            os.path.join(buildHelper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
+                buildHelper.proj_tests_xml_latest_filename, py_v)),
+            os.path.join(buildHelper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(10000000000000001, py_v))
         )
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(
-                buildHelper.proj_tests_nose_latest_filename, py_v)),
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:d}.{1:s}.xml'.format(10000000000000002, py_v))
+            os.path.join(buildHelper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
+                buildHelper.proj_tests_xml_latest_filename, py_v)),
+            os.path.join(buildHelper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(10000000000000002, py_v))
         )
 
         """ test API """
@@ -114,15 +123,15 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with KarrLabBuildUtilsCli(argv=['make-and-archive-reports']) as app:
                 app.run()
 
-    def test_download_nose_test_report_history_from_lab_server(self):
+    def test_download_xml_test_report_history_from_lab_server(self):
         buildHelper = self.construct_build_helper()
 
         """ test API """
-        buildHelper.download_nose_test_report_history_from_lab_server()
+        buildHelper.download_xml_test_report_history_from_lab_server()
 
         """ test CLI """
         with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['download-nose-test-report-history-from-lab-server']) as app:
+            with KarrLabBuildUtilsCli(argv=['download-xml-test-report-history-from-lab-server']) as app:
                 app.run()
 
     def test_make_test_history_report(self):
@@ -130,18 +139,18 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         buildHelper.run_tests(test_path='tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test',
                               with_xunit=True, with_coverage=True)
 
-        for report_filename in glob(os.path.join(buildHelper.proj_tests_nose_dir, "[0-9]*.*.xml")):
+        for report_filename in glob(os.path.join(buildHelper.proj_tests_xml_dir, "[0-9]*.*.xml")):
             os.remove(report_filename)
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(
-                buildHelper.proj_tests_nose_latest_filename, buildHelper.get_python_version())),
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:d}.{1:s}.xml'.format(
+            os.path.join(buildHelper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
+                buildHelper.proj_tests_xml_latest_filename, buildHelper.get_python_version())),
+            os.path.join(buildHelper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(
                 10000000000000001, buildHelper.get_python_version()))
         )
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(
-                buildHelper.proj_tests_nose_latest_filename, buildHelper.get_python_version())),
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:d}.{1:s}.xml'.format(
+            os.path.join(buildHelper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
+                buildHelper.proj_tests_xml_latest_filename, buildHelper.get_python_version())),
+            os.path.join(buildHelper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(
                 10000000000000002, buildHelper.get_python_version()))
         )
 
@@ -171,22 +180,22 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         py_v = buildHelper.get_python_version()
 
-        for report_filename in glob(os.path.join(buildHelper.proj_tests_nose_dir, "[0-9]*.*.xml")):
+        for report_filename in glob(os.path.join(buildHelper.proj_tests_xml_dir, "[0-9]*.*.xml")):
             os.remove(report_filename)
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(
-                buildHelper.proj_tests_nose_latest_filename, py_v)),
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:d}.{1:s}.xml'.format(buildHelper.build_num, py_v))
+            os.path.join(buildHelper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
+                buildHelper.proj_tests_xml_latest_filename, py_v)),
+            os.path.join(buildHelper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(buildHelper.build_num, py_v))
         )
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(
-                buildHelper.proj_tests_nose_latest_filename, py_v)),
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:d}.{1:s}.xml'.format(10000000000000001, py_v))
+            os.path.join(buildHelper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
+                buildHelper.proj_tests_xml_latest_filename, py_v)),
+            os.path.join(buildHelper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(10000000000000001, py_v))
         )
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(
-                buildHelper.proj_tests_nose_latest_filename, py_v)),
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:d}.{1:s}.xml'.format(10000000000000002, py_v))
+            os.path.join(buildHelper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
+                buildHelper.proj_tests_xml_latest_filename, py_v)),
+            os.path.join(buildHelper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(10000000000000002, py_v))
         )
         buildHelper.make_test_history_report()
 
@@ -205,29 +214,29 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         py_v = buildHelper.get_python_version()
 
-        for report_filename in glob(os.path.join(buildHelper.proj_tests_nose_dir, "[0-9]*.*.xml")):
+        for report_filename in glob(os.path.join(buildHelper.proj_tests_xml_dir, "[0-9]*.*.xml")):
             os.remove(report_filename)
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(
-                buildHelper.proj_tests_nose_latest_filename, py_v)),
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:d}.{1:s}.xml'.format(buildHelper.build_num, py_v))
+            os.path.join(buildHelper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
+                buildHelper.proj_tests_xml_latest_filename, py_v)),
+            os.path.join(buildHelper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(buildHelper.build_num, py_v))
         )
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(
-                buildHelper.proj_tests_nose_latest_filename, py_v)),
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:d}.{1:s}.xml'.format(10000000000000001, py_v))
+            os.path.join(buildHelper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
+                buildHelper.proj_tests_xml_latest_filename, py_v)),
+            os.path.join(buildHelper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(10000000000000001, py_v))
         )
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:s}.{1:s}.xml'.format(
-                buildHelper.proj_tests_nose_latest_filename, py_v)),
-            os.path.join(buildHelper.proj_tests_nose_dir, '{0:d}.{1:s}.xml'.format(10000000000000002, py_v))
+            os.path.join(buildHelper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
+                buildHelper.proj_tests_xml_latest_filename, py_v)),
+            os.path.join(buildHelper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(10000000000000002, py_v))
         )
         buildHelper.make_test_history_report()
 
         """ test API """
         with buildHelper.get_connection_to_lab_server() as ftp:
-            if ftp.path.isfile(ftp.path.join(buildHelper.serv_tests_nose_dir, '{0:d}.{1:s}.xml'.format(buildHelper.build_num, py_v))):
-                ftp.remove(ftp.path.join(buildHelper.serv_tests_nose_dir,
+            if ftp.path.isfile(ftp.path.join(buildHelper.serv_tests_xml_dir, '{0:d}.{1:s}.xml'.format(buildHelper.build_num, py_v))):
+                ftp.remove(ftp.path.join(buildHelper.serv_tests_xml_dir,
                                          '{0:d}.{1:s}.xml'.format(buildHelper.build_num, py_v)))
 
             if ftp.path.isfile(ftp.path.join(buildHelper.serv_tests_unitth_dir, '{0:d}.{1:s}'.format(buildHelper.build_num, py_v), 'index.html')):
@@ -241,7 +250,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         with buildHelper.get_connection_to_lab_server() as ftp:
             self.assertTrue(ftp.path.isfile(ftp.path.join(
-                buildHelper.serv_tests_nose_dir, '{0:d}.{1:s}.xml'.format(buildHelper.build_num, py_v))))
+                buildHelper.serv_tests_xml_dir, '{0:d}.{1:s}.xml'.format(buildHelper.build_num, py_v))))
             self.assertTrue(ftp.path.isfile(ftp.path.join(buildHelper.serv_tests_unitth_dir,
                                                           '{0:d}.{1:s}'.format(buildHelper.build_num, py_v), 'index.html')))
             self.assertTrue(ftp.path.isfile(ftp.path.join(buildHelper.serv_tests_html_dir, 'index.html')))
