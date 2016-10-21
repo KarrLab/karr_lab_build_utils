@@ -9,6 +9,7 @@ GitPython
 git+git://github.com/KarrLab/junit2html.git#egg=junit2html>=4
 nose
 nose2unitth
+pytest
 Sphinx
 sphinx_rtd_theme
 unitth

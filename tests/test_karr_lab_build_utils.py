@@ -61,17 +61,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 app.run()
 
     def test_run_tests(self):
-        #pytest
-        #buildHelper = self.construct_build_helper()
-        #buildHelper.test_runner = 'pytest'
-        #self.help_run_tests(buildHelper)
+        self.help_run('pytest')
+        self.help_run('nose')
 
-        #nose
+    def help_run(self, test_runner):
         buildHelper = self.construct_build_helper()
-        buildHelper.test_runner = 'nose'
-        self.exec_runner(buildHelper)
-
-    def exec_runner(self, buildHelper):
+        buildHelper.test_runner = test_runner
         py_v = buildHelper.get_python_version()
 
         """ test API """
@@ -83,7 +78,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         if os.path.isfile(lastest_cov_filename):
             os.remove(lastest_cov_filename)
 
-        buildHelper.run_tests(test_path='tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test',
+        buildHelper.run_tests(test_path=self.DUMMY_TEST,
                               with_xunit=True, with_coverage=True)
 
         self.assertTrue(os.path.isfile(latest_results_filename))
@@ -100,7 +95,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
     def test_make_and_archive_reports(self):
         buildHelper = self.construct_build_helper()
-        buildHelper.run_tests(test_path='tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test',
+        buildHelper.run_tests(test_path=self.DUMMY_TEST,
                               with_xunit=True, with_coverage=True)
 
         py_v = buildHelper.get_python_version()
@@ -135,8 +130,13 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 app.run()
 
     def test_make_test_history_report(self):
+        self.help_history_report('pytest')
+        self.help_history_report('nose')
+
+    def help_history_report(self, test_runner):
         buildHelper = self.construct_build_helper()
-        buildHelper.run_tests(test_path='tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test',
+        buildHelper.test_runner = test_runner
+        buildHelper.run_tests(test_path=self.DUMMY_TEST,
                               with_xunit=True, with_coverage=True)
 
         for report_filename in glob(os.path.join(buildHelper.proj_tests_xml_dir, "[0-9]*.*.xml")):
@@ -175,7 +175,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
     def test_archive_test_reports(self):
         buildHelper = self.construct_build_helper()
-        buildHelper.run_tests(test_path='tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test',
+        buildHelper.run_tests(test_path=self.DUMMY_TEST,
                               with_xunit=True, with_coverage=True)
 
         py_v = buildHelper.get_python_version()
@@ -209,7 +209,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
     def test_upload_test_reports_to_lab_server(self):
         buildHelper = self.construct_build_helper()
-        buildHelper.run_tests(test_path='tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test',
+        buildHelper.run_tests(test_path=self.DUMMY_TEST,
                               with_xunit=True, with_coverage=True)
 
         py_v = buildHelper.get_python_version()
@@ -262,7 +262,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
     def test_combine_coverage_reports(self):
         buildHelper = self.construct_build_helper()
-        buildHelper.run_tests(test_path='tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test',
+        buildHelper.run_tests(test_path=self.DUMMY_TEST,
                               with_xunit=True, with_coverage=True)
         shutil.move('.coverage.{}'.format(buildHelper.get_python_version()), '.coverage.1')
         shutil.copyfile('.coverage.1', '.coverage.2')
@@ -297,10 +297,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         os.remove('.coverage.1')
         os.remove('.coverage.2')
 
-
     def test_make_html_coverage_report(self):
         buildHelper = self.construct_build_helper()
-        buildHelper.run_tests(test_path='tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test',
+        buildHelper.run_tests(test_path=self.DUMMY_TEST,
                               with_xunit=True, with_coverage=True)
         shutil.move('.coverage.{}'.format(buildHelper.get_python_version()), '.coverage')
 
@@ -319,7 +318,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
     def test_archive_coverage_report(self):
         buildHelper = self.construct_build_helper()
-        buildHelper.run_tests(test_path='tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test',
+        buildHelper.run_tests(test_path=self.DUMMY_TEST,
                               with_xunit=True, with_coverage=True)
 
         buildHelper.combine_coverage_reports()
@@ -335,11 +334,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
     def test_copy_coverage_report_to_artifacts_directory(self):
         buildHelper = self.construct_build_helper()
-        buildHelper.run_tests(test_path='tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test',
+        buildHelper.run_tests(test_path=self.DUMMY_TEST,
                               with_xunit=True, with_coverage=True)
 
         abs_cov_filename = os.path.join(buildHelper.build_artifacts_dir, '.coverage')
-        abs_cov_filename_v = os.path.join(buildHelper.build_artifacts_dir, '.coverage.{}'.format(buildHelper.get_python_version()))
+        abs_cov_filename_v = os.path.join(buildHelper.build_artifacts_dir,
+                                          '.coverage.{}'.format(buildHelper.get_python_version()))
 
         """ test API """
         if os.path.isfile(abs_cov_filename):
@@ -359,7 +359,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
     def test_upload_coverage_report_to_coveralls(self):
         buildHelper = self.construct_build_helper()
-        buildHelper.run_tests(test_path='tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test',
+        buildHelper.run_tests(test_path=self.DUMMY_TEST,
                               with_xunit=True, with_coverage=True)
 
         shutil.move('.coverage.{}'.format(buildHelper.get_python_version()), '.coverage')
@@ -374,7 +374,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
     def test_upload_coverage_report_to_code_climate(self):
         buildHelper = self.construct_build_helper()
-        buildHelper.run_tests(test_path='tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test',
+        buildHelper.run_tests(test_path=self.DUMMY_TEST,
                               with_xunit=True, with_coverage=True)
 
         shutil.move('.coverage.{}'.format(buildHelper.get_python_version()), '.coverage')
@@ -389,7 +389,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
     def test_upload_html_coverage_report_to_lab_server(self):
         buildHelper = self.construct_build_helper()
-        buildHelper.run_tests(test_path='tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test',
+        buildHelper.run_tests(test_path=self.DUMMY_TEST,
                               with_xunit=True, with_coverage=True)
 
         shutil.move('.coverage.{}'.format(buildHelper.get_python_version()), '.coverage')

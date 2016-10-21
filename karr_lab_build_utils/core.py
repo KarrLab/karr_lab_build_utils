@@ -23,6 +23,8 @@ import karr_lab_build_utils
 import nose
 import os
 import pip
+import pytest
+import re
 import shutil
 import subprocess
 import sys
@@ -96,7 +98,7 @@ class BuildHelper(object):
         DEFAULT_SERV_DOCS_BUILD_HTML_DIR (:obj:`str`): default server directory where generated HTML documentation should be saved
     """
 
-    DEFAULT_TEST_RUNNER = 'nose'
+    DEFAULT_TEST_RUNNER = 'pytest'
     DEFAULT_CODE_SERVER_HOSTNAME = 'code.karrlab.org'
     DEFAULT_CODE_SERVER_USERNAME = 'karrlab_code'
     DEFAULT_CODE_SERVER_BASE_DIR = '/code.karrlab.org'
@@ -228,14 +230,26 @@ class BuildHelper(object):
             os.makedirs(self.proj_tests_xml_dir)
 
         if self.test_runner == 'pytest':
-            pass
-        elif self.test_runner == 'nose':
-            argv = ['nosetests', test_path]
+            test_path = test_path.replace(':', '::')
+            test_path = re.sub('::(.+?)(\.)', r'::\1::', test_path)
 
+            argv = [test_path]
+            if with_xunit:
+                argv.append('--junitxml=' + abs_xml_latest_filename)
+
+            result = pytest.main(argv)
+        elif self.test_runner == 'nose':
+            test_path = test_path.replace('::', ':', 1)
+            test_path = test_path.replace('::', '.', 1)
+
+            argv = ['nosetests', test_path]
             if with_xunit:
                 argv += ['--with-xunit', '--xunit-file', abs_xml_latest_filename]
 
-            result = nose.run(argv=argv)
+            if nose.run(argv=argv):
+                result = 0
+            else:
+                result = 1
         else:
             raise Exception('Unsupported test runner {}'.format(self.test_runner))
 
@@ -247,7 +261,7 @@ class BuildHelper(object):
             abs_xml_artifact_filename = os.path.join(self.build_test_dir, '{0}.{1}.xml'.format('xml', py_v))
             shutil.copyfile(abs_xml_latest_filename, abs_xml_artifact_filename)
 
-        if not result:
+        if result != 0:
             sys.exit(1)
 
     def make_and_archive_reports(self):
