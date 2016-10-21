@@ -21,7 +21,7 @@ This package performs several aspects of the Karr Lab's build system:
   * libffi-dev
 2. Install package 
   ```
-  pip install Karr-Lab-build-utils
+  pip install git+git://github.com/KarrLab/Karr-Lab-build-utils#egg=karr_lab_build_utils
   ```
 
 ## Example usage
@@ -43,13 +43,13 @@ machine:
     version: 2.7.11
 dependencies:
   pre:
-    - pip install Karr-Lab-build-utils
-    - karr-lab-build-utils-install-requirements
+    - pip install git+git://github.com/KarrLab/Karr-Lab-build-utils#egg=karr_lab_build_utils
+    - karr-lab-build-utils install-requirements
 test:
   override:
-    - karr-lab-build-utils-run-tests --test_path tests --with_xml_report --with_coverage
+    - karr-lab-build-utils run-tests --test_path tests --with_xml_report --with_coverage
   post:
-    - karr-lab-build-utils-make-and-archive-reports
+    - karr-lab-build-utils make-and-archive-reports
 ```
 
 ## Documentation
