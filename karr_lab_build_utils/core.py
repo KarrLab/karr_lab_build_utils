@@ -31,6 +31,8 @@ import sys
 import tempfile
 import subprocess
 import pysftp
+from contextlib import contextmanager
+import paramiko
 
 class BuildHelper(object):
     """ Utility class to help build projects:
@@ -47,6 +49,7 @@ class BuildHelper(object):
         code_server_hostname (:obj:`str`): hostname of server where reports should be uploaded
         code_server_username (:obj:`str`): username for server where reports should be uploaded
         code_server_password (:obj:`str`): password for server where reports should be uploaded
+        code_server_host_key (:obj:`str`): the line the known_hosts file for the code server
         code_server_base_dir (:obj:`str`): base directory on server where reports should be uploaded
 
         project_name (:obj:`str`): name of project, e.g. GitHub repository name
@@ -130,6 +133,7 @@ class BuildHelper(object):
         self.code_server_hostname = os.getenv('CODE_SERVER_HOSTNAME', self.DEFAULT_CODE_SERVER_HOSTNAME)
         self.code_server_username = os.getenv('CODE_SERVER_USERNAME', self.DEFAULT_CODE_SERVER_USERNAME)
         self.code_server_password = os.getenv('CODE_SERVER_PASSWORD')
+        self.code_server_host_key = os.getenv('CODE_SERVER_HOST_KEY')
         self.code_server_base_dir = os.getenv('CODE_SERVER_BASE_DIR', self.DEFAULT_CODE_SERVER_BASE_DIR)
 
         self.project_name = os.getenv('CIRCLE_PROJECT_REPONAME', '')
@@ -313,8 +317,8 @@ class BuildHelper(object):
         for report_filename in glob(os.path.join(self.proj_tests_xml_dir, "[0-9]*.*.xml")):
             os.remove(report_filename)
 
-        with self.get_connection_to_lab_server() as ftp:
-            self.download_dir_from_lab_server(ftp, self.serv_tests_xml_dir, self.proj_tests_xml_dir)
+        with self.sftp_connection() as sftp:
+            sftp.get_r(self.serv_tests_xml_dir, self.proj_tests_xml_dir)
 
     def make_test_history_report(self):
         """ Make an HTML test history report from a directory of nose-style XML test reports """
@@ -366,18 +370,17 @@ class BuildHelper(object):
     def upload_test_reports_to_lab_server(self):
         """ Upload XML and HTML test reports to lab server """
 
-        with self.get_connection_to_lab_server() as ftp:
-            if not ftp.path.isdir(self.serv_tests_xml_dir):
-                ftp.makedirs(self.serv_tests_xml_dir)
+        with self.sftp_connection() as sftp:
+            if not sftp.isdir(self.serv_tests_xml_dir):
+                sftp.makedirs(self.serv_tests_xml_dir)
 
             for name in glob(os.path.join(self.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(self.build_num, '*'))):
-                ftp.upload(name, self.serv_tests_xml_dir + name[len(self.proj_tests_xml_dir):])
+                sftp.put(name, remotepath=self.serv_tests_xml_dir + name[len(self.proj_tests_xml_dir):])
 
             for name in glob(os.path.join(self.proj_tests_unitth_dir, '{0:d}.{1:s}'.format(self.build_num, '*'))):
-                self.upload_dir_to_lab_server(ftp, name, self.serv_tests_unitth_dir +
-                                              name[len(self.proj_tests_unitth_dir):])
+                sftp.put_r(name, self.serv_tests_unitth_dir + name[len(self.proj_tests_unitth_dir):])
 
-            self.upload_dir_to_lab_server(ftp, self.proj_tests_html_dir, self.serv_tests_html_dir)
+            sftp.put_r(name, self.proj_tests_html_dir, self.serv_tests_html_dir)
 
     ########################
     # Coverage reports
@@ -449,8 +452,8 @@ class BuildHelper(object):
     def upload_html_coverage_report_to_lab_server(self):
         """ Upload HTML coverage report to lab server """
 
-        with self.get_connection_to_lab_server() as ftp:
-            self.upload_dir_to_lab_server(ftp, self.proj_cov_html_dir, self.serv_cov_html_dir)
+        with self.sftp_connection() as sftp:
+            sftp.put_r(self.proj_cov_html_dir, self.serv_cov_html_dir)
 
     ########################
     # Documentation
@@ -490,8 +493,8 @@ class BuildHelper(object):
     def upload_documentation_to_lab_server(self):
         """ Upload documentation to lab server """
 
-        with self.get_connection_to_lab_server() as ftp:
-            self.upload_dir_to_lab_server(ftp, self.proj_docs_build_html_dir, self.serv_docs_build_html_dir)
+        with self.sftp_connection() as sftp:
+            sftp.put_r(self.proj_docs_build_html_dir, self.serv_docs_build_html_dir)
 
     def get_version(self):
         return '{0:s} (Python {1[0]:d}.{1[1]:d}.{1[2]:d})'.format(karr_lab_build_utils.__version__, sys.version_info)
@@ -516,6 +519,40 @@ class BuildHelper(object):
 
         return ftp
 
+    @contextmanager
+    def sftp_connection(self):
+        """ Securely connect to lab server via sftp
+
+        Establish an authenticated, encrypted connection with the lab server.
+
+        Raises:
+            :obj:`BuildHelperError`: If project name or code server password not set
+        """
+        if not self.project_name:
+            raise BuildHelperError('Project name not set')
+
+        if not self.code_server_password:
+            raise BuildHelperError('Code server password must be set')
+
+        if not self.code_server_host_key:
+            raise BuildHelperError('Code server host key must be set')
+
+        hostkey=paramiko.hostkeys.HostKeyEntry.from_line(self.code_server_host_key)
+        (_, keytype, _)=self.code_server_host_key.split(' ')
+        hostkeys=paramiko.hostkeys.HostKeys().add(host, keytype, hostkey)
+        cn_opts = pysftp.CnOpts(hostkeys)
+        sftp = pysftp.Connection(self.code_server_hostname, username=self.code_server_username,
+            password=self.code_server_password, cnopts=cn_opts)
+
+        base_dir = os.path.join( 'test_dir', self.code_server_base_dir, self.project_name)
+        if not sftp.isdir(base_dir):
+            sftp.makedirs(os.path.join(base_dir)
+        sftp.chdir(base_dir)
+
+        yield sftp
+        sftp.close()
+
+    '''
     def upload_dir_to_lab_server(self, ftp, local_root_dir, remote_root_dir):
         """ Upload directory to lab server
 
@@ -535,7 +572,9 @@ class BuildHelper(object):
             for local_file in local_files:
                 ftp.upload(os.path.join(local_root_dir, rel_dir, local_file),
                            ftp.path.join(remote_root_dir, rel_dir, local_file))
+    '''
 
+    '''
     def download_dir_from_lab_server(self, ftp, remote_root_dir, local_root_dir):
         """ Download directory from lab server
 
@@ -568,6 +607,7 @@ class BuildHelper(object):
             :obj:`BuildHelperError`
         """
         raise BuildHelperError(err)
+    '''
 
     @staticmethod
     def get_python_version():
