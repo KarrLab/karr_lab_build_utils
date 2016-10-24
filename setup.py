@@ -4,19 +4,14 @@ import os
 import pip
 import re
 import sys
+from wc_utils.util.installation import install_packages
 
-# parse requirements.txt
-install_requires = []
-for line in open('requirements.txt'):
-    pkg_src = line.rstrip()
-    match = re.match('^.+#egg=(.*?)$', pkg_src)
-    if match:
-        pkg_id = match.group(1)
-        pip.main(['install', pkg_src])
-    else:
-        pkg_id = pkg_src
-    install_requires.append(pkg_id)
-    
+# parse requirements.txt files
+with open('requirements.txt', 'r') as file:
+    install_requires = install_packages(file.readlines())
+with open('tests/requirements.txt', 'r') as file:
+    test_require = install_packages(file.readlines())
+
 setup(
     name="Karr-Lab-build-utils",
     version=karr_lab_build_utils.__version__,
@@ -32,6 +27,7 @@ setup(
         'karr_lab_build_utils': ['lib'],
     },
     install_requires=install_requires,
+    test_require=test_require,
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
