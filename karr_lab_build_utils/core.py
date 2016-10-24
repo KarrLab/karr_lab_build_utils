@@ -30,7 +30,7 @@ import subprocess
 import sys
 import tempfile
 import subprocess
-
+import pysftp
 
 class BuildHelper(object):
     """ Utility class to help build projects:
