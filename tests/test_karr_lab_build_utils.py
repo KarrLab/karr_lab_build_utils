@@ -38,7 +38,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         env.set('CODECLIMATE_REPO_TOKEN', TestKarrLabBuildUtils.CODECLIMATE_REPO_TOKEN)
         if not os.getenv('CIRCLECI'):
             with open('tests/fixtures/CODE_SERVER_PASSWORD', 'r') as file:
-                env.set('CODE_SERVER_PASSWORD', file.read())
+                env.set('CODE_SERVER_PASSWORD', file.read().strip())
+        if not os.getenv('CIRCLECI'):
+            with open('tests/fixtures/CODE_SERVER_HOST_KEY', 'r') as file:
+                env.set('CODE_SERVER_HOST_KEY', file.read().strip())
 
         return env
 
@@ -234,26 +237,26 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         buildHelper.make_test_history_report()
 
         """ test API """
-        with buildHelper.get_connection_to_lab_server() as ftp:
-            if ftp.path.isfile(ftp.path.join(buildHelper.serv_tests_xml_dir, '{0:d}.{1:s}.xml'.format(buildHelper.build_num, py_v))):
-                ftp.remove(ftp.path.join(buildHelper.serv_tests_xml_dir,
+        with buildHelper.sftp_connection() as sftp:
+            if sftp.isfile(os.path.join(buildHelper.serv_tests_xml_dir, '{0:d}.{1:s}.xml'.format(buildHelper.build_num, py_v))):
+                sftp.remove(os.path.join(buildHelper.serv_tests_xml_dir,
                                          '{0:d}.{1:s}.xml'.format(buildHelper.build_num, py_v)))
 
-            if ftp.path.isfile(ftp.path.join(buildHelper.serv_tests_unitth_dir, '{0:d}.{1:s}'.format(buildHelper.build_num, py_v), 'index.html')):
-                ftp.remove(ftp.path.join(buildHelper.serv_tests_unitth_dir,
+            if sftp.isfile(os.path.join(buildHelper.serv_tests_unitth_dir, '{0:d}.{1:s}'.format(buildHelper.build_num, py_v), 'index.html')):
+                sftp.remove(os.path.join(buildHelper.serv_tests_unitth_dir,
                                          '{0:d}.{1:s}'.format(buildHelper.build_num, py_v), 'index.html'))
 
-            if ftp.path.isfile(ftp.path.join(buildHelper.serv_tests_html_dir, 'index.html')):
-                ftp.remove(ftp.path.join(buildHelper.serv_tests_html_dir, 'index.html'))
+            if sftp.isfile(os.path.join(buildHelper.serv_tests_html_dir, 'index.html')):
+                sftp.remove(os.path.join(buildHelper.serv_tests_html_dir, 'index.html'))
 
         buildHelper.upload_test_reports_to_lab_server()
 
-        with buildHelper.get_connection_to_lab_server() as ftp:
-            self.assertTrue(ftp.path.isfile(ftp.path.join(
+        with buildHelper.sftp_connection() as sftp:
+            self.assertTrue(sftp.isfile(os.path.join(
                 buildHelper.serv_tests_xml_dir, '{0:d}.{1:s}.xml'.format(buildHelper.build_num, py_v))))
-            self.assertTrue(ftp.path.isfile(ftp.path.join(buildHelper.serv_tests_unitth_dir,
+            self.assertTrue(sftp.isfile(os.path.join(buildHelper.serv_tests_unitth_dir,
                                                           '{0:d}.{1:s}'.format(buildHelper.build_num, py_v), 'index.html')))
-            self.assertTrue(ftp.path.isfile(ftp.path.join(buildHelper.serv_tests_html_dir, 'index.html')))
+            self.assertTrue(sftp.isfile(os.path.join(buildHelper.serv_tests_html_dir, 'index.html')))
 
         """ test CLI """
         with self.construct_environment():
@@ -396,14 +399,14 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         buildHelper.make_html_coverage_report()
 
         """ test API """
-        with buildHelper.get_connection_to_lab_server() as ftp:
-            if ftp.path.isfile(ftp.path.join(buildHelper.serv_cov_html_dir, 'index.html')):
-                ftp.remove(ftp.path.join(buildHelper.serv_cov_html_dir, 'index.html'))
+        with buildHelper.sftp_connection() as sftp:
+            if sftp.isfile(os.path.join(buildHelper.serv_cov_html_dir, 'index.html')):
+                sftp.remove(os.path.join(buildHelper.serv_cov_html_dir, 'index.html'))
 
         buildHelper.upload_html_coverage_report_to_lab_server()
 
-        with buildHelper.get_connection_to_lab_server() as ftp:
-            self.assertTrue(ftp.path.isfile(ftp.path.join(buildHelper.serv_cov_html_dir, 'index.html')))
+        with buildHelper.sftp_connection() as sftp:
+            self.assertTrue(sftp.isfile(os.path.join(buildHelper.serv_cov_html_dir, 'index.html')))
 
         """ test CLI """
         with self.construct_environment():
@@ -432,14 +435,14 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         buildHelper.make_documentation()
 
         """ test API """
-        with buildHelper.get_connection_to_lab_server() as ftp:
-            if ftp.path.isfile(ftp.path.join(buildHelper.serv_docs_build_html_dir, 'index.html')):
-                ftp.remove(ftp.path.join(buildHelper.serv_docs_build_html_dir, 'index.html'))
+        with buildHelper.sftp_connection() as sftp:
+            if sftp.isfile(os.path.join(buildHelper.serv_docs_build_html_dir, 'index.html')):
+                sftp.remove(os.path.join(buildHelper.serv_docs_build_html_dir, 'index.html'))
 
         buildHelper.archive_documentation()
 
-        with buildHelper.get_connection_to_lab_server() as ftp:
-            self.assertTrue(ftp.path.isfile(ftp.path.join(buildHelper.serv_docs_build_html_dir, 'index.html')))
+        with buildHelper.sftp_connection() as sftp:
+            self.assertTrue(sftp.isfile(os.path.join(buildHelper.serv_docs_build_html_dir, 'index.html')))
 
         """ test CLI """
         with self.construct_environment():
@@ -452,14 +455,14 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         buildHelper.make_documentation()
 
         """ test API """
-        with buildHelper.get_connection_to_lab_server() as ftp:
-            if ftp.path.isfile(ftp.path.join(buildHelper.serv_docs_build_html_dir, 'index.html')):
-                ftp.remove(ftp.path.join(buildHelper.serv_docs_build_html_dir, 'index.html'))
+        with buildHelper.sftp_connection() as sftp:
+            if sftp.isfile(os.path.join(buildHelper.serv_docs_build_html_dir, 'index.html')):
+                sftp.remove(os.path.join(buildHelper.serv_docs_build_html_dir, 'index.html'))
 
         buildHelper.upload_documentation_to_lab_server()
 
         with buildHelper.get_connection_to_lab_server() as ftp:
-            self.assertTrue(ftp.path.isfile(ftp.path.join(buildHelper.serv_docs_build_html_dir, 'index.html')))
+            self.assertTrue(sftp.isfile(os.path.join(buildHelper.serv_docs_build_html_dir, 'index.html')))
 
         """ test CLI """
         with self.construct_environment():

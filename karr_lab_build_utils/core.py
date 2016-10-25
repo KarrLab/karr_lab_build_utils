@@ -1,6 +1,7 @@
 """ Karr Lab build utilities
 
 :Author: Jonathan Karr <karr@mssm.edu>
+:Author: Arthur Goldberg <Arthur.Goldberg@mssm.edu>
 :Date: 2016-08-02
 :Copyright: 2016, Karr Lab
 :License: MIT
@@ -104,7 +105,7 @@ class BuildHelper(object):
     DEFAULT_TEST_RUNNER = 'pytest'
     DEFAULT_CODE_SERVER_HOSTNAME = 'karrlab.org'
     DEFAULT_CODE_SERVER_USERNAME = 'jonkar26'
-    DEFAULT_CODE_SERVER_BASE_DIR = 'code.karrlab.org'
+    DEFAULT_CODE_SERVER_BASE_DIR = 'code.karrlab.org'   # sftp does not allow remote paths to begin with '/'
     DEFAULT_PROJ_TESTS_DIR = 'tests'
     DEFAULT_PROJ_TESTS_XML_LATEST_FILENAME = 'latest'
     DEFAULT_PROJ_TESTS_XML_DIR = 'tests/reports/xml'
@@ -380,9 +381,12 @@ class BuildHelper(object):
             for name in glob(os.path.join(self.proj_tests_unitth_dir, '{0:d}.{1:s}'.format(self.build_num, '*'))):
                 print( 'sftp.pwd', sftp.pwd )
                 print(name, self.serv_tests_unitth_dir + name[len(self.proj_tests_unitth_dir):])
-                sftp.put_r(name, self.serv_tests_unitth_dir + name[len(self.proj_tests_unitth_dir):])
+                self.upload_dir_to_lab_server_via_sftp( sftp, name,
+                    self.serv_tests_unitth_dir + name[len(self.proj_tests_unitth_dir):])
 
-            sftp.put_r(name, self.proj_tests_html_dir, self.serv_tests_html_dir)
+            print(self.proj_tests_html_dir, self.serv_tests_html_dir)
+            self.upload_dir_to_lab_server_via_sftp( sftp, self.proj_tests_html_dir,
+                self.serv_tests_html_dir)
 
     ########################
     # Coverage reports
@@ -455,7 +459,7 @@ class BuildHelper(object):
         """ Upload HTML coverage report to lab server """
 
         with self.sftp_connection() as sftp:
-            sftp.put_r(self.proj_cov_html_dir, self.serv_cov_html_dir)
+            self.upload_dir_to_lab_server_via_sftp( sftp, self.proj_cov_html_dir, self.serv_cov_html_dir)
 
     ########################
     # Documentation
@@ -496,7 +500,8 @@ class BuildHelper(object):
         """ Upload documentation to lab server """
 
         with self.sftp_connection() as sftp:
-            sftp.put_r(self.proj_docs_build_html_dir, self.serv_docs_build_html_dir)
+            self.upload_dir_to_lab_server_via_sftp( sftp, self.proj_docs_build_html_dir,
+                self.serv_docs_build_html_dir)
 
     def get_version(self):
         return '{0:s} (Python {1[0]:d}.{1[1]:d}.{1[2]:d})'.format(karr_lab_build_utils.__version__, sys.version_info)
@@ -562,6 +567,27 @@ class BuildHelper(object):
         yield sftp
         sftp.close()
 
+    def upload_dir_to_lab_server_via_sftp(self, sftp, local_root_dir, remote_root_dir):
+        """ Securely upload directory to lab server
+
+        Args:
+            local_root_dir (:obj:`str`): local directory to upload
+            remote_root_dir (:obj:`str`): remote path to copy local directory to
+
+        Raises:
+            :obj:`BuildHelperError`: if the local_root_dir or the remote_root_dir does not exist
+        """
+        sftp.makedirs(remote_root_dir)
+        try:
+            sftp.put_r(local_root_dir, remote_root_dir)
+        except IOError as e:
+            raise BuildHelperError("upload_dir_to_lab_server_via_sftp: remote root dir '{}' does "
+                "not exist".format(remote_root_dir))
+        except OSError as e:
+            raise BuildHelperError("upload_dir_to_lab_server_via_sftp: local root dir '{}' does "
+                "not exist".format(local_root_dir))
+
+    '''
     def upload_dir_to_lab_server(self, ftp, local_root_dir, remote_root_dir):
         """ Upload directory to lab server
 
@@ -582,7 +608,6 @@ class BuildHelper(object):
                 ftp.upload(os.path.join(local_root_dir, rel_dir, local_file),
                            ftp.path.join(remote_root_dir, rel_dir, local_file))
 
-    '''
     def download_dir_from_lab_server(self, ftp, remote_root_dir, local_root_dir):
         """ Download directory from lab server
 
