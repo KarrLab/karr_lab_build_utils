@@ -102,9 +102,9 @@ class BuildHelper(object):
     """
 
     DEFAULT_TEST_RUNNER = 'pytest'
-    DEFAULT_CODE_SERVER_HOSTNAME = 'code.karrlab.org'
-    DEFAULT_CODE_SERVER_USERNAME = 'karrlab_code'
-    DEFAULT_CODE_SERVER_BASE_DIR = '/code.karrlab.org'
+    DEFAULT_CODE_SERVER_HOSTNAME = 'karrlab.org'
+    DEFAULT_CODE_SERVER_USERNAME = 'jonkar26'
+    DEFAULT_CODE_SERVER_BASE_DIR = 'code.karrlab.org'
     DEFAULT_PROJ_TESTS_DIR = 'tests'
     DEFAULT_PROJ_TESTS_XML_LATEST_FILENAME = 'latest'
     DEFAULT_PROJ_TESTS_XML_DIR = 'tests/reports/xml'
@@ -378,6 +378,8 @@ class BuildHelper(object):
                 sftp.put(name, remotepath=self.serv_tests_xml_dir + name[len(self.proj_tests_xml_dir):])
 
             for name in glob(os.path.join(self.proj_tests_unitth_dir, '{0:d}.{1:s}'.format(self.build_num, '*'))):
+                print( 'sftp.pwd', sftp.pwd )
+                print(name, self.serv_tests_unitth_dir + name[len(self.proj_tests_unitth_dir):])
                 sftp.put_r(name, self.serv_tests_unitth_dir + name[len(self.proj_tests_unitth_dir):])
 
             sftp.put_r(name, self.proj_tests_html_dir, self.serv_tests_html_dir)
@@ -537,22 +539,29 @@ class BuildHelper(object):
         if not self.code_server_host_key:
             raise BuildHelperError('Code server host key must be set')
 
+        # print("code_server_host_key: '{}'".format(self.code_server_host_key))
         hostkey=paramiko.hostkeys.HostKeyEntry.from_line(self.code_server_host_key)
         (_, keytype, _)=self.code_server_host_key.split(' ')
-        hostkeys=paramiko.hostkeys.HostKeys().add(host, keytype, hostkey)
+        hostkeys=paramiko.hostkeys.HostKeys().add(self.code_server_hostname, keytype, hostkey)
         cn_opts = pysftp.CnOpts(hostkeys)
+        '''
+        cn_opts = pysftp.CnOpts()
+        cn_opts.hostkeys = None
+        '''
+        # print(self.code_server_hostname, self.code_server_username)
+        # print("code_server_password: '{}'".format(self.code_server_password))
         sftp = pysftp.Connection(self.code_server_hostname, username=self.code_server_username,
-            password=self.code_server_password, cnopts=cn_opts)
+            password=self.code_server_password, cnopts=cn_opts, log='sftp.log')
 
-        base_dir = os.path.join( 'test_dir', self.code_server_base_dir, self.project_name)
+        base_dir = os.path.join( self.code_server_base_dir, self.project_name)
+        print(base_dir)
         if not sftp.isdir(base_dir):
-            sftp.makedirs(os.path.join(base_dir)
+            sftp.makedirs(base_dir)
         sftp.chdir(base_dir)
 
         yield sftp
         sftp.close()
 
-    '''
     def upload_dir_to_lab_server(self, ftp, local_root_dir, remote_root_dir):
         """ Upload directory to lab server
 
@@ -572,7 +581,6 @@ class BuildHelper(object):
             for local_file in local_files:
                 ftp.upload(os.path.join(local_root_dir, rel_dir, local_file),
                            ftp.path.join(remote_root_dir, rel_dir, local_file))
-    '''
 
     '''
     def download_dir_from_lab_server(self, ftp, remote_root_dir, local_root_dir):
