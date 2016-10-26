@@ -185,7 +185,7 @@ class BuildHelper(object):
             return
 
         with abduct.captured(abduct.err()) as stderr:
-            result = pip.main(['install', '-U', '-r', req_file])
+            result = pip.main(['install', '-r', req_file])
             long_err_msg = stderr.getvalue()
 
         if result:

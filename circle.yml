@@ -9,19 +9,16 @@ dependencies:
     - /opt/circleci/python/3.5.2
     - /opt/circleci/.pyenv/shims
   pre:
-    - pip2 install -U pip
-    - pip3 install -U pip
-
-    - pip2 install --process-dependency-links -e .
+    - pip2 install -e .
     - karr-lab-build-utils-2 install-requirements
     
-    - pip3 install --process-dependency-links -e .
+    - pip3 install -e .
     - karr-lab-build-utils-3 install-requirements
 test:
   override:
-    - pip2 install --process-dependency-links -e .
+    - pip2 install -e .
     - karr-lab-build-utils-2 run-tests tests --with-xunit --with-coverage
-    - pip3 install --process-dependency-links -e .
+    - pip3 install -e .
     - karr-lab-build-utils-3 run-tests tests --with-xunit --with-coverage
   post:
     - karr-lab-build-utils make-and-archive-reports

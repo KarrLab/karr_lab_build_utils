@@ -5,7 +5,7 @@ import pip
 import re
 import sys
 
-# parse requirements.txt
+# parse dependencies and their links from requirements.txt files
 install_requires = []
 tests_require = []
 dependency_links = []
@@ -31,6 +31,11 @@ for line in open('tests/requirements.txt'):
     tests_require.append(pkg_id)
 dependency_links = list(set(dependency_links))
 
+# install non-PyPI dependencies because setup doesn't do this correctly
+for dependency_link in dependency_links:
+    pip.main(['install', dependency_link])
+
+# install package
 setup(
     name="Karr-Lab-build-utils",
     version=karr_lab_build_utils.__version__,
