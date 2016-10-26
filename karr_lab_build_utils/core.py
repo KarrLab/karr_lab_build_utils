@@ -551,7 +551,6 @@ class BuildHelper(object):
         cn_opts = pysftp.CnOpts()
         cn_opts.hostkeys = None
         '''
-
         print(self.code_server_hostname, self.code_server_username, self.code_server_password)
         sftp = pysftp.Connection(self.code_server_hostname, username=self.code_server_username,
             password=self.code_server_password, cnopts=cn_opts, log='sftp.log' )
