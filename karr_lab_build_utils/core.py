@@ -135,6 +135,7 @@ class BuildHelper(object):
         self.code_server_username = os.getenv('CODE_SERVER_USERNAME', self.DEFAULT_CODE_SERVER_USERNAME)
         self.code_server_password = os.getenv('CODE_SERVER_PASSWORD')
         self.code_server_host_key = os.getenv('CODE_SERVER_HOST_KEY')
+        print('CODE_SERVER_HOST_KEY', self.code_server_host_key)
         self.code_server_base_dir = os.getenv('CODE_SERVER_BASE_DIR', self.DEFAULT_CODE_SERVER_BASE_DIR)
 
         self.project_name = os.getenv('CIRCLE_PROJECT_REPONAME', '')
@@ -379,12 +380,9 @@ class BuildHelper(object):
                 sftp.put(name, remotepath=self.serv_tests_xml_dir + name[len(self.proj_tests_xml_dir):])
 
             for name in glob(os.path.join(self.proj_tests_unitth_dir, '{0:d}.{1:s}'.format(self.build_num, '*'))):
-                print( 'sftp.pwd', sftp.pwd )
-                print(name, self.serv_tests_unitth_dir + name[len(self.proj_tests_unitth_dir):])
                 self.upload_dir_to_lab_server_via_sftp( sftp, name,
                     self.serv_tests_unitth_dir + name[len(self.proj_tests_unitth_dir):])
 
-            print(self.proj_tests_html_dir, self.serv_tests_html_dir)
             self.upload_dir_to_lab_server_via_sftp( sftp, self.proj_tests_html_dir,
                 self.serv_tests_html_dir)
 
@@ -544,22 +542,16 @@ class BuildHelper(object):
         if not self.code_server_host_key:
             raise BuildHelperError('Code server host key must be set')
 
-        # print("code_server_host_key: '{}'".format(self.code_server_host_key))
+        print("code_server_host_key: '{}'".format(self.code_server_host_key))
         hostkey=paramiko.hostkeys.HostKeyEntry.from_line(self.code_server_host_key)
         (_, keytype, _)=self.code_server_host_key.split(' ')
         hostkeys=paramiko.hostkeys.HostKeys().add(self.code_server_hostname, keytype, hostkey)
         cn_opts = pysftp.CnOpts(hostkeys)
-        '''
-        cn_opts = pysftp.CnOpts()
-        cn_opts.hostkeys = None
-        '''
-        # print(self.code_server_hostname, self.code_server_username)
-        # print("code_server_password: '{}'".format(self.code_server_password))
+
         sftp = pysftp.Connection(self.code_server_hostname, username=self.code_server_username,
-            password=self.code_server_password, cnopts=cn_opts, log='sftp.log')
+            password=self.code_server_password, cnopts=cn_opts, log='sftp.log' )
 
         base_dir = os.path.join( self.code_server_base_dir, self.project_name)
-        print(base_dir)
         if not sftp.isdir(base_dir):
             sftp.makedirs(base_dir)
         sftp.chdir(base_dir)

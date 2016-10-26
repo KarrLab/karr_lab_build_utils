@@ -461,7 +461,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         buildHelper.upload_documentation_to_lab_server()
 
-        with buildHelper.get_connection_to_lab_server() as ftp:
+        with buildHelper.sftp_connection() as sftp:
             self.assertTrue(sftp.isfile(os.path.join(buildHelper.serv_docs_build_html_dir, 'index.html')))
 
         """ test CLI """
