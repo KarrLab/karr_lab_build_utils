@@ -1,23 +1,27 @@
 machine:
   python:
-    version: 2.7.11
+    version: 2.7.12
   post:
-    - pyenv global 2.7.11 3.5.1
+    - pyenv global 2.7.12 3.5.2
 dependencies:
   cache_directories:
-    - /home/ubuntu/virtualenvs/venv-2.7.11
-    - /opt/circleci/python/3.5.1
+    - /home/ubuntu/virtualenvs/venv-2.7.12
+    - /opt/circleci/python/3.5.2
     - /opt/circleci/.pyenv/shims
   pre:
-    - pip2 install -e -U .
+    - pip2 install -U pip
+    - pip3 install -U pip
+
+    - pip2 install --process-dependency-links -e .
     - karr-lab-build-utils-2 install-requirements
-    - pip3 install -e -U .
+    
+    - pip3 install --process-dependency-links -e .
     - karr-lab-build-utils-3 install-requirements
 test:
   override:
-    - pip2 install -e -U .
+    - pip2 install --process-dependency-links -e .
     - karr-lab-build-utils-2 run-tests tests --with-xunit --with-coverage
-    - pip3 install -e -U .
+    - pip3 install --process-dependency-links -e .
     - karr-lab-build-utils-3 run-tests tests --with-xunit --with-coverage
   post:
     - karr-lab-build-utils make-and-archive-reports

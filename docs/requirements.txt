@@ -6,7 +6,7 @@ coverage
 coveralls
 ftputil
 GitPython
-git+git://github.com/KarrLab/junit2html.git#egg=junit2html>=4
+git+git://github.com/KarrLab/junit2html.git#egg=junit2html
 nose
 nose2unitth
 pytest
