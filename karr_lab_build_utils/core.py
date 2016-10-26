@@ -542,8 +542,7 @@ class BuildHelper(object):
         if not self.code_server_host_key:
             raise BuildHelperError('Code server host key must be set')
 
-        print("not used: code_server_host_key: '{}'".format(self.code_server_host_key))
-        '''
+        print("code_server_host_key: '{}'".format(self.code_server_host_key))
         hostkey=paramiko.hostkeys.HostKeyEntry.from_line(self.code_server_host_key)
         (_, keytype, _)=self.code_server_host_key.split(' ')
         hostkeys=paramiko.hostkeys.HostKeys().add(self.code_server_hostname, keytype, hostkey)
@@ -551,6 +550,7 @@ class BuildHelper(object):
         '''
         cn_opts = pysftp.CnOpts()
         cn_opts.hostkeys = None
+        '''
 
         sftp = pysftp.Connection(self.code_server_hostname, username=self.code_server_username,
             password=self.code_server_password, cnopts=cn_opts, log='sftp.log' )
