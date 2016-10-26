@@ -29,6 +29,7 @@ for line in open('tests/requirements.txt'):
     else:
         pkg_id = pkg_src
     tests_require.append(pkg_id)
+dependency_links = list(set(dependency_links))
 
 setup(
     name="Karr-Lab-build-utils",
