@@ -18,7 +18,6 @@ class BaseController(CementBaseController):
 
         * Copy report to artifacts directory
         * Upload report to Coveralls and Code Climate
-        * Upload HTML report to lab server
         """
         buildHelper = BuildHelper()
         buildHelper.archive_coverage_report()
@@ -29,14 +28,11 @@ class BaseController(CementBaseController):
         buildHelper = BuildHelper()
         buildHelper.archive_documentation()
 
-    @expose(help='Archive test reports')
-    def archive_test_reports(self):
-        """ Archive test report:
-        
-        * Upload XML and HTML test reports to lab server
-        """
+    @expose(help='Archive test history report')
+    def archive_test_history_report(self):
+        """ Save HTML test reports to artifacts directory """
         buildHelper = BuildHelper()
-        buildHelper.archive_test_reports()
+        buildHelper.archive_test_history_report()
 
     @expose(help='Combine coverage reports (.coverage.*) into a single file (.coverage)')
     def combine_coverage_reports(self):
@@ -70,7 +66,6 @@ class BaseController(CementBaseController):
         * Generate HTML coverage reports
         * Generate HTML API documentation
         * Archive coverage report to Coveralls and Code Climate
-        * Archive HTML coverage report to lab server
         """
         buildHelper = BuildHelper()
         buildHelper.make_and_archive_reports()
@@ -104,18 +99,6 @@ class BaseController(CementBaseController):
         """ Upload coverage report to Code Climate """
         buildHelper = BuildHelper()
         buildHelper.upload_coverage_report_to_code_climate()
-
-    @expose(help='Upload HTML coverage report to lab server')
-    def upload_html_coverage_report_to_lab_server(self):
-        """ Upload HTML coverage report to lab server """
-        buildHelper = BuildHelper()
-        buildHelper.upload_html_coverage_report_to_lab_server()
-
-    @expose(help='Upload XML and HTML test reports to lab server')
-    def upload_test_reports_to_lab_server(self):
-        """ Upload XML and HTML test reports to lab server """
-        buildHelper = BuildHelper()
-        buildHelper.upload_test_reports_to_lab_server()
 
     @expose(help='Get version')
     def get_version(self):

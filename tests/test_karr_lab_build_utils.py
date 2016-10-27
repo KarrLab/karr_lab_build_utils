@@ -173,7 +173,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with KarrLabBuildUtilsCli(argv=['make-test-history-report']) as app:
                 app.run()
 
-    def test_archive_test_reports(self):
+    def test_archive_test_history_report(self):
         buildHelper = self.construct_build_helper()
         buildHelper.run_tests(test_path=self.DUMMY_TEST,
                               with_xunit=True, with_coverage=True)
@@ -200,65 +200,18 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         buildHelper.make_test_history_report()
 
         """ test API """
-        buildHelper.archive_test_reports()
+        artifacts_tests_dir = os.path.join(buildHelper.build_artifacts_dir, buildHelper.artifacts_tests_html_dir)
+        self.assertFalse(os.path.isfile(os.path.join(artifacts_tests_dir, 'index.html')))
+        buildHelper.archive_test_history_report()
+        self.assertTrue(os.path.isfile(os.path.join(artifacts_tests_dir, 'index.html')))
 
         """ test CLI """
         with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['archive-test-reports']) as app:
+            artifacts_tests_dir = os.path.join(os.getenv('CIRCLE_ARTIFACTS'), buildHelper.artifacts_tests_html_dir)
+            self.assertFalse(os.path.isfile(os.path.join(artifacts_tests_dir, 'index.html')))
+            with KarrLabBuildUtilsCli(argv=['archive-test-history-report']) as app:
                 app.run()
-
-    def test_upload_test_reports_to_lab_server(self):
-        buildHelper = self.construct_build_helper()
-        buildHelper.run_tests(test_path=self.DUMMY_TEST,
-                              with_xunit=True, with_coverage=True)
-
-        py_v = buildHelper.get_python_version()
-
-        for report_filename in glob(os.path.join(buildHelper.proj_tests_xml_dir, "[0-9]*.*.xml")):
-            os.remove(report_filename)
-        shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
-                buildHelper.proj_tests_xml_latest_filename, py_v)),
-            os.path.join(buildHelper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(buildHelper.build_num, py_v))
-        )
-        shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
-                buildHelper.proj_tests_xml_latest_filename, py_v)),
-            os.path.join(buildHelper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(10000000000000001, py_v))
-        )
-        shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
-                buildHelper.proj_tests_xml_latest_filename, py_v)),
-            os.path.join(buildHelper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(10000000000000002, py_v))
-        )
-        buildHelper.make_test_history_report()
-
-        """ test API """
-        with buildHelper.get_connection_to_lab_server() as ftp:
-            if ftp.path.isfile(ftp.path.join(buildHelper.serv_tests_xml_dir, '{0:d}.{1:s}.xml'.format(buildHelper.build_num, py_v))):
-                ftp.remove(ftp.path.join(buildHelper.serv_tests_xml_dir,
-                                         '{0:d}.{1:s}.xml'.format(buildHelper.build_num, py_v)))
-
-            if ftp.path.isfile(ftp.path.join(buildHelper.serv_tests_unitth_dir, '{0:d}.{1:s}'.format(buildHelper.build_num, py_v), 'index.html')):
-                ftp.remove(ftp.path.join(buildHelper.serv_tests_unitth_dir,
-                                         '{0:d}.{1:s}'.format(buildHelper.build_num, py_v), 'index.html'))
-
-            if ftp.path.isfile(ftp.path.join(buildHelper.serv_tests_html_dir, 'index.html')):
-                ftp.remove(ftp.path.join(buildHelper.serv_tests_html_dir, 'index.html'))
-
-        buildHelper.upload_test_reports_to_lab_server()
-
-        with buildHelper.get_connection_to_lab_server() as ftp:
-            self.assertTrue(ftp.path.isfile(ftp.path.join(
-                buildHelper.serv_tests_xml_dir, '{0:d}.{1:s}.xml'.format(buildHelper.build_num, py_v))))
-            self.assertTrue(ftp.path.isfile(ftp.path.join(buildHelper.serv_tests_unitth_dir,
-                                                          '{0:d}.{1:s}'.format(buildHelper.build_num, py_v), 'index.html')))
-            self.assertTrue(ftp.path.isfile(ftp.path.join(buildHelper.serv_tests_html_dir, 'index.html')))
-
-        """ test CLI """
-        with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['upload-test-reports-to-lab-server']) as app:
-                app.run()
+            self.assertTrue(os.path.isfile(os.path.join(artifacts_tests_dir, 'index.html')))
 
     def test_combine_coverage_reports(self):
         buildHelper = self.construct_build_helper()
@@ -385,29 +338,6 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         """ test CLI """
         with self.construct_environment():
             with KarrLabBuildUtilsCli(argv=['upload-coverage-report-to-code-climate']) as app:
-                app.run()
-
-    def test_upload_html_coverage_report_to_lab_server(self):
-        buildHelper = self.construct_build_helper()
-        buildHelper.run_tests(test_path=self.DUMMY_TEST,
-                              with_xunit=True, with_coverage=True)
-
-        shutil.move('.coverage.{}'.format(buildHelper.get_python_version()), '.coverage')
-        buildHelper.make_html_coverage_report()
-
-        """ test API """
-        with buildHelper.get_connection_to_lab_server() as ftp:
-            if ftp.path.isfile(ftp.path.join(buildHelper.serv_cov_html_dir, 'index.html')):
-                ftp.remove(ftp.path.join(buildHelper.serv_cov_html_dir, 'index.html'))
-
-        buildHelper.upload_html_coverage_report_to_lab_server()
-
-        with buildHelper.get_connection_to_lab_server() as ftp:
-            self.assertTrue(ftp.path.isfile(ftp.path.join(buildHelper.serv_cov_html_dir, 'index.html')))
-
-        """ test CLI """
-        with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['upload-html-coverage-report-to-lab-server']) as app:
                 app.run()
 
     def test_make_documentation(self):

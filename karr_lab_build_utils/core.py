@@ -39,7 +39,7 @@ class BuildHelper(object):
     * Generate HTML test history reports
     * Generate HTML coverage reports
     * Generate HTML API documentation
-    * Archive reports to lab server, Coveralls, and Code Climate
+    * Archive reports to artifacts, Coveralls, and Code Climate
 
     Attributes:
         test_runner (:obj:`str`): name of test runner {pytest, nose}
@@ -69,7 +69,8 @@ class BuildHelper(object):
         serv_tests_html_dir (:obj:`str`): server directory where HTML test history report should be saved
         serv_cov_html_dir (:obj:`str`): server directory where HTML coverage report should be saved
         
-        artifacts_docs_build_html_dir (:obj:`str`): artifactrs subdirectory where generated HTML documentation should be saved
+        artifacts_docs_build_html_dir (:obj:`str`): artifacts subdirectory where generated HTML documentation should be saved
+        artifacts_tests_html_dir (:obj:`str`): artifacts subdirectory where HTML test history report should be saved
 
         coveralls_token (:obj:`str`): Coveralls token
         code_climate_token (:obj:`str`): Code Climate token
@@ -97,6 +98,7 @@ class BuildHelper(object):
         DEFAULT_SERV_TESTS_HTML_DIR (:obj:`str`): default server directory where HTML test history report should be saved
         DEFAULT_SERV_COV_HTML_DIR (:obj:`str`): default server directory where HTML coverage report should be saved        
         DEFAULT_ARTIFACTS_DOCS_BUILD_HTML_DIR (:obj:`str`): default artifacts subdirectory where generated HTML documentation should be saved
+        DEFAULT_ARTIFACTS_TESTS_HTML_DIR (:obj:`str`): default artifacts subdirectory where HTML test history report should be saved
     """
 
     DEFAULT_TEST_RUNNER = 'pytest'
@@ -119,6 +121,7 @@ class BuildHelper(object):
     DEFAULT_SERV_TESTS_HTML_DIR = 'tests/html'
     DEFAULT_SERV_COV_HTML_DIR = 'tests/coverage'
     DEFAULT_ARTIFACTS_DOCS_BUILD_HTML_DIR = 'docs'
+    DEFAULT_ARTIFACTS_TESTS_HTML_DIR = 'tests'
 
     def __init__(self):
         """ Construct build helper """
@@ -159,6 +162,7 @@ class BuildHelper(object):
         self.serv_tests_html_dir = self.DEFAULT_SERV_TESTS_HTML_DIR
         self.serv_cov_html_dir = self.DEFAULT_SERV_COV_HTML_DIR
         self.artifacts_docs_build_html_dir = self.DEFAULT_ARTIFACTS_DOCS_BUILD_HTML_DIR
+        self.artifacts_tests_html_dir = self.DEFAULT_ARTIFACTS_TESTS_HTML_DIR
 
         self.coveralls_token = os.getenv('COVERALLS_REPO_TOKEN')
         self.code_climate_token = os.getenv('CODECLIMATE_REPO_TOKEN')
@@ -272,7 +276,6 @@ class BuildHelper(object):
         * Generate HTML coverage reports
         * Generate HTML API documentation
         * Archive coverage report to Coveralls and Code Climate
-        * Archive HTML coverage report to lab sever
         """
 
         """ test reports """
@@ -285,15 +288,14 @@ class BuildHelper(object):
         # make report of test history
         self.make_test_history_report()
 
-        # copy test history to lab server
-        self.archive_test_reports()
+        # copy test history to artifacts directory
+        self.archive_test_history_report()
 
         """ coverage """
         # Merge coverage reports
         # Generate HTML report
         # Copy coverage report to artifacts directory
         # Upload coverage report to Coveralls and Code Climate
-        # Upload HTML coverage report to lab server
         self.combine_coverage_reports()
         self.make_html_coverage_report()
         self.archive_coverage_report()
@@ -356,29 +358,11 @@ class BuildHelper(object):
                    generate_exec_time_graphs=True,
                    html_report_dir=self.proj_tests_html_dir)
 
-    def archive_test_reports(self):
-        """ Archive test report:
+    def archive_test_history_report(self):
+        """ Save HTML test reports to artifacts directory """
 
-        * Upload XML and HTML test reports to lab server
-        """
-
-        self.upload_test_reports_to_lab_server()
-
-    def upload_test_reports_to_lab_server(self):
-        """ Upload XML and HTML test reports to lab server """
-
-        with self.get_connection_to_lab_server() as ftp:
-            if not ftp.path.isdir(self.serv_tests_xml_dir):
-                ftp.makedirs(self.serv_tests_xml_dir)
-
-            for name in glob(os.path.join(self.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(self.build_num, '*'))):
-                ftp.upload(name, self.serv_tests_xml_dir + name[len(self.proj_tests_xml_dir):])
-
-            for name in glob(os.path.join(self.proj_tests_unitth_dir, '{0:d}.{1:s}'.format(self.build_num, '*'))):
-                self.upload_dir_to_lab_server(ftp, name, self.serv_tests_unitth_dir +
-                                              name[len(self.proj_tests_unitth_dir):])
-
-            self.upload_dir_to_lab_server(ftp, self.proj_tests_html_dir, self.serv_tests_html_dir)
+        shutil.copytree(self.proj_tests_html_dir, 
+            os.path.join(self.build_artifacts_dir, self.artifacts_tests_html_dir))
 
     ########################
     # Coverage reports
@@ -409,7 +393,6 @@ class BuildHelper(object):
 
         * Copy report to artifacts directory
         * Upload report to Coveralls and Code Climate
-        * Upload HTML report to lab server
         """
 
         # copy to artifacts directory
@@ -420,9 +403,6 @@ class BuildHelper(object):
 
         # upload to Code Climate
         self.upload_coverage_report_to_code_climate()
-
-        # upload to lab server
-        self.upload_html_coverage_report_to_lab_server()
 
     def copy_coverage_report_to_artifacts_directory(self):
         """ Copy coverage report to CircleCI artifacts directory """
@@ -447,12 +427,6 @@ class BuildHelper(object):
             if result != 0:
                 raise BuildHelperError('Error uploading coverage report to Code Climate')
 
-    def upload_html_coverage_report_to_lab_server(self):
-        """ Upload HTML coverage report to lab server """
-
-        with self.get_connection_to_lab_server() as ftp:
-            self.upload_dir_to_lab_server(ftp, self.proj_cov_html_dir, self.serv_cov_html_dir)
-
     ########################
     # Documentation
     ########################
@@ -461,7 +435,7 @@ class BuildHelper(object):
         """ Make HTML documentation using Sphinx for one or more packages. Save documentation to `proj_docs_build_html_dir` 
 
         Raises:
-            :obj:`BuildHelperError`: If project name or code server password not set
+            :obj:`BuildHelperError`: If project name not set
         """
 
         # create `proj_docs_static_dir`, if necessary
@@ -483,7 +457,8 @@ class BuildHelper(object):
     def archive_documentation(self):
         """ Save documentation to artifacts directory """
 
-        shutil.copytree(self.proj_docs_build_html_dir, os.path.join(self.build_artifacts_dir, self.artifacts_docs_build_html_dir))
+        shutil.copytree(self.proj_docs_build_html_dir, 
+            os.path.join(self.build_artifacts_dir, self.artifacts_docs_build_html_dir))
 
     def get_version(self):
         return '{0:s} (Python {1[0]:d}.{1[1]:d}.{1[2]:d})'.format(karr_lab_build_utils.__version__, sys.version_info)
