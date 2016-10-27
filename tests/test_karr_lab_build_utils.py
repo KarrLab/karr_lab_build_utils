@@ -432,39 +432,18 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         buildHelper.make_documentation()
 
         """ test API """
-        with buildHelper.get_connection_to_lab_server() as ftp:
-            if ftp.path.isfile(ftp.path.join(buildHelper.serv_docs_build_html_dir, 'index.html')):
-                ftp.remove(ftp.path.join(buildHelper.serv_docs_build_html_dir, 'index.html'))
-
+        artifacts_docs_dir = os.path.join(buildHelper.build_artifacts_dir, buildHelper.artifacts_docs_build_html_dir)
+        self.assertFalse(os.path.isfile(os.path.join(artifacts_docs_dir, 'index.html')))
         buildHelper.archive_documentation()
-
-        with buildHelper.get_connection_to_lab_server() as ftp:
-            self.assertTrue(ftp.path.isfile(ftp.path.join(buildHelper.serv_docs_build_html_dir, 'index.html')))
+        self.assertTrue(os.path.isfile(os.path.join(artifacts_docs_dir, 'index.html')))
 
         """ test CLI """
         with self.construct_environment():
+            artifacts_docs_dir = os.path.join(os.getenv('CIRCLE_ARTIFACTS'), buildHelper.artifacts_docs_build_html_dir)
+            self.assertFalse(os.path.isfile(os.path.join(artifacts_docs_dir, 'index.html')))
             with KarrLabBuildUtilsCli(argv=['archive-documentation']) as app:
                 app.run()
-
-    def test_upload_documentation_to_lab_server(self):
-        """ setup """
-        buildHelper = self.construct_build_helper()
-        buildHelper.make_documentation()
-
-        """ test API """
-        with buildHelper.get_connection_to_lab_server() as ftp:
-            if ftp.path.isfile(ftp.path.join(buildHelper.serv_docs_build_html_dir, 'index.html')):
-                ftp.remove(ftp.path.join(buildHelper.serv_docs_build_html_dir, 'index.html'))
-
-        buildHelper.upload_documentation_to_lab_server()
-
-        with buildHelper.get_connection_to_lab_server() as ftp:
-            self.assertTrue(ftp.path.isfile(ftp.path.join(buildHelper.serv_docs_build_html_dir, 'index.html')))
-
-        """ test CLI """
-        with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['upload-documentation-to-lab-server']) as app:
-                app.run()
+            self.assertTrue(os.path.isfile(os.path.join(artifacts_docs_dir, 'index.html')))
 
     def test_get_version(self):
         """ setup """

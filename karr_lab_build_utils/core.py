@@ -68,7 +68,8 @@ class BuildHelper(object):
         serv_tests_unitth_dir (:obj:`str`): server directory where UnitTH input should be saved
         serv_tests_html_dir (:obj:`str`): server directory where HTML test history report should be saved
         serv_cov_html_dir (:obj:`str`): server directory where HTML coverage report should be saved
-        serv_docs_build_html_dir (:obj:`str`): server directory where generated HTML documentation should be saved
+        
+        artifacts_docs_build_html_dir (:obj:`str`): artifactrs subdirectory where generated HTML documentation should be saved
 
         coveralls_token (:obj:`str`): Coveralls token
         code_climate_token (:obj:`str`): Code Climate token
@@ -94,8 +95,8 @@ class BuildHelper(object):
         DEFAULT_SERV_TESTS_XML_DIR (:obj:`str`): default server directory where the test reports generated should be saved
         DEFAULT_SERV_TESTS_UNITTH_DIR (:obj:`str`): default server directory where UnitTH input should be saved
         DEFAULT_SERV_TESTS_HTML_DIR (:obj:`str`): default server directory where HTML test history report should be saved
-        DEFAULT_SERV_COV_HTML_DIR (:obj:`str`): default server directory where HTML coverage report should be saved
-        DEFAULT_SERV_DOCS_BUILD_HTML_DIR (:obj:`str`): default server directory where generated HTML documentation should be saved
+        DEFAULT_SERV_COV_HTML_DIR (:obj:`str`): default server directory where HTML coverage report should be saved        
+        DEFAULT_ARTIFACTS_DOCS_BUILD_HTML_DIR (:obj:`str`): default artifacts subdirectory where generated HTML documentation should be saved
     """
 
     DEFAULT_TEST_RUNNER = 'pytest'
@@ -117,7 +118,7 @@ class BuildHelper(object):
     DEFAULT_SERV_TESTS_UNITTH_DIR = 'tests/unitth'
     DEFAULT_SERV_TESTS_HTML_DIR = 'tests/html'
     DEFAULT_SERV_COV_HTML_DIR = 'tests/coverage'
-    DEFAULT_SERV_DOCS_BUILD_HTML_DIR = 'docs'
+    DEFAULT_ARTIFACTS_DOCS_BUILD_HTML_DIR = 'docs'
 
     def __init__(self):
         """ Construct build helper """
@@ -157,7 +158,7 @@ class BuildHelper(object):
         self.serv_tests_unitth_dir = self.DEFAULT_SERV_TESTS_UNITTH_DIR
         self.serv_tests_html_dir = self.DEFAULT_SERV_TESTS_HTML_DIR
         self.serv_cov_html_dir = self.DEFAULT_SERV_COV_HTML_DIR
-        self.serv_docs_build_html_dir = self.DEFAULT_SERV_DOCS_BUILD_HTML_DIR
+        self.artifacts_docs_build_html_dir = self.DEFAULT_ARTIFACTS_DOCS_BUILD_HTML_DIR
 
         self.coveralls_token = os.getenv('COVERALLS_REPO_TOKEN')
         self.code_climate_token = os.getenv('CODECLIMATE_REPO_TOKEN')
@@ -480,18 +481,9 @@ class BuildHelper(object):
             sys.exit(result)
 
     def archive_documentation(self):
-        """ Archive documentation:
+        """ Save documentation to artifacts directory """
 
-        * Upload documentation to lab server
-        """
-
-        self.upload_documentation_to_lab_server()
-
-    def upload_documentation_to_lab_server(self):
-        """ Upload documentation to lab server """
-
-        with self.get_connection_to_lab_server() as ftp:
-            self.upload_dir_to_lab_server(ftp, self.proj_docs_build_html_dir, self.serv_docs_build_html_dir)
+        shutil.copytree(self.proj_docs_build_html_dir, os.path.join(self.build_artifacts_dir, self.artifacts_docs_build_html_dir))
 
     def get_version(self):
         return '{0:s} (Python {1[0]:d}.{1[1]:d}.{1[2]:d})'.format(karr_lab_build_utils.__version__, sys.version_info)

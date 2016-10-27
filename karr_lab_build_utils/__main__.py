@@ -25,10 +25,7 @@ class BaseController(CementBaseController):
 
     @expose(help='Archive documentation')
     def archive_documentation(self):
-        """ Archive documentation:
-
-        * Upload documentation to lab server
-        """
+        """ Save documentation to artifacts directory """
         buildHelper = BuildHelper()
         buildHelper.archive_documentation()
 
@@ -107,12 +104,6 @@ class BaseController(CementBaseController):
         """ Upload coverage report to Code Climate """
         buildHelper = BuildHelper()
         buildHelper.upload_coverage_report_to_code_climate()
-
-    @expose(help='Upload documentation to lab server')
-    def upload_documentation_to_lab_server(self):
-        """ Upload documentation to lab server """
-        buildHelper = BuildHelper()
-        buildHelper.upload_documentation_to_lab_server()
 
     @expose(help='Upload HTML coverage report to lab server')
     def upload_html_coverage_report_to_lab_server(self):
