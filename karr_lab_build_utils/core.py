@@ -248,28 +248,27 @@ class BuildHelper(object):
             :obj:`BuildHelperError`: if there is an error uploading the report to the test history server
         """
 
-        py_v = self.get_python_version()
-        abs_xml_latest_filename = os.path.join(
-            self.proj_tests_xml_dir, '{0}.{1}.xml'.format(self.proj_tests_xml_latest_filename, py_v))
+        abs_xml_latest_filename_pattern = os.path.join(
+            self.proj_tests_xml_dir, '{0}.*.xml'.format(self.proj_tests_xml_latest_filename))
+        for abs_xml_latest_filename in glob(abs_xml_latest_filename_pattern):
+            r = requests.post('http://tests.karrlab.org/submit_report',
+                              data={
+                                  'token': self.test_server_token,
+                                  'repo_name': self.repo_name,
+                                  'repo_owner': self.repo_owner,
+                                  'repo_branch': self.repo_branch,
+                                  'repo_revision': self.repo_revision,
+                                  'build_num': self.build_num,
+                                  'report_name': self.get_python_version(),
+                              },
+                              files={
+                                  'report': open(abs_xml_latest_filename, 'rb'),
+                              })
 
-        r = requests.post('http://tests.karrlab.org/submit_report',
-                          data={
-                              'token': self.test_server_token,
-                              'repo_name': self.repo_name,
-                              'repo_owner': self.repo_owner,
-                              'repo_branch': self.repo_branch,
-                              'repo_revision': self.repo_revision,
-                              'build_num': self.build_num,
-                              'report_name': self.get_python_version(),
-                          },
-                          files={
-                              'report': open(abs_xml_latest_filename, 'rb'),
-                          })
+            r_json = r.json()
 
-        r_json = r.json()
-
-        if not r_json['success']:
-            raise BuildHelperError('Error uploading report to test history server: {}'.format(r_json['message']))
+            if not r_json['success']:
+                raise BuildHelperError('Error uploading report to test history server: {}'.format(r_json['message']))
 
     ########################
     # Coverage reports
