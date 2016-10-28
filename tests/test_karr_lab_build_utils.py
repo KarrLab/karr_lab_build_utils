@@ -33,6 +33,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         env.set('CIRCLE_TEST_REPORTS', tempfile.mkdtemp())
         env.set('COVERALLS_REPO_TOKEN', TestKarrLabBuildUtils.COVERALLS_REPO_TOKEN)
         env.set('CODECLIMATE_REPO_TOKEN', TestKarrLabBuildUtils.CODECLIMATE_REPO_TOKEN)
+        env.set('CIRCLE_BUILD_NUM', '0')
         if not os.getenv('CIRCLECI'):
             with open('tests/fixtures/TEST_SERVER_TOKEN', 'r') as file:
                 env.set('TEST_SERVER_TOKEN', file.read().rstrip())
@@ -44,8 +45,6 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 env.set('CIRCLE_BRANCH', file.read().rstrip())
             with open('tests/fixtures/CIRCLE_SHA1', 'r') as file:
                 env.set('CIRCLE_SHA1', file.read().rstrip())
-            with open('tests/fixtures/CIRCLE_BUILD_NUM', 'r') as file:
-                env.set('CIRCLE_BUILD_NUM', file.read().rstrip())
 
         return env
 

@@ -251,6 +251,8 @@ class BuildHelper(object):
         abs_xml_latest_filename_pattern = os.path.join(
             self.proj_tests_xml_dir, '{0}.*.xml'.format(self.proj_tests_xml_latest_filename))
         for abs_xml_latest_filename in glob(abs_xml_latest_filename_pattern):
+            match = re.match('^.*?\.(\d+\.\d+\.\d+)\.xml$', abs_xml_latest_filename)
+            pyv = match.group(1)
             r = requests.post('http://tests.karrlab.org/submit_report',
                               data={
                                   'token': self.test_server_token,
@@ -259,7 +261,7 @@ class BuildHelper(object):
                                   'repo_branch': self.repo_branch,
                                   'repo_revision': self.repo_revision,
                                   'build_num': self.build_num,
-                                  'report_name': self.get_python_version(),
+                                  'report_name': pyv,
                               },
                               files={
                                   'report': open(abs_xml_latest_filename, 'rb'),
