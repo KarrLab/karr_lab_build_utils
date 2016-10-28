@@ -4,12 +4,8 @@ codeclimate-test-reporter
 configparser
 coverage
 coveralls
-ftputil
-GitPython
-git+https://github.com/KarrLab/junit2html.git#egg=junit2html >=4
 nose
-nose2unitth
 pytest
+requests
 Sphinx
 sphinx_rtd_theme
-unitth

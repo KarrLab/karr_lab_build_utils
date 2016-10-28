@@ -22,7 +22,6 @@ else:
 
 
 class TestKarrLabBuildUtils(unittest.TestCase):
-    PROJECT_NAME = 'Karr-Lab-build-utils'
     COVERALLS_REPO_TOKEN = ''
     CODECLIMATE_REPO_TOKEN = ''
     DUMMY_TEST = 'tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test'
@@ -30,15 +29,23 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     @staticmethod
     def construct_environment():
         env = EnvironmentVarGuard()
-        env.set('CIRCLE_PROJECT_REPONAME', TestKarrLabBuildUtils.PROJECT_NAME)
-        env.set('CIRCLE_BUILD_NUM', '0')
         env.set('CIRCLE_ARTIFACTS', tempfile.mkdtemp())
         env.set('CIRCLE_TEST_REPORTS', tempfile.mkdtemp())
         env.set('COVERALLS_REPO_TOKEN', TestKarrLabBuildUtils.COVERALLS_REPO_TOKEN)
         env.set('CODECLIMATE_REPO_TOKEN', TestKarrLabBuildUtils.CODECLIMATE_REPO_TOKEN)
         if not os.getenv('CIRCLECI'):
-            with open('tests/fixtures/CODE_SERVER_PASSWORD', 'r') as file:
-                env.set('CODE_SERVER_PASSWORD', file.read())
+            with open('tests/fixtures/TEST_SERVER_TOKEN', 'r') as file:
+                env.set('TEST_SERVER_TOKEN', file.read().rstrip())
+            with open('tests/fixtures/CIRCLE_PROJECT_REPONAME', 'r') as file:
+                env.set('CIRCLE_PROJECT_REPONAME', file.read().rstrip())
+            with open('tests/fixtures/CIRCLE_PROJECT_USERNAME', 'r') as file:
+                env.set('CIRCLE_PROJECT_USERNAME', file.read().rstrip())
+            with open('tests/fixtures/CIRCLE_BRANCH', 'r') as file:
+                env.set('CIRCLE_BRANCH', file.read().rstrip())
+            with open('tests/fixtures/CIRCLE_SHA1', 'r') as file:
+                env.set('CIRCLE_SHA1', file.read().rstrip())
+            with open('tests/fixtures/CIRCLE_BUILD_NUM', 'r') as file:
+                env.set('CIRCLE_BUILD_NUM', file.read().rstrip())
 
         return env
 
@@ -117,101 +124,19 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with self.construct_environment():
             with KarrLabBuildUtilsCli(argv=['make-and-archive-reports']) as app:
                 app.run()
-
-    def test_download_xml_test_report_history_from_lab_server(self):
-        buildHelper = self.construct_build_helper()
-
-        """ test API """
-        buildHelper.download_xml_test_report_history_from_lab_server()
-
-        """ test CLI """
-        with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['download-xml-test-report-history-from-lab-server']) as app:
-                app.run()
-
-    def test_make_test_history_report(self):
-        self.help_history_report('pytest')
-        self.help_history_report('nose')
-
-    def help_history_report(self, test_runner):
-        buildHelper = self.construct_build_helper()
-        buildHelper.test_runner = test_runner
-        buildHelper.run_tests(test_path=self.DUMMY_TEST,
-                              with_xunit=True, with_coverage=True)
-
-        for report_filename in glob(os.path.join(buildHelper.proj_tests_xml_dir, "[0-9]*.*.xml")):
-            os.remove(report_filename)
-        shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
-                buildHelper.proj_tests_xml_latest_filename, buildHelper.get_python_version())),
-            os.path.join(buildHelper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(
-                10000000000000001, buildHelper.get_python_version()))
-        )
-        shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
-                buildHelper.proj_tests_xml_latest_filename, buildHelper.get_python_version())),
-            os.path.join(buildHelper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(
-                10000000000000002, buildHelper.get_python_version()))
-        )
-
-        """ test API """
-        if os.path.isdir(buildHelper.proj_tests_unitth_dir):
-            shutil.rmtree(buildHelper.proj_tests_unitth_dir)
-        if os.path.isdir(buildHelper.proj_tests_html_dir):
-            shutil.rmtree(buildHelper.proj_tests_html_dir)
-
-        buildHelper.make_test_history_report()
-
-        self.assertTrue(os.path.isfile(os.path.join(
-            buildHelper.proj_tests_unitth_dir, '{0:d}.{1:s}'.format(10000000000000001, buildHelper.get_python_version()), 'index.html')))
-        self.assertTrue(os.path.isfile(os.path.join(
-            buildHelper.proj_tests_unitth_dir, '{0:d}.{1:s}'.format(10000000000000002, buildHelper.get_python_version()), 'index.html')))
-        self.assertTrue(os.path.isfile(os.path.join(buildHelper.proj_tests_html_dir, 'index.html')))
-
-        """ test CLI """
-        with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['make-test-history-report']) as app:
-                app.run()
-
-    def test_archive_test_history_report(self):
+    
+    def test_archive_test_report(self):
         buildHelper = self.construct_build_helper()
         buildHelper.run_tests(test_path=self.DUMMY_TEST,
                               with_xunit=True, with_coverage=True)
 
-        py_v = buildHelper.get_python_version()
-
-        for report_filename in glob(os.path.join(buildHelper.proj_tests_xml_dir, "[0-9]*.*.xml")):
-            os.remove(report_filename)
-        shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
-                buildHelper.proj_tests_xml_latest_filename, py_v)),
-            os.path.join(buildHelper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(buildHelper.build_num, py_v))
-        )
-        shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
-                buildHelper.proj_tests_xml_latest_filename, py_v)),
-            os.path.join(buildHelper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(10000000000000001, py_v))
-        )
-        shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
-                buildHelper.proj_tests_xml_latest_filename, py_v)),
-            os.path.join(buildHelper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(10000000000000002, py_v))
-        )
-        buildHelper.make_test_history_report()
-
         """ test API """
-        artifacts_tests_dir = os.path.join(buildHelper.build_artifacts_dir, buildHelper.artifacts_tests_html_dir)
-        self.assertFalse(os.path.isfile(os.path.join(artifacts_tests_dir, 'index.html')))
-        buildHelper.archive_test_history_report()
-        self.assertTrue(os.path.isfile(os.path.join(artifacts_tests_dir, 'index.html')))
+        buildHelper.archive_test_report()
 
         """ test CLI """
         with self.construct_environment():
-            artifacts_tests_dir = os.path.join(os.getenv('CIRCLE_ARTIFACTS'), buildHelper.artifacts_tests_html_dir)
-            self.assertFalse(os.path.isfile(os.path.join(artifacts_tests_dir, 'index.html')))
-            with KarrLabBuildUtilsCli(argv=['archive-test-history-report']) as app:
+            with KarrLabBuildUtilsCli(argv=['archive-test-report']) as app:
                 app.run()
-            self.assertTrue(os.path.isfile(os.path.join(artifacts_tests_dir, 'index.html')))
 
     def test_combine_coverage_reports(self):
         buildHelper = self.construct_build_helper()
@@ -250,32 +175,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         os.remove('.coverage.1')
         os.remove('.coverage.2')
 
-    def test_make_html_coverage_report(self):
-        buildHelper = self.construct_build_helper()
-        buildHelper.run_tests(test_path=self.DUMMY_TEST,
-                              with_xunit=True, with_coverage=True)
-        shutil.move('.coverage.{}'.format(buildHelper.get_python_version()), '.coverage')
-
-        """ test API """
-        if os.path.isdir(buildHelper.proj_cov_html_dir):
-            shutil.rmtree(buildHelper.proj_cov_html_dir)
-
-        buildHelper.make_html_coverage_report()
-
-        self.assertTrue(os.path.isfile(os.path.join(buildHelper.proj_cov_html_dir, 'index.html')))
-
-        """ test CLI """
-        with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['make-html-coverage-report']) as app:
-                app.run()
-
     def test_archive_coverage_report(self):
         buildHelper = self.construct_build_helper()
         buildHelper.run_tests(test_path=self.DUMMY_TEST,
                               with_xunit=True, with_coverage=True)
 
         buildHelper.combine_coverage_reports()
-        buildHelper.make_html_coverage_report()
 
         """ test API """
         buildHelper.archive_coverage_report()

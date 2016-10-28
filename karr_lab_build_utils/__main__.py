@@ -28,11 +28,11 @@ class BaseController(CementBaseController):
         buildHelper = BuildHelper()
         buildHelper.archive_documentation()
 
-    @expose(help='Archive test history report')
-    def archive_test_history_report(self):
-        """ Save HTML test reports to artifacts directory """
+    @expose(help='Archive test report')
+    def archive_test_report(self):
+        """ Upload test report to history server """
         buildHelper = BuildHelper()
-        buildHelper.archive_test_history_report()
+        buildHelper.archive_test_report()
 
     @expose(help='Combine coverage reports (.coverage.*) into a single file (.coverage)')
     def combine_coverage_reports(self):
@@ -46,12 +46,6 @@ class BaseController(CementBaseController):
         buildHelper = BuildHelper()
         buildHelper.copy_coverage_report_to_artifacts_directory()
 
-    @expose(help='Download XML test report history from lab server')
-    def download_xml_test_report_history_from_lab_server(self):
-        """ Download XML test report history from lab server """
-        buildHelper = BuildHelper()
-        buildHelper.download_xml_test_report_history_from_lab_server()
-
     @expose(help='Install requirements')
     def install_requirements(self):
         """ Install requirements """
@@ -63,7 +57,6 @@ class BaseController(CementBaseController):
         """ Make and archive reports:
         
         * Generate HTML test history reports
-        * Generate HTML coverage reports
         * Generate HTML API documentation
         * Archive coverage report to Coveralls and Code Climate
         """
@@ -75,18 +68,6 @@ class BaseController(CementBaseController):
         """ Make HTML documentation """
         buildHelper = BuildHelper()
         buildHelper.make_documentation()
-
-    @expose(help='Make HTML coverage report')
-    def make_html_coverage_report(self):
-        """ Make HTML coverage report from .coverage file """
-        buildHelper = BuildHelper()
-        buildHelper.make_html_coverage_report()
-
-    @expose(help='Make HTML test history report')
-    def make_test_history_report(self):
-        """ Make HTML test history report """
-        buildHelper = BuildHelper()
-        buildHelper.make_test_history_report()
 
     @expose(help='Upload coverage report to Coveralls')
     def upload_coverage_report_to_coveralls(self):

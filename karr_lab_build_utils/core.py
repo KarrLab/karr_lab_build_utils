@@ -10,116 +10,76 @@ from codeclimate_test_reporter.components.runner import Runner as CodeClimateRun
 from configparser import ConfigParser
 from coverage import coverage
 from coveralls import Coveralls
-from ftputil import FTPHost
 from glob import glob
-from junit2htmlreport.parser import Junit as JunitParser
-from nose2unitth.core import Converter as Nose2UnitthConverter
 from sphinx import build_main as sphinx_build
 from sphinx.apidoc import main as sphinx_apidoc
-from unitth.core import UnitTH
 import abduct
-import git
 import karr_lab_build_utils
 import nose
 import os
 import pip
 import pytest
+import requests
 import re
 import shutil
 import subprocess
 import sys
 import tempfile
-import subprocess
 
 
 class BuildHelper(object):
     """ Utility class to help build projects:
 
     * Run tests
-    * Generate HTML test history reports
-    * Generate HTML coverage reports
-    * Generate HTML API documentation
-    * Archive reports to artifacts, Coveralls, and Code Climate
+    * Archive reports to artifacts, test history server Coveralls, and Code Climate
 
     Attributes:
         test_runner (:obj:`str`): name of test runner {pytest, nose}
 
-        code_server_hostname (:obj:`str`): hostname of server where reports should be uploaded
-        code_server_username (:obj:`str`): username for server where reports should be uploaded
-        code_server_password (:obj:`str`): password for server where reports should be uploaded
-        code_server_base_dir (:obj:`str`): base directory on server where reports should be uploaded
-
-        project_name (:obj:`str`): name of project, e.g. GitHub repository name
+        repo_name (:obj:`str`): repository name
+        repo_owner (:obj:`str`): name of the repository owner
+        repo_branch (:obj:`str`): repository branch name
+        repo_revision (:obj:`str`): sha of repository revision
         build_num (:obj:`int`): CircleCI build number        
 
         proj_tests_dir (:obj:`str`): local directory with test code
+        proj_tests_xml_dir (:obj:`str`): local directory to store latest XML test report
         proj_tests_xml_latest_filename (:obj:`str`): file name to store latest XML test report
-        proj_tests_xml_dir (:obj:`str`): local directory where the test reports generated should be saved
-        proj_tests_unitth_dir (:obj:`str`): local directory where UnitTH input should be saved
-        proj_tests_html_dir (:obj:`str`): local directory where HTML test history report should be saved
-        proj_cov_filename (:obj:`str`): file name where coverage report should be saved
-        proj_cov_html_dir (:obj:`str`): local directory where HTML coverage report should be saved
         proj_docs_dir (:obj:`str`): local directory with Sphinx configuration
         proj_docs_static_dir (:obj:`str`): local directory of static documentation files
         proj_docs_source_dir (:obj:`str`): local directory of source documentation files created by sphinx-apidoc
         proj_docs_build_html_dir (:obj:`str`): local directory where generated HTML documentation should be saved
 
-        serv_tests_xml_dir (:obj:`str`): server directory where the test reports generated should be saved
-        serv_tests_unitth_dir (:obj:`str`): server directory where UnitTH input should be saved
-        serv_tests_html_dir (:obj:`str`): server directory where HTML test history report should be saved
-        serv_cov_html_dir (:obj:`str`): server directory where HTML coverage report should be saved
-        
         artifacts_docs_build_html_dir (:obj:`str`): artifacts subdirectory where generated HTML documentation should be saved
         artifacts_tests_html_dir (:obj:`str`): artifacts subdirectory where HTML test history report should be saved
 
+        test_server_token (:obj:`str`): test history report server token
         coveralls_token (:obj:`str`): Coveralls token
-        code_climate_token (:obj:`str`): Code Climate token
+        code_climate_token (:obj:`str`): Code Climate token        
 
         build_artifacts_dir (:obj:`str`): directory which CircleCI will record with each build
         build_test_dir (:obj:`str`): directory where CircleCI will look for test results
 
         DEFAULT_TEST_RUNNER (:obj:`str`): default test runner {pytest, nose}
-        DEFAULT_CODE_SERVER_HOSTNAME (:obj:`str`): default hostname of server where reports should be uploaded
-        DEFAULT_CODE_SERVER_USERNAME (:obj:`str`): default username for server where reports should be uploaded
-        DEFAULT_CODE_SERVER_BASE_DIR (:obj:`str`): default base directory on server where reports should be uploaded
         DEFAULT_PROJ_TESTS_DIR (:obj:`str`): default local directory with test code
-        DEFAULT_PROJ_TESTS_XML_LATEST_FILENAME (:obj:`str`): default file name to store latest XML test report
         DEFAULT_PROJ_TESTS_XML_DIR (:obj:`str`): default local directory where the test reports generated should be saved
-        DEFAULT_PROJ_TESTS_UNITTH_DIR (:obj:`str`): default local directory where UnitTH input should be saved
-        DEFAULT_PROJ_TESTS_HTML_DIR (:obj:`str`): default local directory where HTML test history report should be saved
-        DEFAULT_PROJ_COV_FILENAME (:obj:`str`): default coverage file name
-        DEFAULT_PROJ_COV_HTML_DIR (:obj:`str`): default local directory where HTML coverage report should be saved
+        DEFAULT_PROJ_TESTS_XML_LATEST_FILENAME (:obj:`str`): default file name to store latest XML test report        
         DEFAULT_PROJ_DOCS_DIR (:obj:`str`): default local directory with Sphinx configuration
         DEFAULT_PROJ_DOCS_STATIC_DIR (:obj:`str`): default local directory of static documentation files
         DEFAULT_PROJ_DOCS_SOURCE_DIR (:obj:`str`): default local directory of source documentation files created by sphinx-apidoc
         DEFAULT_PROJ_DOCS_BUILD_HTML_DIR (:obj:`str`): default local directory where generated HTML documentation should be saved
-        DEFAULT_SERV_TESTS_XML_DIR (:obj:`str`): default server directory where the test reports generated should be saved
-        DEFAULT_SERV_TESTS_UNITTH_DIR (:obj:`str`): default server directory where UnitTH input should be saved
-        DEFAULT_SERV_TESTS_HTML_DIR (:obj:`str`): default server directory where HTML test history report should be saved
-        DEFAULT_SERV_COV_HTML_DIR (:obj:`str`): default server directory where HTML coverage report should be saved        
         DEFAULT_ARTIFACTS_DOCS_BUILD_HTML_DIR (:obj:`str`): default artifacts subdirectory where generated HTML documentation should be saved
         DEFAULT_ARTIFACTS_TESTS_HTML_DIR (:obj:`str`): default artifacts subdirectory where HTML test history report should be saved
     """
 
     DEFAULT_TEST_RUNNER = 'pytest'
-    DEFAULT_CODE_SERVER_HOSTNAME = 'code.karrlab.org'
-    DEFAULT_CODE_SERVER_USERNAME = 'karrlab_code'
-    DEFAULT_CODE_SERVER_BASE_DIR = '/code.karrlab.org'
     DEFAULT_PROJ_TESTS_DIR = 'tests'
+    DEFAULT_PROJ_TESTS_XML_DIR = 'tests/reports'
     DEFAULT_PROJ_TESTS_XML_LATEST_FILENAME = 'latest'
-    DEFAULT_PROJ_TESTS_XML_DIR = 'tests/reports/xml'
-    DEFAULT_PROJ_TESTS_UNITTH_DIR = 'tests/reports/unitth'
-    DEFAULT_PROJ_TESTS_HTML_DIR = 'tests/reports/html'
-    DEFAULT_PROJ_COV_FILENAME = '.coverage'
-    DEFAULT_PROJ_COV_HTML_DIR = 'tests/reports/coverage'
     DEFAULT_PROJ_DOCS_DIR = 'docs'
     DEFAULT_PROJ_DOCS_STATIC_DIR = 'docs/_static'
     DEFAULT_PROJ_DOCS_SOURCE_DIR = 'docs/source'
     DEFAULT_PROJ_DOCS_BUILD_HTML_DIR = 'docs/_build/html'
-    DEFAULT_SERV_TESTS_XML_DIR = 'tests/xml'
-    DEFAULT_SERV_TESTS_UNITTH_DIR = 'tests/unitth'
-    DEFAULT_SERV_TESTS_HTML_DIR = 'tests/html'
-    DEFAULT_SERV_COV_HTML_DIR = 'tests/coverage'
     DEFAULT_ARTIFACTS_DOCS_BUILD_HTML_DIR = 'docs'
     DEFAULT_ARTIFACTS_TESTS_HTML_DIR = 'tests'
 
@@ -131,39 +91,24 @@ class BuildHelper(object):
         if self.test_runner not in ['pytest', 'nose']:
             raise Exception('Unsupported test runner {}'.format(self.test_runner))
 
-        self.code_server_hostname = os.getenv('CODE_SERVER_HOSTNAME', self.DEFAULT_CODE_SERVER_HOSTNAME)
-        self.code_server_username = os.getenv('CODE_SERVER_USERNAME', self.DEFAULT_CODE_SERVER_USERNAME)
-        self.code_server_password = os.getenv('CODE_SERVER_PASSWORD')
-        self.code_server_base_dir = os.getenv('CODE_SERVER_BASE_DIR', self.DEFAULT_CODE_SERVER_BASE_DIR)
-
-        self.project_name = os.getenv('CIRCLE_PROJECT_REPONAME', '')
-        if not self.project_name:
-            try:
-                repo = git.Repo('.')
-                self.project_name, _ = os.path.splitext(os.path.basename(repo.remote().url))
-            except git.exc.InvalidGitRepositoryError as err:
-                pass
-        self.build_num = int(float(os.getenv('CIRCLE_BUILD_NUM', 0)))
+        self.repo_name = os.getenv('CIRCLE_PROJECT_REPONAME')
+        self.repo_owner = os.getenv('CIRCLE_PROJECT_USERNAME')
+        self.repo_branch = os.getenv('CIRCLE_BRANCH')
+        self.repo_revision = os.getenv('CIRCLE_SHA1')
+        self.build_num = int(float(os.getenv('CIRCLE_BUILD_NUM')))
 
         self.proj_tests_dir = self.DEFAULT_PROJ_TESTS_DIR
-        self.proj_tests_xml_latest_filename = self.DEFAULT_PROJ_TESTS_XML_LATEST_FILENAME
         self.proj_tests_xml_dir = self.DEFAULT_PROJ_TESTS_XML_DIR
-        self.proj_tests_unitth_dir = self.DEFAULT_PROJ_TESTS_UNITTH_DIR
-        self.proj_tests_html_dir = self.DEFAULT_PROJ_TESTS_HTML_DIR
-        self.proj_cov_filename = self.DEFAULT_PROJ_COV_FILENAME
-        self.proj_cov_html_dir = self.DEFAULT_PROJ_COV_HTML_DIR
+        self.proj_tests_xml_latest_filename = self.DEFAULT_PROJ_TESTS_XML_LATEST_FILENAME
         self.proj_docs_dir = self.DEFAULT_PROJ_DOCS_DIR
         self.proj_docs_static_dir = self.DEFAULT_PROJ_DOCS_STATIC_DIR
         self.proj_docs_source_dir = self.DEFAULT_PROJ_DOCS_SOURCE_DIR
         self.proj_docs_build_html_dir = self.DEFAULT_PROJ_DOCS_BUILD_HTML_DIR
 
-        self.serv_tests_xml_dir = self.DEFAULT_SERV_TESTS_XML_DIR
-        self.serv_tests_unitth_dir = self.DEFAULT_SERV_TESTS_UNITTH_DIR
-        self.serv_tests_html_dir = self.DEFAULT_SERV_TESTS_HTML_DIR
-        self.serv_cov_html_dir = self.DEFAULT_SERV_COV_HTML_DIR
         self.artifacts_docs_build_html_dir = self.DEFAULT_ARTIFACTS_DOCS_BUILD_HTML_DIR
         self.artifacts_tests_html_dir = self.DEFAULT_ARTIFACTS_TESTS_HTML_DIR
 
+        self.test_server_token = os.getenv('TEST_SERVER_TOKEN')
         self.coveralls_token = os.getenv('COVERALLS_REPO_TOKEN')
         self.code_climate_token = os.getenv('CODECLIMATE_REPO_TOKEN')
 
@@ -272,24 +217,13 @@ class BuildHelper(object):
     def make_and_archive_reports(self):
         """ Make and archive reports:
 
-        * Generate HTML test history reports
-        * Generate HTML coverage reports
-        * Generate HTML API documentation
-        * Archive coverage report to Coveralls and Code Climate
+        * Upload test report to history server
+        * Upload coverage report to Coveralls and Code Climate
         """
 
         """ test reports """
-        # create directory with test result history
-        self.download_xml_test_report_history_from_lab_server()
-
-        for file in glob(os.path.join(self.proj_tests_xml_dir, '{0}.{1}.xml'.format(self.proj_tests_xml_latest_filename, '*'))):
-            shutil.copyfile(file, file.replace(self.proj_tests_xml_latest_filename, str(self.build_num)))
-
-        # make report of test history
-        self.make_test_history_report()
-
-        # copy test history to artifacts directory
-        self.archive_test_history_report()
+        # Upload test report to history server
+        self.archive_test_report()
 
         """ coverage """
         # Merge coverage reports
@@ -297,7 +231,6 @@ class BuildHelper(object):
         # Copy coverage report to artifacts directory
         # Upload coverage report to Coveralls and Code Climate
         self.combine_coverage_reports()
-        self.make_html_coverage_report()
         self.archive_coverage_report()
 
         """ documentation """
@@ -308,61 +241,35 @@ class BuildHelper(object):
     # Test reports
     ########################
 
-    def download_xml_test_report_history_from_lab_server(self):
-        """ Download XML test report history from lab server """
+    def archive_test_report(self):
+        """ Upload test report to history server 
 
-        if not os.path.isdir(self.proj_tests_xml_dir):
-            os.makedirs(self.proj_tests_xml_dir)
-        for report_filename in glob(os.path.join(self.proj_tests_xml_dir, "[0-9]*.*.xml")):
-            os.remove(report_filename)
+        Raises:
+            :obj:`BuildHelperError`: if there is an error uploading the report to the test history server
+        """
 
-        with self.get_connection_to_lab_server() as ftp:
-            self.download_dir_from_lab_server(ftp, self.serv_tests_xml_dir, self.proj_tests_xml_dir)
+        py_v = self.get_python_version()
+        abs_xml_latest_filename = os.path.join(
+            self.proj_tests_xml_dir, '{0}.{1}.xml'.format(self.proj_tests_xml_latest_filename, py_v))
 
-    def make_test_history_report(self):
-        """ Make an HTML test history report from a directory of nose-style XML test reports """
+        r = requests.post('http://tests.karrlab.org/submit_report',
+                          data={
+                              'token': self.test_server_token,
+                              'repo_name': self.repo_name,
+                              'repo_owner': self.repo_owner,
+                              'repo_branch': self.repo_branch,
+                              'repo_revision': self.repo_revision,
+                              'build_num': self.build_num,
+                              'report_name': self.get_python_version(),
+                          },
+                          files={
+                              'report': open(abs_xml_latest_filename, 'rb'),
+                          })
 
-        if not os.path.isdir(self.proj_tests_unitth_dir):
-            os.makedirs(self.proj_tests_unitth_dir)
+        r_json = r.json()
 
-        # remove old UnitTH input
-        for path in os.listdir(self.proj_tests_unitth_dir):
-            full_path = os.path.join(self.proj_tests_unitth_dir, path)
-            if os.path.isdir(full_path):
-                shutil.rmtree(full_path)
-            else:
-                os.remove(full_path)
-
-        # Make XML and HTML test reports that are readable UnitTH
-        for build_file_path in glob(os.path.join(self.proj_tests_xml_dir, "[0-9]*.*.xml")):
-            build_base_name = os.path.basename(build_file_path)
-            build_num_py_v = os.path.splitext(build_base_name)[0]
-
-            # Split nose-style XML report into UnitTH-style reports for each package
-            if not os.path.isdir(os.path.join(self.proj_tests_unitth_dir, build_num_py_v)):
-                os.makedirs(os.path.join(self.proj_tests_unitth_dir, build_num_py_v))
-
-            Nose2UnitthConverter.run(build_file_path, os.path.join(self.proj_tests_unitth_dir, build_num_py_v))
-
-            # Make HTML report from nose-style test XML report
-            with open(os.path.join(os.path.join(self.proj_tests_unitth_dir, build_num_py_v, 'index.html')), 'wb') as html_file:
-                html_file.write(JunitParser(build_file_path).html().encode('utf-8'))
-
-        # Make HTML test history report
-        if not os.path.isdir(self.proj_tests_html_dir):
-            os.makedirs(self.proj_tests_html_dir)
-
-        UnitTH.run(os.path.join(self.proj_tests_unitth_dir, '*'),
-                   xml_report_filter='',
-                   html_report_path='.',
-                   generate_exec_time_graphs=True,
-                   html_report_dir=self.proj_tests_html_dir)
-
-    def archive_test_history_report(self):
-        """ Save HTML test reports to artifacts directory """
-
-        shutil.copytree(self.proj_tests_html_dir, 
-            os.path.join(self.build_artifacts_dir, self.artifacts_tests_html_dir))
+        if not r_json['success']:
+            raise BuildHelperError('Error uploading report to test history server: {}'.format(r_json['message']))
 
     ########################
     # Coverage reports
@@ -377,16 +284,6 @@ class BuildHelper(object):
         coverage_doc = coverage()
         coverage_doc.combine(data_paths=data_paths)
         coverage_doc.save()
-
-    def make_html_coverage_report(self):
-        """ Make HTML coverage report from `proj_cov_filename` 
-        """
-        if not os.path.isdir(self.proj_cov_html_dir):
-            os.makedirs(self.proj_cov_html_dir)
-        map(os.remove, glob(os.path.join(self.proj_cov_html_dir, '*')))
-        coverage_doc = coverage(data_file='.coverage', config_file=True)
-        coverage_doc.load()
-        coverage_doc.html_report(directory=self.proj_cov_html_dir)
 
     def archive_coverage_report(self):
         """ Archive coverage report:
@@ -457,84 +354,11 @@ class BuildHelper(object):
     def archive_documentation(self):
         """ Save documentation to artifacts directory """
 
-        shutil.copytree(self.proj_docs_build_html_dir, 
-            os.path.join(self.build_artifacts_dir, self.artifacts_docs_build_html_dir))
+        shutil.copytree(self.proj_docs_build_html_dir,
+                        os.path.join(self.build_artifacts_dir, self.artifacts_docs_build_html_dir))
 
     def get_version(self):
         return '{0:s} (Python {1[0]:d}.{1[1]:d}.{1[2]:d})'.format(karr_lab_build_utils.__version__, sys.version_info)
-
-    def get_connection_to_lab_server(self):
-        """ Connect to lab server
-
-        Raises:
-            :obj:`BuildHelperError`: If project name or code server password not set
-        """
-
-        if not self.project_name:
-            raise BuildHelperError('Project name not set')
-
-        if not self.code_server_password:
-            raise BuildHelperError('Code server password must be set')
-
-        ftp = FTPHost(self.code_server_hostname, self.code_server_username, self.code_server_password)
-        if not ftp.path.isdir(ftp.path.join(self.code_server_base_dir, self.project_name)):
-            ftp.makedirs(ftp.path.join(self.code_server_base_dir, self.project_name))
-        ftp.chdir(ftp.path.join(self.code_server_base_dir, self.project_name))
-
-        return ftp
-
-    def upload_dir_to_lab_server(self, ftp, local_root_dir, remote_root_dir):
-        """ Upload directory to lab server
-
-        Args:
-            ftp (:obj:`ftputil.FTPHost`): FTP connection
-            local_root_dir (:obj:`str`): local directory to upload
-            remote_root_dir (:obj:`str`): remote path to copy local directory to
-        """
-        for local_dir, _, local_files in os.walk(local_root_dir, onerror=self.walk_error):
-            if local_dir == local_root_dir:
-                rel_dir = '.'
-            else:
-                rel_dir = local_dir[len(local_root_dir) + 1:]
-
-            if not ftp.path.isdir(ftp.path.join(remote_root_dir, rel_dir)):
-                ftp.makedirs(ftp.path.join(remote_root_dir, rel_dir))
-            for local_file in local_files:
-                ftp.upload(os.path.join(local_root_dir, rel_dir, local_file),
-                           ftp.path.join(remote_root_dir, rel_dir, local_file))
-
-    def download_dir_from_lab_server(self, ftp, remote_root_dir, local_root_dir):
-        """ Download directory from lab server
-
-        Args:
-            ftp (:obj:`ftputil.FTPHost`): FTP connection
-            remote_root_dir (:obj:`str`): remote directory to download
-            local_root_dir (:obj:`str`): local path to copy remote directory to
-        """
-        if not ftp.path.isdir(remote_root_dir):
-            ftp.makedirs(remote_root_dir)
-
-        for remote_dir, _, remote_files in ftp.walk(remote_root_dir, onerror=self.walk_error):
-            if remote_dir == remote_root_dir:
-                rel_dir = '.'
-            else:
-                rel_dir = remote_dir[len(remote_root_dir) + 1:]
-            if not os.path.isdir(os.path.join(local_root_dir, rel_dir)):
-                os.makedirs(os.path.join(local_root_dir, rel_dir))
-            for remote_file in remote_files:
-                ftp.download(ftp.path.join(remote_root_dir, rel_dir, str(remote_file)),
-                             os.path.join(local_root_dir, rel_dir, remote_file))
-
-    def walk_error(self, err):
-        """ Throw error during os or ftp walk
-
-        Args:
-            err: Error in os or ftp walk
-
-        Raises:
-            :obj:`BuildHelperError`
-        """
-        raise BuildHelperError(err)
 
     @staticmethod
     def get_python_version():
