@@ -150,7 +150,7 @@ class BuildHelper(object):
     ########################
     # Running tests
     ########################
-    def run_tests(self, test_path='tests', with_xunit=False, with_coverage=False):
+    def run_tests(self, test_path='tests', with_xunit=False, with_coverage=False, exit_on_failure=True):
         """ Run unit tests located at `test_path`.
         Optionally, generate a coverage report.
         Optionally, save the results to `xml_file`.
@@ -163,6 +163,7 @@ class BuildHelper(object):
             test_path (:obj:`str`, optional): path to tests that should be run
             with_coverage (:obj:`bool`, optional): whether or not coverage should be assessed
             xml_file (:obj:`str`, optional): path to save test results
+            exit_on_failure (:obj:`bool`, optional): whether or not to exit on test failure
 
         Raises:
             :obj:`BuildHelperError`: If package directory not set
@@ -211,7 +212,7 @@ class BuildHelper(object):
             abs_xml_artifact_filename = os.path.join(self.build_test_dir, '{0}.{1}.xml'.format('xml', py_v))
             shutil.copyfile(abs_xml_latest_filename, abs_xml_artifact_filename)
 
-        if result != 0:
+        if exit_on_failure and result != 0:
             sys.exit(1)
 
     def make_and_archive_reports(self):
