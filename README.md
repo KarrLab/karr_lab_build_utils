@@ -4,6 +4,7 @@
 [![Test coverage](https://coveralls.io/repos/github/KarrLab/Karr-Lab-build-utils/badge.svg)](https://coveralls.io/github/KarrLab/Karr-Lab-build-utils)
 [![Code analysis](https://codeclimate.com/github/KarrLab/Karr-Lab-build-utils/badges/gpa.svg)](https://codeclimate.com/github/KarrLab/Karr-Lab-build-utils)
 [![License](https://img.shields.io/github/license/KarrLab/Karr-Lab-build-utils.svg)](LICENSE)
+![Analytics](https://ga-beacon.appspot.com/UA-86759801-1/Karr-Lab-build-utils/README.md?pixel)
 
 # Karr Lab build utilities
 
