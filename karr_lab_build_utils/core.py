@@ -95,7 +95,7 @@ class BuildHelper(object):
         self.repo_owner = os.getenv('CIRCLE_PROJECT_USERNAME')
         self.repo_branch = os.getenv('CIRCLE_BRANCH')
         self.repo_revision = os.getenv('CIRCLE_SHA1')
-        self.build_num = int(float(os.getenv('CIRCLE_BUILD_NUM')))
+        self.build_num = int(float(os.getenv('CIRCLE_BUILD_NUM', 0)))
 
         self.proj_tests_dir = self.DEFAULT_PROJ_TESTS_DIR
         self.proj_tests_xml_dir = self.DEFAULT_PROJ_TESTS_XML_DIR
