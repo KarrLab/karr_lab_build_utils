@@ -1,0 +1,2 @@
+libglpk-dev
+python3-tk
