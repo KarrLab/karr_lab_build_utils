@@ -45,6 +45,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 env.set('CIRCLE_BRANCH', file.read().rstrip())
             with open('tests/fixtures/CIRCLE_SHA1', 'r') as file:
                 env.set('CIRCLE_SHA1', file.read().rstrip())
+            with open('tests/fixtures/GITHUB_USERNAME', 'r') as file:
+                env.set('GITHUB_USERNAME', file.read().rstrip())
+            with open('tests/fixtures/GITHUB_PASSWORD', 'r') as file:
+                env.set('GITHUB_PASSWORD', file.read().rstrip())
             with open('tests/fixtures/CIRCLE_API_TOKEN', 'r') as file:
                 env.set('CIRCLE_API_TOKEN', file.read().rstrip())
 
@@ -67,6 +71,23 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with self.construct_environment():
             with KarrLabBuildUtilsCli(argv=['create-circleci-build']) as app:
                 app.run()
+
+    def test_create_codeclimate_github_webhook(self):
+        buildHelper = self.construct_build_helper()
+
+        """ test API """
+        try:
+            buildHelper.create_codeclimate_github_webhook()
+        except ValueError as err:
+            pass
+
+        """ test CLI """
+        with self.construct_environment():
+            with KarrLabBuildUtilsCli(argv=['create-codeclimate-github-webhook']) as app:
+                try:
+                    app.run()
+                except ValueError as err:
+                    pass
 
     def test_install_requirements(self):
         buildHelper = self.construct_build_helper()

@@ -60,6 +60,7 @@ class BuildHelper(object):
         build_artifacts_dir (:obj:`str`): directory which CircleCI will record with each build
         build_test_dir (:obj:`str`): directory where CircleCI will look for test results
 
+        github_api_token (obj:`str`): GitHub API token
         circle_api_token (:obj:`str`): CircleCI API token
 
         DEFAULT_TEST_RUNNER (:obj:`str`): default test runner {pytest, nose}
@@ -73,6 +74,7 @@ class BuildHelper(object):
         DEFAULT_ARTIFACTS_DOCS_BUILD_HTML_DIR (:obj:`str`): default artifacts subdirectory where generated HTML documentation should be saved
         DEFAULT_ARTIFACTS_TESTS_HTML_DIR (:obj:`str`): default artifacts subdirectory where HTML test history report should be saved
 
+        GITHUB_API_ENDPOINT (:obj:`str`): GitHub API endpoint
         CIRCLE_API_ENDPOINT (:obj:`str`): CircleCI API endpoint
     """
 
@@ -87,6 +89,7 @@ class BuildHelper(object):
     DEFAULT_ARTIFACTS_DOCS_BUILD_HTML_DIR = 'docs'
     DEFAULT_ARTIFACTS_TESTS_HTML_DIR = 'tests'
 
+    GITHUB_API_ENDPOINT = 'https://api.github.com'
     CIRCLE_API_ENDPOINT = 'https://circleci.com/api/v1.1'
 
     def __init__(self):
@@ -122,6 +125,8 @@ class BuildHelper(object):
         self.build_artifacts_dir = os.getenv('CIRCLE_ARTIFACTS')
         self.build_test_dir = os.getenv('CIRCLE_TEST_REPORTS')
 
+        self.github_username = os.getenv('GITHUB_USERNAME')
+        self.github_password = os.getenv('GITHUB_PASSWORD')
         self.circle_api_token = os.getenv('CIRCLE_API_TOKEN')
 
     ########################
@@ -140,6 +145,32 @@ class BuildHelper(object):
         if not response.json()['following']:
             raise ValueError(
                 'Unable to create CircleCI build for repository {}/{}'.format(self.repo_owner, self.repo_name))
+
+    def create_codeclimate_github_webhook(self):
+        """ Create GitHub webhook for CodeClimate
+
+        Raises:
+            :obj:`ValueError`: if webook wasn't created and didn't already exist
+        """
+        url = '{}/repos/{}/{}/hooks'.format(self.GITHUB_API_ENDPOINT, self.repo_owner, self.repo_name)
+        response = requests.post(url, auth=(self.github_username, self.github_password), json={
+            'name': 'web',
+            'config': {
+                'url': 'https://codeclimate.com/webhooks',
+                'content_type': 'form',                
+            },
+            'events': [
+                'push',
+                'pull_request'
+            ],
+            'active': True,
+            })
+        if response.status_code != 201:
+            if 'errors' in response.json():
+                msg = response.json()['errors'][0]['message']
+            else:
+                msg = response.json()['message']
+            raise ValueError('Unable to create webhook for {}/{}: {}'.format(self.repo_owner, self.repo_name, msg))
 
     ########################
     # Installing dependencies

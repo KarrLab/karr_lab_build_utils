@@ -52,6 +52,12 @@ class BaseController(CementBaseController):
         buildHelper = BuildHelper()
         buildHelper.create_circleci_build()
 
+    @expose(help='Create CodeClimate GitHub webook for the current repository')
+    def create_codeclimate_github_webhook(self):
+        """ Create CodeClimate GitHub webook for the current repository """
+        buildHelper = BuildHelper()
+        buildHelper.create_codeclimate_github_webhook()
+
     @expose(help='Install requirements')
     def install_requirements(self):
         """ Install requirements """
