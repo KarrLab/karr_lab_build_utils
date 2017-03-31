@@ -46,6 +46,12 @@ class BaseController(CementBaseController):
         buildHelper = BuildHelper()
         buildHelper.copy_coverage_report_to_artifacts_directory()
 
+    @expose(help='Create CircleCI build for the current repository')
+    def create_circleci_build(self):
+        """ Create CircleCI build for the current repository """
+        buildHelper = BuildHelper()
+        buildHelper.create_circleci_build()
+
     @expose(help='Install requirements')
     def install_requirements(self):
         """ Install requirements """
@@ -55,7 +61,7 @@ class BaseController(CementBaseController):
     @expose(help='Make and archive reports')
     def make_and_archive_reports(self):
         """ Make and archive reports:
-        
+
         * Generate HTML test history reports
         * Generate HTML API documentation
         * Archive coverage report to Coveralls and Code Climate

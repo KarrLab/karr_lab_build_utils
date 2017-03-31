@@ -45,6 +45,8 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 env.set('CIRCLE_BRANCH', file.read().rstrip())
             with open('tests/fixtures/CIRCLE_SHA1', 'r') as file:
                 env.set('CIRCLE_SHA1', file.read().rstrip())
+            with open('tests/fixtures/CIRCLE_API_TOKEN', 'r') as file:
+                env.set('CIRCLE_API_TOKEN', file.read().rstrip())
 
         return env
 
@@ -54,6 +56,17 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             buildHelper = BuildHelper()
 
         return buildHelper
+
+    def test_create_circleci_build(self):
+        buildHelper = self.construct_build_helper()
+
+        """ test API """
+        buildHelper.create_circleci_build()
+
+        """ test CLI """
+        with self.construct_environment():
+            with KarrLabBuildUtilsCli(argv=['create-circleci-build']) as app:
+                app.run()
 
     def test_install_requirements(self):
         buildHelper = self.construct_build_helper()

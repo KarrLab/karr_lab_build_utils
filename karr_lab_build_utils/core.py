@@ -60,6 +60,8 @@ class BuildHelper(object):
         build_artifacts_dir (:obj:`str`): directory which CircleCI will record with each build
         build_test_dir (:obj:`str`): directory where CircleCI will look for test results
 
+        circle_api_token (:obj:`str`): CircleCI API token
+
         DEFAULT_TEST_RUNNER (:obj:`str`): default test runner {pytest, nose}
         DEFAULT_PROJ_TESTS_DIR (:obj:`str`): default local directory with test code
         DEFAULT_PROJ_TESTS_XML_DIR (:obj:`str`): default local directory where the test reports generated should be saved
@@ -70,6 +72,8 @@ class BuildHelper(object):
         DEFAULT_PROJ_DOCS_BUILD_HTML_DIR (:obj:`str`): default local directory where generated HTML documentation should be saved
         DEFAULT_ARTIFACTS_DOCS_BUILD_HTML_DIR (:obj:`str`): default artifacts subdirectory where generated HTML documentation should be saved
         DEFAULT_ARTIFACTS_TESTS_HTML_DIR (:obj:`str`): default artifacts subdirectory where HTML test history report should be saved
+
+        CIRCLE_API_ENDPOINT (:obj:`str`): CircleCI API endpoint
     """
 
     DEFAULT_TEST_RUNNER = 'pytest'
@@ -83,6 +87,8 @@ class BuildHelper(object):
     DEFAULT_ARTIFACTS_DOCS_BUILD_HTML_DIR = 'docs'
     DEFAULT_ARTIFACTS_TESTS_HTML_DIR = 'tests'
 
+    CIRCLE_API_ENDPOINT = 'https://circleci.com/api/v1.1'
+
     def __init__(self):
         """ Construct build helper """
 
@@ -91,6 +97,7 @@ class BuildHelper(object):
         if self.test_runner not in ['pytest', 'nose']:
             raise Exception('Unsupported test runner {}'.format(self.test_runner))
 
+        self.repo_type = 'github'
         self.repo_name = os.getenv('CIRCLE_PROJECT_REPONAME')
         self.repo_owner = os.getenv('CIRCLE_PROJECT_USERNAME')
         self.repo_branch = os.getenv('CIRCLE_BRANCH')
@@ -114,6 +121,25 @@ class BuildHelper(object):
 
         self.build_artifacts_dir = os.getenv('CIRCLE_ARTIFACTS')
         self.build_test_dir = os.getenv('CIRCLE_TEST_REPORTS')
+
+        self.circle_api_token = os.getenv('CIRCLE_API_TOKEN')
+
+    ########################
+    # Register repo on CircleCI
+    ########################
+    def create_circleci_build(self):
+        """ Create CircleCI build for a repository 
+
+        Raises:
+            :obj:`ValueError`: if a CircleCI build wasn't created and didn't already exist
+        """
+        url = '{}/project/{}/{}/{}/follow?circle-token={}'.format(
+            self.CIRCLE_API_ENDPOINT, self.repo_type, self.repo_owner, self.repo_name, self.circle_api_token)
+        response = requests.post(url)
+        response.raise_for_status()
+        if not response.json()['following']:
+            raise ValueError(
+                'Unable to create CircleCI build for repository {}/{}'.format(self.repo_owner, self.repo_name))
 
     ########################
     # Installing dependencies
