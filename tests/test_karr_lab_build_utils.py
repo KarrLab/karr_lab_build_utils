@@ -34,23 +34,32 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         env.set('COVERALLS_REPO_TOKEN', TestKarrLabBuildUtils.COVERALLS_REPO_TOKEN)
         env.set('CODECLIMATE_REPO_TOKEN', TestKarrLabBuildUtils.CODECLIMATE_REPO_TOKEN)
         env.set('CIRCLE_BUILD_NUM', '0')
-        if not os.getenv('CIRCLECI'):
-            with open('tests/fixtures/TEST_SERVER_TOKEN', 'r') as file:
-                env.set('TEST_SERVER_TOKEN', file.read().rstrip())
+        env.set('CIRCLE_BRANCH', 'master')
+        env.set('CIRCLE_SHA1', '--test--')
+
+        if not os.getenv('CIRCLE_PROJECT_REPONAME'):
             with open('tests/fixtures/CIRCLE_PROJECT_REPONAME', 'r') as file:
                 env.set('CIRCLE_PROJECT_REPONAME', file.read().rstrip())
+
+        if not os.getenv('CIRCLE_PROJECT_USERNAME'):
             with open('tests/fixtures/CIRCLE_PROJECT_USERNAME', 'r') as file:
                 env.set('CIRCLE_PROJECT_USERNAME', file.read().rstrip())
-            with open('tests/fixtures/CIRCLE_BRANCH', 'r') as file:
-                env.set('CIRCLE_BRANCH', file.read().rstrip())
-            with open('tests/fixtures/CIRCLE_SHA1', 'r') as file:
-                env.set('CIRCLE_SHA1', file.read().rstrip())
+
+        if not os.getenv('GITHUB_USERNAME'):
             with open('tests/fixtures/GITHUB_USERNAME', 'r') as file:
                 env.set('GITHUB_USERNAME', file.read().rstrip())
+
+        if not os.getenv('GITHUB_PASSWORD'):
             with open('tests/fixtures/GITHUB_PASSWORD', 'r') as file:
                 env.set('GITHUB_PASSWORD', file.read().rstrip())
+
+        if not os.getenv('CIRCLE_API_TOKEN'):
             with open('tests/fixtures/CIRCLE_API_TOKEN', 'r') as file:
                 env.set('CIRCLE_API_TOKEN', file.read().rstrip())
+
+        if not os.getenv('TEST_SERVER_TOKEN'):
+            with open('tests/fixtures/TEST_SERVER_TOKEN', 'r') as file:
+                env.set('TEST_SERVER_TOKEN', file.read().rstrip())
 
         return env
 
