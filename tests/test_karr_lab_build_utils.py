@@ -96,9 +96,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         buildHelper.install_requirements()
 
         """ test CLI """
-        #with self.construct_environment():
-            #with KarrLabBuildUtilsCli(argv=['install-requirements']) as app:
-                #app.run()
+        with self.construct_environment():
+            with KarrLabBuildUtilsCli(argv=['install-requirements']) as app:
+                app.run()
 
     def test_run_tests(self):
         self.help_run('pytest')
