@@ -187,12 +187,16 @@ class BuildHelper(object):
         self._install_requirements_helper(os.path.join(self.proj_tests_dir, 'requirements.txt'))
         self._install_requirements_helper(os.path.join(self.proj_docs_dir, 'requirements.txt'))
 
-    def _install_requirements_helper(self, req_file):
+    def _install_requirements_helper(self, req_file, update=True):
         if not os.path.isfile(req_file):
             return
 
         with abduct.captured(abduct.err()) as stderr:
-            result = pip.main(['install', '-r', req_file])
+            if update:
+                cmd = ['install', '-U', '-r', req_file]
+            else:
+                cmd = ['install', '-r', req_file]
+            result = pip.main(cmd)
             long_err_msg = stderr.getvalue()
 
         if result:
@@ -204,7 +208,8 @@ class BuildHelper(object):
             sys.stderr.flush()
             sys.exit(1)
 
-        self._update_requirements_github(req_file)
+        if not update:
+            self._update_requirements_github(req_file)
 
     def _update_requirements_github(self, req_file):
         with open(req_file, 'r') as req_file_id:
