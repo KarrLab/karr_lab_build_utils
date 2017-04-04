@@ -179,20 +179,20 @@ class BuildHelper(object):
         """ Install requirements """
 
         # requirements for package
-        self.install_requirements_pypi('requirements.txt')
+        self._install_requirements_helper('requirements.txt')
 
         # requirements for testing and documentation
         subprocess.check_call(['sudo', 'apt-get', 'install', 'libffi-dev'])
 
-        self.install_requirements_pypi(os.path.join(self.proj_tests_dir, 'requirements.txt'))
-        self.install_requirements_pypi(os.path.join(self.proj_docs_dir, 'requirements.txt'))
+        self._install_requirements_helper(os.path.join(self.proj_tests_dir, 'requirements.txt'))
+        self._install_requirements_helper(os.path.join(self.proj_docs_dir, 'requirements.txt'))
 
-    def install_requirements_pypi(self, req_file):
+    def _install_requirements_helper(self, req_file):
         if not os.path.isfile(req_file):
             return
 
         with abduct.captured(abduct.err()) as stderr:
-            result = pip.main(['install', '-U', '-r', req_file])
+            result = pip.main(['install', '-r', req_file])
             long_err_msg = stderr.getvalue()
 
         if result:
@@ -203,6 +203,22 @@ class BuildHelper(object):
             sys.stderr.write(short_err_msg)
             sys.stderr.flush()
             sys.exit(1)
+
+        self._update_requirements_github(req_file)
+
+    def _update_requirements_github(self, req_file):
+        with open(req_file, 'r') as req_file_id:
+            for req in filter(lambda req: 'git+https://github.com/KarrLab/' in req, req_file_id.readlines()):
+                result = pip.main(['install', '-U', req])
+
+                if result:
+                    sep = 'During handling of the above exception, another exception occurred:\n\n'
+                    i_sep = long_err_msg.find(sep)
+                    short_err_msg = long_err_msg[i_sep + len(sep):]
+
+                    sys.stderr.write(short_err_msg)
+                    sys.stderr.flush()
+                    sys.exit(1)
 
     ########################
     # Running tests
