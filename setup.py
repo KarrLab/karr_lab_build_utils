@@ -48,7 +48,7 @@ setup(
     keywords='unit test coverage API documentation nose xunit junit unitth HTML Coveralls Sphinx',
     packages=find_packages(exclude=['tests', 'tests.*']),
     package_data={
-        'karr_lab_build_utils': ['lib'],
+        'karr_lab_build_utils': ['templates'],
     },
     install_requires=install_requires,
     tests_require=tests_require,

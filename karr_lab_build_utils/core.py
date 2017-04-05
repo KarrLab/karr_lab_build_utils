@@ -11,6 +11,8 @@ from configparser import ConfigParser
 from coverage import coverage
 from coveralls import Coveralls
 from glob import glob
+from jinja2 import Template
+from pkg_resources import resource_filename
 from sphinx import build_main as sphinx_build
 from sphinx.apidoc import main as sphinx_apidoc
 import abduct
@@ -408,6 +410,32 @@ class BuildHelper(object):
     # Documentation
     ########################
 
+    def generate_documentation_configuration(self):
+        """ Generate Sphinx build configuration for a package
+
+        Raises:
+            :obj:`ValueError`: if no package or more than one package is specified
+        """
+
+        parser = ConfigParser()
+        parser.read('setup.cfg')
+        packages = parser.get('sphinx-apidocs', 'packages').strip().split('\n')
+        if len(packages) != 1:
+            raise ValueError('Sphinx configuration auto-generation only supports 1 package')
+
+        if not os.path.isdir(self.proj_docs_dir):
+            os.mkdir(self.proj_docs_dir)
+
+        for package in packages:
+            with open(resource_filename('karr_lab_build_utils', 'templates/docs.conf.py'), 'r') as file:
+                template = Template(file.read())
+            template.stream(package=package).dump(os.path.join(self.proj_docs_dir, 'conf.py'))
+
+            with open(resource_filename('karr_lab_build_utils', 'templates/docs.index.rst'), 'r') as file:
+                template = Template(file.read())
+            title = "Welcome to {}'s documentation!".format(package)
+            template.stream(title=title, title_underline='=' * len(title)).dump(os.path.join(self.proj_docs_dir, 'index.rst'))
+
     def make_documentation(self):
         """ Make HTML documentation using Sphinx for one or more packages. Save documentation to `proj_docs_build_html_dir` 
 
@@ -418,13 +446,6 @@ class BuildHelper(object):
         # create `proj_docs_static_dir`, if necessary
         if not os.path.isdir(self.proj_docs_static_dir):
             os.mkdir(self.proj_docs_static_dir)
-
-        # compile API documentation
-        parser = ConfigParser()
-        parser.read('setup.cfg')
-        packages = parser.get('sphinx-apidocs', 'packages').strip().split('\n')
-        for package in packages:
-            sphinx_apidoc(argv=['sphinx-apidoc', '-f', '-o', self.proj_docs_source_dir, package])
 
         # build HTML documentation
         result = sphinx_build(['sphinx-build', self.proj_docs_dir, self.proj_docs_build_html_dir])

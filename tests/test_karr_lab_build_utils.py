@@ -287,6 +287,31 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with KarrLabBuildUtilsCli(argv=['upload-coverage-report-to-code-climate']) as app:
                 app.run()
 
+    def test_generate_documentation_configuration(self):
+        buildHelper = self.construct_build_helper()
+
+        """ test API """
+        if os.path.isfile(os.path.join(buildHelper.proj_docs_dir, 'conf.py')):
+            os.rename(os.path.join(buildHelper.proj_docs_dir, 'conf.py'), os.path.join(buildHelper.proj_docs_dir, 'conf.py.back'))
+        if os.path.isfile(os.path.join(buildHelper.proj_docs_dir, 'index.rst')):
+            os.rename(os.path.join(buildHelper.proj_docs_dir, 'index.rst'), os.path.join(buildHelper.proj_docs_dir, 'index.rst.back'))
+
+        buildHelper.generate_documentation_configuration()
+
+        self.assertTrue(os.path.isfile(os.path.join(buildHelper.proj_docs_dir, 'conf.py')))
+        self.assertTrue(os.path.isfile(os.path.join(buildHelper.proj_docs_dir, 'index.rst')))
+
+        """ test CLI """
+        with self.construct_environment():
+            with KarrLabBuildUtilsCli(argv=['generate-documentation-configuration']) as app:
+                app.run()
+
+        # reset conf, index
+        if os.path.isfile(os.path.join(buildHelper.proj_docs_dir, 'conf.py.back')):
+            os.rename(os.path.join(buildHelper.proj_docs_dir, 'conf.py.back'), os.path.join(buildHelper.proj_docs_dir, 'conf.py'))
+        if os.path.isfile(os.path.join(buildHelper.proj_docs_dir, 'index.rst.back')):
+            os.rename(os.path.join(buildHelper.proj_docs_dir, 'index.rst.back'), os.path.join(buildHelper.proj_docs_dir, 'index.rst'))
+
     def test_make_documentation(self):
         buildHelper = self.construct_build_helper()
 

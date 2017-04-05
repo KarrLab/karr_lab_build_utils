@@ -4,6 +4,7 @@ codeclimate-test-reporter
 configparser
 coverage
 coveralls
+jinja2
 nose
 pytest
 requests

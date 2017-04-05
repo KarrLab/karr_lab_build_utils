@@ -3,3 +3,7 @@ include LICENSE
 
 # requirements
 include requirements.txt
+
+# templates
+karr_lab_build_utils/templates/docs.conf.py
+karr_lab_build_utils/templates/docs.index.rst
