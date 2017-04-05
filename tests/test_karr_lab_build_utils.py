@@ -46,19 +46,19 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 env.set('CIRCLE_PROJECT_USERNAME', file.read().rstrip())
 
         if not os.getenv('GITHUB_USERNAME'):
-            with open('tests/fixtures/GITHUB_USERNAME', 'r') as file:
+            with open('tests/fixtures/secret/GITHUB_USERNAME', 'r') as file:
                 env.set('GITHUB_USERNAME', file.read().rstrip())
 
         if not os.getenv('GITHUB_PASSWORD'):
-            with open('tests/fixtures/GITHUB_PASSWORD', 'r') as file:
+            with open('tests/fixtures/secret/GITHUB_PASSWORD', 'r') as file:
                 env.set('GITHUB_PASSWORD', file.read().rstrip())
 
         if not os.getenv('CIRCLE_API_TOKEN'):
-            with open('tests/fixtures/CIRCLE_API_TOKEN', 'r') as file:
+            with open('tests/fixtures/secret/CIRCLE_API_TOKEN', 'r') as file:
                 env.set('CIRCLE_API_TOKEN', file.read().rstrip())
 
         if not os.getenv('TEST_SERVER_TOKEN'):
-            with open('tests/fixtures/TEST_SERVER_TOKEN', 'r') as file:
+            with open('tests/fixtures/secret/TEST_SERVER_TOKEN', 'r') as file:
                 env.set('TEST_SERVER_TOKEN', file.read().rstrip())
 
         return env

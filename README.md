@@ -46,7 +46,7 @@ To use the utilities, your package should follow this organization scheme:
   tests/
     requirements.txt
     fixtures/
-    tokens/
+      secret/ (git-ignored fixtures that contain usernames, passwords, and tokens)
   docs/
     conf.py
     requirements.txt

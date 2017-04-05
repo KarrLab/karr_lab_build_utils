@@ -26,7 +26,4 @@ docs/_build
 karr_lab_build_utils/conda/skeletons/
 karr_lab_build_utils/conda/tokens/
 
-tests/fixtures/GITHUB_USERNAME
-tests/fixtures/GITHUB_PASSWORD
-tests/fixtures/CIRCLE_API_TOKEN
-tests/fixtures/CODECLIMATE_API_TOKEN
+tests/fixtures/secret/
