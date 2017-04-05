@@ -310,6 +310,9 @@ class BuildHelper(object):
             :obj:`BuildHelperError`: if there is an error uploading the report to the test history server
         """
 
+        if not self.test_server_token:
+            return
+
         abs_xml_latest_filename_pattern = os.path.join(
             self.proj_tests_xml_dir, '{0}.*.xml'.format(self.proj_tests_xml_latest_filename))
         for abs_xml_latest_filename in glob(abs_xml_latest_filename_pattern):
