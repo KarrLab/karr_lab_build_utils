@@ -310,7 +310,11 @@ class BuildHelper(object):
             :obj:`BuildHelperError`: if there is an error uploading the report to the test history server
         """
 
-        if not self.test_server_token:
+        if self.test_server_token is None or \
+            self.repo_name is None or \
+            self.repo_owner is None or \
+            self.repo_branch is None or \
+            self.repo_revision is None:
             return
 
         abs_xml_latest_filename_pattern = os.path.join(
