@@ -33,7 +33,7 @@ class BuildHelper(object):
     """ Utility class to help build projects:
 
     * Run tests
-    * Archive reports to artifacts, test history server Coveralls, and Code Climate
+    * Archive reports to test history server, Coveralls, and Code Climate
 
     Attributes:
         test_runner (:obj:`str`): name of test runner {pytest, nose}
@@ -42,7 +42,7 @@ class BuildHelper(object):
         repo_owner (:obj:`str`): name of the repository owner
         repo_branch (:obj:`str`): repository branch name
         repo_revision (:obj:`str`): sha of repository revision
-        build_num (:obj:`int`): CircleCI build number        
+        build_num (:obj:`int`): CircleCI build number
 
         proj_tests_dir (:obj:`str`): local directory with test code
         proj_tests_xml_dir (:obj:`str`): local directory to store latest XML test report
@@ -52,15 +52,9 @@ class BuildHelper(object):
         proj_docs_source_dir (:obj:`str`): local directory of source documentation files created by sphinx-apidoc
         proj_docs_build_html_dir (:obj:`str`): local directory where generated HTML documentation should be saved
 
-        artifacts_docs_build_html_dir (:obj:`str`): artifacts subdirectory where generated HTML documentation should be saved
-        artifacts_tests_html_dir (:obj:`str`): artifacts subdirectory where HTML test history report should be saved
-
         test_server_token (:obj:`str`): test history report server token
         coveralls_token (:obj:`str`): Coveralls token
-        code_climate_token (:obj:`str`): Code Climate token        
-
-        build_artifacts_dir (:obj:`str`): directory which CircleCI will record with each build
-        build_test_dir (:obj:`str`): directory where CircleCI will look for test results
+        code_climate_token (:obj:`str`): Code Climate token
 
         github_api_token (obj:`str`): GitHub API token
         circle_api_token (:obj:`str`): CircleCI API token
@@ -73,8 +67,6 @@ class BuildHelper(object):
         DEFAULT_PROJ_DOCS_STATIC_DIR (:obj:`str`): default local directory of static documentation files
         DEFAULT_PROJ_DOCS_SOURCE_DIR (:obj:`str`): default local directory of source documentation files created by sphinx-apidoc
         DEFAULT_PROJ_DOCS_BUILD_HTML_DIR (:obj:`str`): default local directory where generated HTML documentation should be saved
-        DEFAULT_ARTIFACTS_DOCS_BUILD_HTML_DIR (:obj:`str`): default artifacts subdirectory where generated HTML documentation should be saved
-        DEFAULT_ARTIFACTS_TESTS_HTML_DIR (:obj:`str`): default artifacts subdirectory where HTML test history report should be saved
 
         GITHUB_API_ENDPOINT (:obj:`str`): GitHub API endpoint
         CIRCLE_API_ENDPOINT (:obj:`str`): CircleCI API endpoint
@@ -88,8 +80,6 @@ class BuildHelper(object):
     DEFAULT_PROJ_DOCS_STATIC_DIR = 'docs/_static'
     DEFAULT_PROJ_DOCS_SOURCE_DIR = 'docs/source'
     DEFAULT_PROJ_DOCS_BUILD_HTML_DIR = 'docs/_build/html'
-    DEFAULT_ARTIFACTS_DOCS_BUILD_HTML_DIR = 'docs'
-    DEFAULT_ARTIFACTS_TESTS_HTML_DIR = 'tests'
 
     GITHUB_API_ENDPOINT = 'https://api.github.com'
     CIRCLE_API_ENDPOINT = 'https://circleci.com/api/v1.1'
@@ -107,7 +97,10 @@ class BuildHelper(object):
         self.repo_owner = os.getenv('CIRCLE_PROJECT_USERNAME')
         self.repo_branch = os.getenv('CIRCLE_BRANCH')
         self.repo_revision = os.getenv('CIRCLE_SHA1')
-        self.build_num = int(float(os.getenv('CIRCLE_BUILD_NUM', 0)))
+        try:
+            self.build_num = int(float(os.getenv('CIRCLE_BUILD_NUM')))
+        except ValueError:
+            self.build_num = 0
 
         self.proj_tests_dir = self.DEFAULT_PROJ_TESTS_DIR
         self.proj_tests_xml_dir = self.DEFAULT_PROJ_TESTS_XML_DIR
@@ -117,15 +110,9 @@ class BuildHelper(object):
         self.proj_docs_source_dir = self.DEFAULT_PROJ_DOCS_SOURCE_DIR
         self.proj_docs_build_html_dir = self.DEFAULT_PROJ_DOCS_BUILD_HTML_DIR
 
-        self.artifacts_docs_build_html_dir = self.DEFAULT_ARTIFACTS_DOCS_BUILD_HTML_DIR
-        self.artifacts_tests_html_dir = self.DEFAULT_ARTIFACTS_TESTS_HTML_DIR
-
         self.test_server_token = os.getenv('TEST_SERVER_TOKEN')
         self.coveralls_token = os.getenv('COVERALLS_REPO_TOKEN')
         self.code_climate_token = os.getenv('CODECLIMATE_REPO_TOKEN')
-
-        self.build_artifacts_dir = os.getenv('CIRCLE_ARTIFACTS')
-        self.build_test_dir = os.getenv('CIRCLE_TEST_REPORTS')
 
         self.github_username = os.getenv('GITHUB_USERNAME')
         self.github_password = os.getenv('GITHUB_PASSWORD')
@@ -233,7 +220,7 @@ class BuildHelper(object):
     def run_tests(self, test_path='tests', with_xunit=False, with_coverage=False, exit_on_failure=True):
         """ Run unit tests located at `test_path`.
         Optionally, generate a coverage report.
-        Optionally, save the results to `xml_file`.
+        Optionally, save the results to a file
 
         To configure coverage, place a .coveragerc configuration file in the root directory
         of the repository - the same directory that holds .coverage. Documentation of coverage
@@ -242,7 +229,7 @@ class BuildHelper(object):
         Args:
             test_path (:obj:`str`, optional): path to tests that should be run
             with_coverage (:obj:`bool`, optional): whether or not coverage should be assessed
-            xml_file (:obj:`str`, optional): path to save test results
+            with_xunit (:obj:`bool`, optional): whether or not to save test results
             exit_on_failure (:obj:`bool`, optional): whether or not to exit on test failure
 
         Raises:
@@ -288,10 +275,6 @@ class BuildHelper(object):
             cov.stop()
             cov.save()
 
-        if with_xunit and self.build_test_dir:
-            abs_xml_artifact_filename = os.path.join(self.build_test_dir, '{0}.{1}.xml'.format('xml', py_v))
-            shutil.copyfile(abs_xml_latest_filename, abs_xml_artifact_filename)
-
         if exit_on_failure and result != 0:
             sys.exit(1)
 
@@ -309,14 +292,12 @@ class BuildHelper(object):
         """ coverage """
         # Merge coverage reports
         # Generate HTML report
-        # Copy coverage report to artifacts directory
         # Upload coverage report to Coveralls and Code Climate
         self.combine_coverage_reports()
         self.archive_coverage_report()
 
         """ documentation """
         self.make_documentation()
-        self.archive_documentation()
 
     ########################
     # Test reports
@@ -370,24 +351,14 @@ class BuildHelper(object):
     def archive_coverage_report(self):
         """ Archive coverage report:
 
-        * Copy report to artifacts directory
         * Upload report to Coveralls and Code Climate
         """
-
-        # copy to artifacts directory
-        self.copy_coverage_report_to_artifacts_directory()
 
         # upload to Coveralls
         self.upload_coverage_report_to_coveralls()
 
         # upload to Code Climate
         self.upload_coverage_report_to_code_climate()
-
-    def copy_coverage_report_to_artifacts_directory(self):
-        """ Copy coverage report to CircleCI artifacts directory """
-        if self.build_artifacts_dir:
-            for name in glob('.coverage.*'):
-                shutil.copyfile(name, os.path.join(self.build_artifacts_dir, name))
 
     def upload_coverage_report_to_coveralls(self):
         """ Upload coverage report to Coveralls """
@@ -451,12 +422,6 @@ class BuildHelper(object):
         result = sphinx_build(['sphinx-build', self.proj_docs_dir, self.proj_docs_build_html_dir])
         if result != 0:
             sys.exit(result)
-
-    def archive_documentation(self):
-        """ Save documentation to artifacts directory """
-
-        shutil.copytree(self.proj_docs_build_html_dir,
-                        os.path.join(self.build_artifacts_dir, self.artifacts_docs_build_html_dir))
 
     def get_version(self):
         return '{0:s} (Python {1[0]:d}.{1[1]:d}.{1[2]:d})'.format(karr_lab_build_utils.__version__, sys.version_info)

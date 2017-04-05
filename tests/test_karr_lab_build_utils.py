@@ -29,7 +29,6 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     @staticmethod
     def construct_environment():
         env = EnvironmentVarGuard()
-        env.set('CIRCLE_ARTIFACTS', tempfile.mkdtemp())
         env.set('CIRCLE_TEST_REPORTS', tempfile.mkdtemp())
         env.set('COVERALLS_REPO_TOKEN', TestKarrLabBuildUtils.COVERALLS_REPO_TOKEN)
         env.set('CODECLIMATE_REPO_TOKEN', TestKarrLabBuildUtils.CODECLIMATE_REPO_TOKEN)
@@ -232,31 +231,6 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with KarrLabBuildUtilsCli(argv=['archive-coverage-report']) as app:
                 app.run()
 
-    def test_copy_coverage_report_to_artifacts_directory(self):
-        buildHelper = self.construct_build_helper()
-        buildHelper.run_tests(test_path=self.DUMMY_TEST,
-                              with_xunit=True, with_coverage=True, exit_on_failure=False)
-
-        abs_cov_filename = os.path.join(buildHelper.build_artifacts_dir, '.coverage')
-        abs_cov_filename_v = os.path.join(buildHelper.build_artifacts_dir,
-                                          '.coverage.{}'.format(buildHelper.get_python_version()))
-
-        """ test API """
-        if os.path.isfile(abs_cov_filename):
-            os.remove(abs_cov_filename)
-        if os.path.isfile(abs_cov_filename_v):
-            os.remove(abs_cov_filename_v)
-
-        buildHelper.copy_coverage_report_to_artifacts_directory()
-
-        self.assertFalse(os.path.isfile(abs_cov_filename))
-        self.assertTrue(os.path.isfile(abs_cov_filename_v))
-
-        """ test CLI """
-        with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['copy-coverage-report-to-artifacts-directory']) as app:
-                app.run()
-
     def test_upload_coverage_report_to_coveralls(self):
         buildHelper = self.construct_build_helper()
         buildHelper.run_tests(test_path=self.DUMMY_TEST,
@@ -327,25 +301,6 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with self.construct_environment():
             with KarrLabBuildUtilsCli(argv=['make-documentation']) as app:
                 app.run()
-
-    def test_archive_documentation(self):
-        """ setup """
-        buildHelper = self.construct_build_helper()
-        buildHelper.make_documentation()
-
-        """ test API """
-        artifacts_docs_dir = os.path.join(buildHelper.build_artifacts_dir, buildHelper.artifacts_docs_build_html_dir)
-        self.assertFalse(os.path.isfile(os.path.join(artifacts_docs_dir, 'index.html')))
-        buildHelper.archive_documentation()
-        self.assertTrue(os.path.isfile(os.path.join(artifacts_docs_dir, 'index.html')))
-
-        """ test CLI """
-        with self.construct_environment():
-            artifacts_docs_dir = os.path.join(os.getenv('CIRCLE_ARTIFACTS'), buildHelper.artifacts_docs_build_html_dir)
-            self.assertFalse(os.path.isfile(os.path.join(artifacts_docs_dir, 'index.html')))
-            with KarrLabBuildUtilsCli(argv=['archive-documentation']) as app:
-                app.run()
-            self.assertTrue(os.path.isfile(os.path.join(artifacts_docs_dir, 'index.html')))
 
     def test_get_version(self):
         """ setup """

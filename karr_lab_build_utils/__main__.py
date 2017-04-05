@@ -16,17 +16,10 @@ class BaseController(CementBaseController):
     def archive_coverage_report(self):
         """ Archive a coverage report:
 
-        * Copy report to artifacts directory
         * Upload report to Coveralls and Code Climate
         """
         buildHelper = BuildHelper()
         buildHelper.archive_coverage_report()
-
-    @expose(help='Archive documentation')
-    def archive_documentation(self):
-        """ Save documentation to artifacts directory """
-        buildHelper = BuildHelper()
-        buildHelper.archive_documentation()
 
     @expose(help='Archive test report')
     def archive_test_report(self):
@@ -39,12 +32,6 @@ class BaseController(CementBaseController):
         """ Combine coverage reports """
         buildHelper = BuildHelper()
         buildHelper.combine_coverage_reports()
-
-    @expose(help='Copy coverage report to CircleCI artifacts directory')
-    def copy_coverage_report_to_artifacts_directory(self):
-        """ Copy coverage report to CircleCI artifacts directory """
-        buildHelper = BuildHelper()
-        buildHelper.copy_coverage_report_to_artifacts_directory()
 
     @expose(help='Create CircleCI build for the current repository')
     def create_circleci_build(self):
