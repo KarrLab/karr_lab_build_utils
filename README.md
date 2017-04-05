@@ -9,23 +9,169 @@
 # Karr Lab build utilities
 
 This package performs several aspects of the Karr Lab's build system:
-* Generates HTML test history report from a collection of nose-style XML reports
-* Generates HTML test coverage report
-* Generates HTML API documentation
-* Uploads XML and HTML test reports to the lab server
+* Tests code with Python 2 and 3 using pytest
+* Uploads test reports to our test history server
 * Uploads coverage report to Coveralls
-* Uploads HTML coverage report to the lab server
-* Uploads HTML API documentation to the lab server
+* Generates HTML API documentation using Sphinx
+
+The build system is primarily designed for:
+* Code that is implemented with Python 2/3
+* Tests that can be run with pytest
+* Code that is documented with Sphinx in Napolean/Google style
 
 ## Installation
 1. Install dependencies
-  * libffi-dev
+  * `libffi-dev`
 2. Install package 
   ```
   pip install git+git://github.com/KarrLab/Karr-Lab-build-utils#egg=karr_lab_build_utils
   ```
 
-## Example usage
+## Usage
+
+### Package organization
+To use the utilities, your package should follow this organization scheme:
+```
+/path/to/repo/
+  LICENSE
+  setup.py
+  setup.cfg
+  MANIFEST.in  
+  requirements.txt
+  README.md
+  <repo_name>
+    __init__.py
+      __version__ = '<version_number>'
+    __main__.py (optional, for command line programs)
+  tests/
+    requirements.txt
+    fixtures/
+    tokens/
+  docs/
+    conf.py
+    requirements.txt
+    index.rst
+    _static (optional for any files needed for the documentation)
+```
+
+### Setup settings
+The following options should be set in `setup.cfg`
+```
+[coverage:run]
+source = 
+    <repo_name>
+
+[sphinx-apidocs]
+packages = 
+    <repo_name>
+```
+
+### Sphinx settings
+Add/uncomment these lines in `docs/conf.py`
+```
+import os
+import sys
+sys.path.insert(0, os.path.abspath('..'))
+```
+
+Enable the napolean and google analytics extensions in `docs/conf.py`
+```
+extensions = [
+    ...
+    'sphinx.ext.napoleon',
+    'sphinxcontrib.googleanalytics',
+]
+```
+
+Set the version and release in `docs/conf.py`
+```
+version = <repo_name>.__version__
+release = version
+```
+
+Set the napolean options in `docs/conf.py`
+```
+napoleon_google_docstring = True
+napoleon_numpy_docstring = False
+napoleon_include_private_with_doc = False
+napoleon_include_special_with_doc = True
+napoleon_use_admonition_for_examples = False
+napoleon_use_admonition_for_notes = False
+napoleon_use_admonition_for_references = False
+napoleon_use_ivar = False
+napoleon_use_param = True
+napoleon_use_rtype = True
+```
+
+Configure `docs/conf.py` to use the Read the Docs theme
+```
+import sphinx_rtd_theme
+html_theme = 'sphinx_rtd_theme'
+html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+```
+
+Set the google analytics id in `docs/conf.py`
+```
+googleanalytics_id = 'UA-86340737-1'
+```
+
+Add the following to trigger API documentation when the documenation is compiled
+```
+from configparser import ConfigParser
+from sphinx import apidoc
+
+def run_apidoc(app):
+    this_dir = os.path.dirname(__file__)
+    parser = ConfigParser()
+    parser.read(os.path.join(this_dir, '..', 'setup.cfg'))
+    packages = parser.get('sphinx-apidocs', 'packages').strip().split('\n')
+    for package in packages:
+        apidoc.main(argv=['sphinx-apidoc', '-f', '-o', os.path.join(this_dir, 'source'), os.path.join(this_dir, '..', package)])
+
+def setup(app):
+    app.connect('builder-inited', run_apidoc)
+```
+
+### Sphinx examples
+
+#### Class
+```
+class MyClass(object):
+    ''' Short description
+
+    Long description
+
+    Attributes:
+      arg1 (:obj:`type`): description
+      arg2 (:obj:`type`): description
+      …
+    '''
+
+    ...
+```
+
+#### Methods
+```
+def my_method(self, arg1, arg2):
+    ''' Short description
+
+    Long description
+
+    Args:
+      arg1 (:obj:`type`): description
+      arg2 (:obj:`type`, optional): description
+      …
+
+    Returns:
+      :obj:`type`: description
+
+    Raises:
+      :obj:`ErrorType`: description
+      …
+    '''
+
+    ...
+```
 
 ### Command line
 ```
