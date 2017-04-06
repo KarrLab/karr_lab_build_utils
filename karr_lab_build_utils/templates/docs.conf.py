@@ -19,7 +19,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
-import karr_lab_build_utils
+import {{ package }}
 
 # -- General configuration ------------------------------------------------
 
@@ -55,16 +55,16 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Karr Lab build utilities'
-copyright = u'2016, Karr Lab'
-author = u'Jonathan Karr'
+project = u'{{ package }}'
+copyright = u'2017, Karr Lab'
+author = u'Karr Lab'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
 # The short X.Y version.
-version = karr_lab_build_utils.__version__
+version = {{ package }}.__version__
 # The full version, including alpha/beta/rc tags.
 release = version
 

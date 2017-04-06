@@ -99,7 +99,7 @@ class BuildHelper(object):
         self.repo_revision = os.getenv('CIRCLE_SHA1')
         try:
             self.build_num = int(float(os.getenv('CIRCLE_BUILD_NUM')))
-        except ValueError:
+        except (TypeError, ValueError, ):
             self.build_num = 0
 
         self.proj_tests_dir = self.DEFAULT_PROJ_TESTS_DIR
