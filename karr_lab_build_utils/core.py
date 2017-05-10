@@ -70,6 +70,9 @@ class BuildHelper(object):
 
         GITHUB_API_ENDPOINT (:obj:`str`): GitHub API endpoint
         CIRCLE_API_ENDPOINT (:obj:`str`): CircleCI API endpoint
+
+        COVERALLS_ENABLED (:obj:`bool`): if :obj:`True`, upload coverage reports to coveralls
+        CODE_CLIMATE_ENABLED (:obj:`bool`): if :obj:`True`, upload coverage reports to code climate
     """
 
     DEFAULT_TEST_RUNNER = 'pytest'
@@ -83,6 +86,9 @@ class BuildHelper(object):
 
     GITHUB_API_ENDPOINT = 'https://api.github.com'
     CIRCLE_API_ENDPOINT = 'https://circleci.com/api/v1.1'
+
+    COVERALLS_ENABLED = True
+    CODE_CLIMATE_ENABLED = False
 
     def __init__(self):
         """ Construct build helper """
@@ -362,10 +368,12 @@ class BuildHelper(object):
         """
 
         # upload to Coveralls
-        self.upload_coverage_report_to_coveralls()
+        if self.COVERALLS_ENABLED:
+            self.upload_coverage_report_to_coveralls()
 
         # upload to Code Climate
-        self.upload_coverage_report_to_code_climate()
+        if self.CODE_CLIMATE_ENABLED:
+            self.upload_coverage_report_to_code_climate() # disabled becase
 
     def upload_coverage_report_to_coveralls(self):
         """ Upload coverage report to Coveralls """
