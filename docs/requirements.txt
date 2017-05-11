@@ -1,6 +1,6 @@
 abduct
 cement
-codeclimate-test-reporter
+git+https://github.com/KarrLab/python-test-reporter.git#egg=codeclimate-test-reporter >= 0.2.1a0
 configparser
 coverage
 coveralls

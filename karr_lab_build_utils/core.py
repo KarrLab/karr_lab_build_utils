@@ -88,7 +88,7 @@ class BuildHelper(object):
     CIRCLE_API_ENDPOINT = 'https://circleci.com/api/v1.1'
 
     COVERALLS_ENABLED = True
-    CODE_CLIMATE_ENABLED = False
+    CODE_CLIMATE_ENABLED = True
 
     def __init__(self):
         """ Construct build helper """
