@@ -22,4 +22,8 @@ docs/_build
 # pytest .cache directory
 .cache/
 
+# passwords
 tests/fixtures/secret/
+
+# IDE configuration
+.idea/
