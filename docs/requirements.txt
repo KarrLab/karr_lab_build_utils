@@ -1,8 +1,8 @@
 abduct
 cement
-git+https://github.com/KarrLab/python-test-reporter.git#egg=codeclimate-test-reporter >= 0.2.1a0
+codeclimate-test-reporter
 configparser
-coverage
+coverage<4.4
 coveralls
 nose
 pytest

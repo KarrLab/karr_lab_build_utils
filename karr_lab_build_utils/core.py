@@ -192,14 +192,16 @@ class BuildHelper(object):
             else:
                 cmd = ['install', '-r', req_file]
             result = pip.main(cmd)
-            long_err_msg = stderr.getvalue()
+            err_msg = stderr.getvalue()
 
         if result:
             sep = 'During handling of the above exception, another exception occurred:\n\n'
-            i_sep = long_err_msg.find(sep)
-            short_err_msg = long_err_msg[i_sep + len(sep):]
-
-            sys.stderr.write(short_err_msg)
+            i_sep = err_msg.find(sep)
+            if i_sep >= 0:
+                sys.stderr.write(err_msg[i_sep + len(sep):])
+            else:
+                sys.stderr.write(err_msg)
+            
             sys.stderr.flush()
             sys.exit(1)
 
