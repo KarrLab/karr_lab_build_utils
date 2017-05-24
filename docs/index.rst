@@ -1,24 +1,26 @@
-.. Karr Lab build utilities documentation master file, created by
-   sphinx-quickstart on Tue Aug  2 09:29:29 2016.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+`karr_lab_build_utils` documentation
+====================================
 
-Welcome to Karr Lab build utilities's documentation!
-====================================================
+This package performs several aspects of the Karr Lab's build system:
 
-Contents:
+* Tests code with Python 2 and 3 using pytest
+* Uploads test reports to our test history server
+* Uploads coverage report to Coveralls
+* Generates HTML API documentation using Sphinx
+
+The build system is primarily designed for:
+
+* Code that is implemented with Python 2/3
+* Tests that can be run with pytest
+* Code that is documented with Sphinx in Napolean/Google style
+
+Contents
+--------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
-   source/modules.rst
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
+   installation.rst
+   overview.rst   
+   API documentation <source/modules.rst>
+   about.rst

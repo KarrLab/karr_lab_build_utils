@@ -415,14 +415,31 @@ class BuildHelper(object):
             os.mkdir(self.proj_docs_dir)
 
         for package in packages:
+            # configuration
             with open(resource_filename('karr_lab_build_utils', 'templates/docs.conf.py'), 'r') as file:
                 template = Template(file.read())
             template.stream(package=package).dump(os.path.join(self.proj_docs_dir, 'conf.py'))
 
+            # index
             with open(resource_filename('karr_lab_build_utils', 'templates/docs.index.rst'), 'r') as file:
                 template = Template(file.read())
-            title = "Welcome to {}'s documentation!".format(package)
+            title = "`{}` documentation".format(package)
             template.stream(title=title, title_underline='=' * len(title)).dump(os.path.join(self.proj_docs_dir, 'index.rst'))
+
+            # overview
+            with open(resource_filename('karr_lab_build_utils', 'templates/docs.overview.rst'), 'r') as file:
+                template = Template(file.read())
+            template.stream().dump(os.path.join(self.proj_docs_dir, 'overview.rst'))
+
+            # installation
+            with open(resource_filename('karr_lab_build_utils', 'templates/docs.installation.rst'), 'r') as file:
+                template = Template(file.read())
+            template.stream(package=package).dump(os.path.join(self.proj_docs_dir, 'installation.rst'))
+
+            # about
+            with open(resource_filename('karr_lab_build_utils', 'templates/docs.about.rst'), 'r') as file:
+                template = Template(file.read())
+            template.stream().dump(os.path.join(self.proj_docs_dir, 'about.rst'))
 
     def make_documentation(self):
         """ Make HTML documentation using Sphinx for one or more packages. Save documentation to `proj_docs_build_html_dir` 

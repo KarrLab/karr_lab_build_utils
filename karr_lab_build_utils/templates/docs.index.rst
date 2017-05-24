@@ -1,19 +1,13 @@
 {{ title }}
 {{ title_underline }}
 
-Contents:
+Contents
+--------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
-   source/modules.rst
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
+   installation.rst
+   overview.rst   
+   API documentation <source/modules.rst>
+   about.rst
