@@ -188,7 +188,7 @@ class BuildHelper(object):
 
         with abduct.captured(abduct.err()) as stderr:
             if update:
-                cmd = ['install', '-U', '-r', req_file]
+                cmd = ['install', '-U', '--upgrade-strategy', 'only-if-needed', '-r', req_file]
             else:
                 cmd = ['install', '-r', req_file]
             result = pip.main(cmd)
@@ -210,8 +210,8 @@ class BuildHelper(object):
 
     def _update_requirements_github(self, req_file):
         with open(req_file, 'r') as req_file_id:
-            for req in filter(lambda req: 'git+https://github.com/KarrLab/' in req, req_file_id.readlines()):
-                result = pip.main(['install', '-U', req, '--upgrade-strategy', 'only-if-needed'])
+            for req in filter(lambda req: req.startswith('git+') and '://github.com/KarrLab/' in req, req_file_id.readlines()):
+                result = pip.main(['install', '-U', '--upgrade-strategy', 'only-if-needed', req])
 
                 if result:
                     sep = 'During handling of the above exception, another exception occurred:\n\n'
