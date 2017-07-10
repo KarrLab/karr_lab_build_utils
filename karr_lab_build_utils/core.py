@@ -50,7 +50,9 @@ class BuildHelper(object):
         proj_docs_dir (:obj:`str`): local directory with Sphinx configuration
         proj_docs_static_dir (:obj:`str`): local directory of static documentation files
         proj_docs_source_dir (:obj:`str`): local directory of source documentation files created by sphinx-apidoc
+        proj_docs_build_doctrees_dir (:obj:`str`): local directory where doc trees should be saved        
         proj_docs_build_html_dir (:obj:`str`): local directory where generated HTML documentation should be saved
+        proj_docs_build_spelling_dir (:obj:`str`): local directory where spell check results should be saved
 
         test_server_token (:obj:`str`): test history report server token
         coveralls_token (:obj:`str`): Coveralls token
@@ -66,6 +68,7 @@ class BuildHelper(object):
         DEFAULT_PROJ_DOCS_DIR (:obj:`str`): default local directory with Sphinx configuration
         DEFAULT_PROJ_DOCS_STATIC_DIR (:obj:`str`): default local directory of static documentation files
         DEFAULT_PROJ_DOCS_SOURCE_DIR (:obj:`str`): default local directory of source documentation files created by sphinx-apidoc
+        DEFAULT_PROJ_DOCS_SPELLING_DIR (:obj:`str`): default local directory where spell check results should be saved
         DEFAULT_PROJ_DOCS_BUILD_HTML_DIR (:obj:`str`): default local directory where generated HTML documentation should be saved
 
         GITHUB_API_ENDPOINT (:obj:`str`): GitHub API endpoint
@@ -82,7 +85,9 @@ class BuildHelper(object):
     DEFAULT_PROJ_DOCS_DIR = 'docs'
     DEFAULT_PROJ_DOCS_STATIC_DIR = 'docs/_static'
     DEFAULT_PROJ_DOCS_SOURCE_DIR = 'docs/source'
+    DEFAULT_PROJ_DOCS_BUILD_DOCTREES_DIR = 'docs/_build/doctrees'
     DEFAULT_PROJ_DOCS_BUILD_HTML_DIR = 'docs/_build/html'
+    DEFAULT_PROJ_DOCS_BUILD_SPELLING_DIR = 'docs/_build/spelling'
 
     GITHUB_API_ENDPOINT = 'https://api.github.com'
     CIRCLE_API_ENDPOINT = 'https://circleci.com/api/v1.1'
@@ -114,7 +119,9 @@ class BuildHelper(object):
         self.proj_docs_dir = self.DEFAULT_PROJ_DOCS_DIR
         self.proj_docs_static_dir = self.DEFAULT_PROJ_DOCS_STATIC_DIR
         self.proj_docs_source_dir = self.DEFAULT_PROJ_DOCS_SOURCE_DIR
+        self.proj_docs_build_doctrees_dir = self.DEFAULT_PROJ_DOCS_BUILD_DOCTREES_DIR
         self.proj_docs_build_html_dir = self.DEFAULT_PROJ_DOCS_BUILD_HTML_DIR
+        self.proj_docs_build_spelling_dir = self.DEFAULT_PROJ_DOCS_BUILD_SPELLING_DIR
 
         self.test_server_token = os.getenv('TEST_SERVER_TOKEN')
         self.coveralls_token = os.getenv('COVERALLS_REPO_TOKEN')
@@ -441,8 +448,11 @@ class BuildHelper(object):
                 template = Template(file.read())
             template.stream().dump(os.path.join(self.proj_docs_dir, 'about.rst'))
 
-    def make_documentation(self):
+    def make_documentation(self, spell_check=False):
         """ Make HTML documentation using Sphinx for one or more packages. Save documentation to `proj_docs_build_html_dir` 
+
+        Args:
+            spell_check (:obj:`bool`): if :obj:`True`, run spell checking
 
         Raises:
             :obj:`BuildHelperError`: If project name not set
@@ -456,6 +466,17 @@ class BuildHelper(object):
         result = sphinx_build(['sphinx-build', self.proj_docs_dir, self.proj_docs_build_html_dir])
         if result != 0:
             sys.exit(result)
+
+        # run spell check
+        if spell_check:
+            result = sphinx_build(['sphinx-build', 
+                                   '-b', 'spelling', 
+                                   '-d', self.proj_docs_build_doctrees_dir, 
+                                   self.proj_docs_dir, 
+                                   self.proj_docs_build_spelling_dir,
+                                   ])
+            if result != 0:
+                sys.exit(result)
 
     def get_version(self):
         return '{0:s} (Python {1[0]:d}.{1[1]:d}.{1[2]:d})'.format(karr_lab_build_utils.__version__, sys.version_info)

@@ -68,12 +68,6 @@ class BaseController(CementBaseController):
         buildHelper = BuildHelper()
         buildHelper.make_and_archive_reports()
 
-    @expose(help='Make HTML coverage report')
-    def make_documentation(self):
-        """ Make HTML documentation """
-        buildHelper = BuildHelper()
-        buildHelper.make_documentation()
-
     @expose(help='Upload coverage report to Coveralls')
     def upload_coverage_report_to_coveralls(self):
         """ Upload coverage report to Coveralls """
@@ -122,6 +116,29 @@ class RunTestsController(CementBaseController):
         buildHelper.run_tests(test_path=args.test_path, with_xunit=args.with_xunit, with_coverage=args.with_coverage)
 
 
+class MakeDocumentationController(CementBaseController):
+    """ Controller for make_documentation.
+
+    Make HTML documentation. Optionally, spell check documentation.
+    """
+
+    class Meta:
+        label = 'make-documentation'
+        description = 'Make HTML documentation. Optionally, spell check documentation.'
+        stacked_on = 'base'
+        stacked_type = 'nested'
+        arguments = [
+            (['--spell-check'], dict(
+                default=False, dest='spell_check', action='store_true', help='If set, spell check documentation')),
+        ]
+
+    @expose(hide=True)
+    def default(self):
+        args = self.app.pargs
+        buildHelper = BuildHelper()
+        buildHelper.make_documentation(spell_check=args.spell_check)
+
+
 class App(CementApp):
     """ Command line application """
     class Meta:
@@ -130,6 +147,7 @@ class App(CementApp):
         handlers = [
             BaseController,
             RunTestsController,
+            MakeDocumentationController,
         ]
 
 
