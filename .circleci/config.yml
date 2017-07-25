@@ -25,11 +25,16 @@ jobs:
             - /usr/local/lib/python2.7/site-packages
             - /usr/local/lib/python3.6/site-packages
 
-      - run: pip2 install -e .
-      - run: karr-lab-build-utils-2 run-tests tests --with-xunit --with-coverage
+      - run: |
+            set +e
 
-      - run: pip3 install -e .
-      - run: karr-lab-build-utils-3 run-tests tests --with-xunit --with-coverage
+            pip2 install -e .
+            karr-lab-build-utils-2 run-tests tests --with-xunit --with-coverage
+
+            pip3 install -e .
+            karr-lab-build-utils-3 run-tests tests --with-xunit --with-coverage
+
+            karr-lab-build-utils make-and-archive-reports
 
       - store_test_results:
           path: /root/project/tests/reports
@@ -39,8 +44,6 @@ jobs:
       - store_artifacts:
           path: /root/project/.coverage.3.6.1
           destination: .coverage.3.6.1
-      
-      - run: karr-lab-build-utils make-and-archive-reports
       - store_artifacts:
           path: /root/project/docs/_build/html
           destination: docs
