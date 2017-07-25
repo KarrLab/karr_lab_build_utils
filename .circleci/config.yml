@@ -26,15 +26,15 @@ jobs:
             - /usr/local/lib/python3.6/site-packages
 
       - run: |
-            set +e
+          set +e
 
-            pip2 install -e .
-            karr-lab-build-utils-2 run-tests tests --with-xunit --with-coverage
+          pip2 install -e .
+          karr-lab-build-utils-2 run-tests tests --with-xunit --with-coverage
 
-            pip3 install -e .
-            karr-lab-build-utils-3 run-tests tests --with-xunit --with-coverage
+          pip3 install -e .
+          karr-lab-build-utils-3 run-tests tests --with-xunit --with-coverage
 
-            karr-lab-build-utils make-and-archive-reports
+          karr-lab-build-utils make-and-archive-reports
 
       - store_test_results:
           path: /root/project/tests/reports
