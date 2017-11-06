@@ -261,7 +261,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with KarrLabBuildUtilsCli(argv=['upload-coverage-report-to-code-climate']) as app:
                 app.run()
 
-    def test_generate_documentation_configuration(self):
+    def test_create_documentation_configuration(self):
         buildHelper = self.construct_build_helper()
 
         filenames = ['conf.py', 'index.rst', 'overview.rst', 'installation.rst', 'about.rst']
@@ -271,7 +271,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             if os.path.isfile(os.path.join(buildHelper.proj_docs_dir, filename)):
                 os.rename(os.path.join(buildHelper.proj_docs_dir, filename), os.path.join(buildHelper.proj_docs_dir, filename + '.back'))
 
-        buildHelper.generate_documentation_configuration()
+        buildHelper.create_documentation_configuration()
 
         for filename in filenames:
             self.assertTrue(os.path.isfile(os.path.join(buildHelper.proj_docs_dir, filename)))

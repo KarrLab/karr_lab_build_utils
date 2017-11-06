@@ -45,11 +45,11 @@ class BaseController(CementBaseController):
         buildHelper = BuildHelper()
         buildHelper.create_codeclimate_github_webhook()
 
-    @expose(help='Generate Sphinx build configuration for a package')
-    def generate_documentation_configuration(self):
-        """ Generate Sphinx build configuration for a package """
+    @expose(help='Create Sphinx documentation configuration for a package')
+    def create_documentation_configuration(self):
+        """ Create a Sphinx documentation configuration for a package """
         buildHelper = BuildHelper()
-        buildHelper.generate_documentation_configuration()
+        buildHelper.create_documentation_configuration()
 
     @expose(help='Install requirements')
     def install_requirements(self):

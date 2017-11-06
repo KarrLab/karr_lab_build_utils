@@ -405,8 +405,8 @@ class BuildHelper(object):
     # Documentation
     ########################
 
-    def generate_documentation_configuration(self):
-        """ Generate Sphinx build configuration for a package
+    def create_documentation_configuration(self):
+        """ Create Sphinx documentation configuration for a package
 
         Raises:
             :obj:`ValueError`: if no package or more than one package is specified
