@@ -1,10 +1,10 @@
-<!--[![PyPI package](https://img.shields.io/pypi/v/Karr-Lab-build-utils.svg)](https://pypi.python.org/pypi/Karr-Lab-build-utils)-->
-[![Documentation](https://readthedocs.org/projects/karr-lab-build-utils/badge/?version=latest)](http://karr-lab-build-utils.readthedocs.org)
-[![Test results](https://circleci.com/gh/KarrLab/Karr-Lab-build-utils.svg?style=shield)](https://circleci.com/gh/KarrLab/Karr-Lab-build-utils)
-[![Test coverage](https://coveralls.io/repos/github/KarrLab/Karr-Lab-build-utils/badge.svg)](https://coveralls.io/github/KarrLab/Karr-Lab-build-utils)
-[![Code analysis](https://codeclimate.com/github/KarrLab/Karr-Lab-build-utils/badges/gpa.svg)](https://codeclimate.com/github/KarrLab/Karr-Lab-build-utils)
-[![License](https://img.shields.io/github/license/KarrLab/Karr-Lab-build-utils.svg)](LICENSE)
-![Analytics](https://ga-beacon.appspot.com/UA-86759801-1/Karr-Lab-build-utils/README.md?pixel)
+<!--[![PyPI package](https://img.shields.io/pypi/v/karr_lab_build_utils.svg)](https://pypi.python.org/pypi/karr_lab_build_utils)-->
+[![Documentation](https://readthedocs.org/projects/karr_lab_build_utils/badge/?version=latest)](http://karr_lab_build_utils.readthedocs.org)
+[![Test results](https://circleci.com/gh/KarrLab/karr_lab_build_utils.svg?style=shield)](https://circleci.com/gh/KarrLab/karr_lab_build_utils)
+[![Test coverage](https://coveralls.io/repos/github/KarrLab/karr_lab_build_utils/badge.svg)](https://coveralls.io/github/KarrLab/karr_lab_build_utils)
+[![Code analysis](https://codeclimate.com/github/KarrLab/karr_lab_build_utils/badges/gpa.svg)](https://codeclimate.com/github/KarrLab/karr_lab_build_utils)
+[![License](https://img.shields.io/github/license/KarrLab/karr_lab_build_utils.svg)](LICENSE)
+![Analytics](https://ga-beacon.appspot.com/UA-86759801-1/karr_lab_build_utils/README.md?pixel)
 
 # Karr Lab build utilities
 
@@ -38,7 +38,7 @@ The build system is primarily designed for:
 
 2. Install package 
   ```
-  pip install git+git://github.com/KarrLab/Karr-Lab-build-utils#egg=karr_lab_build_utils
+  pip install git+git://github.com/KarrLab/karr_lab_build_utils#egg=karr_lab_build_utils
   ```
 
 ## Using the utilities to build, test, and document Python packages
@@ -47,7 +47,7 @@ The build system is primarily designed for:
 
 Use the `create_repository` subcommand to create a new Git repository
 ```
-karr-lab-build-utils create_repository --dirname /path/to/new_repo --url https://github.com/KarrLab/new_repo.git
+karr_lab_build_utils create_repository --dirname /path/to/new_repo --url https://github.com/KarrLab/new_repo.git
 ```
 
 This will create a repository with the following directory structure and files
@@ -127,13 +127,13 @@ def my_method(self, arg1, arg2):
 
 ### Install the package, run the tests, and generate the documentation
 ```
-karr-lab-build-utils install-requirements
-karr-lab-build-utils run-tests
-karr-lab-build-utils make-documentation
+karr_lab_build_utils install-requirements
+karr_lab_build_utils run-tests
+karr_lab_build_utils make-documentation
 ```
 
 ## Documentation
-Please see the [API documentation](http://Karr-Lab-build-utils.readthedocs.io).
+Please see the [API documentation](http://karr_lab_build_utils.readthedocs.io).
 
 ## License
 The build utilities are released under the [MIT license](LICENSE).

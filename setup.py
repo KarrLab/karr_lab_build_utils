@@ -37,11 +37,11 @@ for dependency_link in dependency_links:
 
 # install package
 setup(
-    name="Karr-Lab-build-utils",
+    name="karr_lab_build_utils",
     version=karr_lab_build_utils.__version__,
     description="Karr Lab build utilities",
-    url="https://github.com/KarrLab/Karr-Lab-build-utils",
-    download_url='https://github.com/KarrLab/Karr-Lab-build-utils/tarball/{}'.format(karr_lab_build_utils.__version__),
+    url="https://github.com/KarrLab/karr_lab_build_utils",
+    download_url='https://github.com/KarrLab/karr_lab_build_utils/tarball/{}'.format(karr_lab_build_utils.__version__),
     author="Jonathan Karr",
     author_email="jonrkarr@gmail.com",
     license="MIT",
@@ -62,8 +62,13 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'karr-lab-build-utils = karr_lab_build_utils.__main__:main',
-            'karr-lab-build-utils-{:d} = karr_lab_build_utils.__main__:main'.format(sys.version_info[0]),
+            'karr_lab_build_utils = karr_lab_build_utils.__main__:main',
+            'karr_lab_build_utils{:d} = karr_lab_build_utils.__main__:main'.format(
+                sys.version_info[0]),
+            'karr_lab_build_utils{:d}.{:d} = karr_lab_build_utils.__main__:main'.format(
+                sys.version_info[0], sys.version_info[1]),
+            'karr_lab_build_utils{:d}.{:d}.{:d} = karr_lab_build_utils.__main__:main'.format(
+                sys.version_info[0], sys.version_info[1], sys.version_info[2]),
         ],
     },
 )

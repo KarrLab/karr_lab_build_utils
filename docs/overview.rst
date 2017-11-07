@@ -169,12 +169,12 @@ Command line
 
 .. code-block:: text
 
-    export CIRCLE_PROJECT_REPONAME=Karr-Lab-build-utils
+    export CIRCLE_PROJECT_REPONAME=karr_lab_build_utils
     export CIRCLE_BUILD_NUM=1
     export CODE_SERVER_PASSWORD=*******
-    karr-lab-build-utils-install-requirements
-    karr-lab-build-utils-run-tests --test_path /path/to/tests --with_xml_report --with_coverage
-    karr-lab-build-utils-make-and-archive-reports
+    karr_lab_build_utils install-requirements
+    karr_lab_build_utils run-tests --test_path /path/to/tests --with_xml_report --with_coverage
+    karr_lab_build_utils make-and-archive-reports
 
 CircleCI build configuration
 -----------------------------------
@@ -186,10 +186,10 @@ CircleCI build configuration
         version: 2.7.11
     dependencies:
       pre:
-        - pip install git+git://github.com/KarrLab/Karr-Lab-build-utils#egg=karr_lab_build_utils
-        - karr-lab-build-utils install-requirements
+        - pip install git+git://github.com/KarrLab/karr_lab_build_utils#egg=karr_lab_build_utils
+        - karr_lab_build_utils install-requirements
     test:
       override:
-        - karr-lab-build-utils run-tests --test_path tests --with_xml_report --with_coverage
+        - karr_lab_build_utils run-tests --test_path tests --with_xml_report --with_coverage
       post:
-        - karr-lab-build-utils make-and-archive-reports
+        - karr_lab_build_utils make-and-archive-reports

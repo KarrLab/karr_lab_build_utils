@@ -202,7 +202,7 @@ class MakeDocumentationController(CementBaseController):
 class App(CementApp):
     """ Command line application """
     class Meta:
-        label = 'karr-lab-build-utils'
+        label = 'karr_lab_build_utils'
         base_controller = 'base'
         handlers = [
             BaseController,
