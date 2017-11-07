@@ -35,6 +35,15 @@ dependency_links = list(set(dependency_links))
 for dependency_link in dependency_links:
     pip.main(['install', dependency_link])
 
+# read old console scripts
+egg_dir = os.path.join(os.path.dirname(__file__), 'karr_lab_build_utils.egg-info')
+if os.path.isdir(egg_dir):
+    pip.main(['install', 'configparser'])
+    import configparser
+    parser = configparser.ConfigParser()
+    parser.read(os.path.join(egg_dir, 'entry_points.txt'))
+    scripts = {script: func for script, func in parser.items('console_scripts')}
+
 # install package
 setup(
     name="karr_lab_build_utils",
@@ -72,3 +81,17 @@ setup(
         ],
     },
 )
+
+# restore old console scripts
+if os.path.isdir(egg_dir):
+    parser = configparser.ConfigParser()
+
+    parser.read(os.path.join(egg_dir, 'entry_points.txt'))
+    for script, func in parser.items('console_scripts'):
+        scripts[script] = func
+
+    for script, func in scripts.items():
+        parser.set('console_scripts', script, func)
+
+    with open(os.path.join(egg_dir, 'entry_points.txt'), 'w') as file:
+        parser.write(file)
