@@ -10,6 +10,7 @@ from codeclimate_test_reporter.components.runner import Runner as CodeClimateRun
 from configparser import ConfigParser
 from coverage import coverage
 from coveralls import Coveralls
+from datetime import datetime
 from glob import glob
 from jinja2 import Template
 from pkg_resources import resource_filename
@@ -20,6 +21,7 @@ import karr_lab_build_utils
 import nose
 import os
 import pip
+import pygit2
 import pytest
 import requests
 import re
@@ -50,7 +52,7 @@ class BuildHelper(object):
         proj_docs_dir (:obj:`str`): local directory with Sphinx configuration
         proj_docs_static_dir (:obj:`str`): local directory of static documentation files
         proj_docs_source_dir (:obj:`str`): local directory of source documentation files created by sphinx-apidoc
-        proj_docs_build_doctrees_dir (:obj:`str`): local directory where doc trees should be saved        
+        proj_docs_build_doctrees_dir (:obj:`str`): local directory where doc trees should be saved
         proj_docs_build_html_dir (:obj:`str`): local directory where generated HTML documentation should be saved
         proj_docs_build_spelling_dir (:obj:`str`): local directory where spell check results should be saved
 
@@ -61,10 +63,13 @@ class BuildHelper(object):
         github_api_token (obj:`str`): GitHub API token
         circle_api_token (:obj:`str`): CircleCI API token
 
+        INITIAL_PACKAGE_VERSION (:obj:`str`): initial package version
+        DEFAULT_BUILD_IMAGE_VERSION (:obj:`str`): default build image version
+
         DEFAULT_TEST_RUNNER (:obj:`str`): default test runner {pytest, nose}
         DEFAULT_PROJ_TESTS_DIR (:obj:`str`): default local directory with test code
         DEFAULT_PROJ_TESTS_XML_DIR (:obj:`str`): default local directory where the test reports generated should be saved
-        DEFAULT_PROJ_TESTS_XML_LATEST_FILENAME (:obj:`str`): default file name to store latest XML test report        
+        DEFAULT_PROJ_TESTS_XML_LATEST_FILENAME (:obj:`str`): default file name to store latest XML test report
         DEFAULT_PROJ_DOCS_DIR (:obj:`str`): default local directory with Sphinx configuration
         DEFAULT_PROJ_DOCS_STATIC_DIR (:obj:`str`): default local directory of static documentation files
         DEFAULT_PROJ_DOCS_SOURCE_DIR (:obj:`str`): default local directory of source documentation files created by sphinx-apidoc
@@ -77,6 +82,9 @@ class BuildHelper(object):
         COVERALLS_ENABLED (:obj:`bool`): if :obj:`True`, upload coverage reports to coveralls
         CODE_CLIMATE_ENABLED (:obj:`bool`): if :obj:`True`, upload coverage reports to code climate
     """
+
+    INITIAL_PACKAGE_VERSION = '0.0.1'
+    DEFAULT_BUILD_IMAGE_VERSION = '0.0.6'
 
     DEFAULT_TEST_RUNNER = 'pytest'
     DEFAULT_PROJ_TESTS_DIR = 'tests'
@@ -131,9 +139,97 @@ class BuildHelper(object):
         self.github_password = os.getenv('GITHUB_PASSWORD')
         self.circle_api_token = os.getenv('CIRCLE_API_TOKEN')
 
-    ########################
+    #####################
+    # Create a repository
+    #####################
+    def create_repository(self, dirname='.', url=None, build_image_version=None):
+        """ Create a Git repository with the default directory structure
+
+        Args:
+            dirname (:obj:`str`, optional): directory for the repository
+            url (:obj:`str`, optional): URL for the repository
+            build_image_version (:obj:`str`, optional): build image version
+        """
+
+        name = os.path.basename(os.path.abspath(dirname))
+        if not re.match('^[a-z][a-z0-9_]*$', name):
+            raise Exception('Repository names should start with a letter and only include lower case letters, numbers, and underscores')
+
+        if not build_image_version:
+            build_image_version = self.DEFAULT_BUILD_IMAGE_VERSION
+
+        # create a directory for the repository
+        if not os.path.isdir(dirname):
+            os.makedirs(dirname)
+
+        # initialize Git
+        pygit2.init_repository(dirname, origin_url=url or None)
+
+        # setup repository
+        self.setup_repository(dirname=dirname, build_image_version=build_image_version)
+
+    def setup_repository(self, dirname='.', build_image_version=None):
+        """ Setup Git repository with the default directory structure
+
+        Args:
+            dirname (:obj:`str`, optional): directory name
+            build_image_version (:obj:`str`, optional): build image version
+        """
+
+        name = os.path.basename(os.path.abspath(dirname))
+        if not re.match('^[a-z][a-z0-9_]*$', name):
+            raise Exception('Repository names should start with a letter and only include lower case letters, numbers, and underscores')
+
+        if not build_image_version:
+            build_image_version = self.DEFAULT_BUILD_IMAGE_VERSION
+
+        # create a directory for the repository
+        if not os.path.isdir(dirname):
+            os.makedirs(dirname)
+
+        # create directories
+        os.mkdir(os.path.join(dirname, name))
+        os.mkdir(os.path.join(dirname, 'tests'))
+        os.mkdir(os.path.join(dirname, 'tests', 'fixtures'))
+        os.mkdir(os.path.join(dirname, 'tests', 'fixtures', 'secret'))
+        os.mkdir(os.path.join(dirname, 'docs'))
+        os.mkdir(os.path.join(dirname, 'docs', '_static'))
+        os.mkdir(os.path.join(dirname, '.circleci'))
+
+        # create files
+        filenames = (
+            '.gitignore',
+            'LICENSE',
+            'MANIFEST.in',
+            'README.md',
+            'requirements.txt',
+            'setup.py',
+            'setup.cfg',
+            'tests/requirements.txt',
+            '.circleci/config.yml',
+        )
+
+        kwargs = {
+            'name': name,
+            'version': self.INITIAL_PACKAGE_VERSION,
+            'year': datetime.now().year,
+            'build_image_version': build_image_version,
+        }
+
+        for filename in filenames:
+            with open(resource_filename('karr_lab_build_utils', os.path.join('templates', filename)), 'r') as file:
+                template = Template(file.read())
+            template.stream(**kwargs).dump(os.path.join(dirname, filename))
+
+        with open(resource_filename('karr_lab_build_utils', os.path.join('templates', 'package', '__init__.py')), 'r') as file:
+            template = Template(file.read())
+        template.stream(**kwargs).dump(os.path.join(dirname, name, '__init__.py'))
+
+        self.create_documentation_template(dirname)
+
+    ###########################
     # Register repo on CircleCI
-    ########################
+    ###########################
     def create_circleci_build(self):
         """ Create CircleCI build for a repository 
 
@@ -159,14 +255,14 @@ class BuildHelper(object):
             'name': 'web',
             'config': {
                 'url': 'https://codeclimate.com/webhooks',
-                'content_type': 'form',                
+                'content_type': 'form',
             },
             'events': [
                 'push',
                 'pull_request'
             ],
             'active': True,
-            })
+        })
         if response.status_code != 201:
             if 'errors' in response.json():
                 msg = response.json()['errors'][0]['message']
@@ -174,9 +270,9 @@ class BuildHelper(object):
                 msg = response.json()['message']
             raise ValueError('Unable to create webhook for {}/{}: {}'.format(self.repo_owner, self.repo_name, msg))
 
-    ########################
+    #########################
     # Installing dependencies
-    ########################
+    #########################
     def install_requirements(self):
         """ Install requirements """
 
@@ -208,7 +304,7 @@ class BuildHelper(object):
                 sys.stderr.write(err_msg[i_sep + len(sep):])
             else:
                 sys.stderr.write(err_msg)
-            
+
             sys.stderr.flush()
             sys.exit(1)
 
@@ -326,10 +422,10 @@ class BuildHelper(object):
         """
 
         if self.test_server_token is None or \
-            self.repo_name is None or \
-            self.repo_owner is None or \
-            self.repo_branch is None or \
-            self.repo_revision is None:
+                self.repo_name is None or \
+                self.repo_owner is None or \
+                self.repo_branch is None or \
+                self.repo_revision is None:
             return
 
         abs_xml_latest_filename_pattern = os.path.join(
@@ -382,7 +478,7 @@ class BuildHelper(object):
 
         # upload to Code Climate
         if self.CODE_CLIMATE_ENABLED:
-            self.upload_coverage_report_to_code_climate() # disabled becase
+            self.upload_coverage_report_to_code_climate()  # disabled becase
 
     def upload_coverage_report_to_coveralls(self):
         """ Upload coverage report to Coveralls """
@@ -405,48 +501,56 @@ class BuildHelper(object):
     # Documentation
     ########################
 
-    def create_documentation_configuration(self):
-        """ Create Sphinx documentation configuration for a package
+    def create_documentation_template(self, dirname='.'):
+        """ Create Sphinx documentation template for a package
+
+        Args:
+            dirname (:obj:`str`, optional): path to package
 
         Raises:
             :obj:`ValueError`: if no package or more than one package is specified
         """
 
         parser = ConfigParser()
-        parser.read('setup.cfg')
+        parser.read(os.path.join(dirname, 'setup.cfg'))
         packages = parser.get('sphinx-apidocs', 'packages').strip().split('\n')
         if len(packages) != 1:
             raise ValueError('Sphinx configuration auto-generation only supports 1 package')
 
-        if not os.path.isdir(self.proj_docs_dir):
-            os.mkdir(self.proj_docs_dir)
+        if not os.path.isdir(os.path.join(dirname, self.proj_docs_dir)):
+            os.mkdir(os.path.join(dirname, self.proj_docs_dir))
 
         for package in packages:
             # configuration
-            with open(resource_filename('karr_lab_build_utils', 'templates/docs.conf.py'), 'r') as file:
+            with open(resource_filename('karr_lab_build_utils', 'templates/docs/conf.py'), 'r') as file:
                 template = Template(file.read())
-            template.stream(package=package).dump(os.path.join(self.proj_docs_dir, 'conf.py'))
+            template.stream(package=package).dump(os.path.join(dirname, self.proj_docs_dir, 'conf.py'))
+
+            # requirements
+            with open(resource_filename('karr_lab_build_utils', 'templates/docs/requirements.txt'), 'r') as file:
+                template = Template(file.read())
+            template.stream(package=package).dump(os.path.join(dirname, self.proj_docs_dir, 'requirements.txt'))
 
             # index
-            with open(resource_filename('karr_lab_build_utils', 'templates/docs.index.rst'), 'r') as file:
+            with open(resource_filename('karr_lab_build_utils', 'templates/docs/index.rst'), 'r') as file:
                 template = Template(file.read())
             title = "`{}` documentation".format(package)
-            template.stream(title=title, title_underline='=' * len(title)).dump(os.path.join(self.proj_docs_dir, 'index.rst'))
+            template.stream(title=title, title_underline='=' * len(title)).dump(os.path.join(dirname, self.proj_docs_dir, 'index.rst'))
 
             # overview
-            with open(resource_filename('karr_lab_build_utils', 'templates/docs.overview.rst'), 'r') as file:
+            with open(resource_filename('karr_lab_build_utils', 'templates/docs/overview.rst'), 'r') as file:
                 template = Template(file.read())
-            template.stream().dump(os.path.join(self.proj_docs_dir, 'overview.rst'))
+            template.stream().dump(os.path.join(dirname, self.proj_docs_dir, 'overview.rst'))
 
             # installation
-            with open(resource_filename('karr_lab_build_utils', 'templates/docs.installation.rst'), 'r') as file:
+            with open(resource_filename('karr_lab_build_utils', 'templates/docs/installation.rst'), 'r') as file:
                 template = Template(file.read())
-            template.stream(package=package).dump(os.path.join(self.proj_docs_dir, 'installation.rst'))
+            template.stream(package=package).dump(os.path.join(dirname, self.proj_docs_dir, 'installation.rst'))
 
             # about
-            with open(resource_filename('karr_lab_build_utils', 'templates/docs.about.rst'), 'r') as file:
+            with open(resource_filename('karr_lab_build_utils', 'templates/docs/about.rst'), 'r') as file:
                 template = Template(file.read())
-            template.stream().dump(os.path.join(self.proj_docs_dir, 'about.rst'))
+            template.stream().dump(os.path.join(dirname, self.proj_docs_dir, 'about.rst'))
 
     def make_documentation(self, spell_check=False):
         """ Make HTML documentation using Sphinx for one or more packages. Save documentation to `proj_docs_build_html_dir` 
@@ -469,10 +573,10 @@ class BuildHelper(object):
 
         # run spell check
         if spell_check:
-            result = sphinx_build(['sphinx-build', 
-                                   '-b', 'spelling', 
-                                   '-d', self.proj_docs_build_doctrees_dir, 
-                                   self.proj_docs_dir, 
+            result = sphinx_build(['sphinx-build',
+                                   '-b', 'spelling',
+                                   '-d', self.proj_docs_build_doctrees_dir,
+                                   self.proj_docs_dir,
                                    self.proj_docs_build_spelling_dir,
                                    ])
             if result != 0:

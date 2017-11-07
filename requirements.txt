@@ -6,6 +6,7 @@ coverage<4.4
 coveralls
 jinja2
 nose
+pygit2<=0.26.0
 pytest
 requests
 Sphinx

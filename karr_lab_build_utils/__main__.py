@@ -45,12 +45,6 @@ class BaseController(CementBaseController):
         buildHelper = BuildHelper()
         buildHelper.create_codeclimate_github_webhook()
 
-    @expose(help='Create Sphinx documentation configuration for a package')
-    def create_documentation_configuration(self):
-        """ Create a Sphinx documentation configuration for a package """
-        buildHelper = BuildHelper()
-        buildHelper.create_documentation_configuration()
-
     @expose(help='Install requirements')
     def install_requirements(self):
         """ Install requirements """
@@ -85,6 +79,72 @@ class BaseController(CementBaseController):
         """ Get version """
         buildHelper = BuildHelper()
         print(buildHelper.get_version())
+
+
+class CreateRepositoryController(CementBaseController):
+    """ Create a Git repository with the default directory structure """
+
+    class Meta:
+        label = 'create-repository'
+        description = 'Create a Git repository with the default directory structure'
+        stacked_on = 'base'
+        stacked_type = 'nested'
+        arguments = [
+            (['--dirname'], dict(
+                default='.', type=str, help='Desired name for the Git repository')),
+            (['--url'], dict(
+                default=None, type=str, help='URL for the Git repository')),
+            (['--build-image-version'], dict(
+                default=None, type=str, help='Build image version')),
+        ]
+
+    @expose(hide=True)
+    def default(self):
+        args = self.app.pargs
+        buildHelper = BuildHelper()
+        buildHelper.create_repository(dirname=args.dirname, url=args.url, build_image_version=args.build_image_version)
+
+
+class SetupRepositoryController(CementBaseController):
+    """ Setup a Git repository with the default directory structure """
+
+    class Meta:
+        label = 'setup-repository'
+        description = 'Setup a Git repository with the default directory structure'
+        stacked_on = 'base'
+        stacked_type = 'nested'
+        arguments = [
+            (['--dirname'], dict(
+                default='.', type=str, help='Desired name for the Git repository')),
+            (['--build-image-version'], dict(
+                default=None, type=str, help='Build image version')),
+        ]
+
+    @expose(hide=True)
+    def default(self):
+        args = self.app.pargs
+        buildHelper = BuildHelper()
+        buildHelper.setup_repository(dirname=args.dirname, build_image_version=args.build_image_version)
+
+
+class CreateDocumentationTemplateController(CementBaseController):
+    """ Create a Sphinx documentation template for a package """
+
+    class Meta:
+        label = 'create-documentation-template'
+        description = 'Create a Sphinx documentation template for a package'
+        stacked_on = 'base'
+        stacked_type = 'nested'
+        arguments = [
+            (['--dirname'], dict(
+                default='.', type=str, help='Path to the package')),
+        ]
+
+    @expose(hide=True)
+    def default(self):
+        args = self.app.pargs
+        buildHelper = BuildHelper()
+        buildHelper.create_documentation_template(dirname=args.dirname)
 
 
 class RunTestsController(CementBaseController):
@@ -146,6 +206,9 @@ class App(CementApp):
         base_controller = 'base'
         handlers = [
             BaseController,
+            CreateRepositoryController,
+            SetupRepositoryController,
+            CreateDocumentationTemplateController,
             RunTestsController,
             MakeDocumentationController,
         ]

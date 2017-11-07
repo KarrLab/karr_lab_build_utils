@@ -7,8 +7,10 @@
 """
 
 from glob import glob
+from jinja2 import Template
 from karr_lab_build_utils.__main__ import App as KarrLabBuildUtilsCli
 from karr_lab_build_utils.core import BuildHelper
+from pkg_resources import resource_filename
 import shutil
 import os
 import sys
@@ -68,6 +70,80 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             buildHelper = BuildHelper()
 
         return buildHelper
+
+    def test_create_repository(self):
+        buildHelper = self.construct_build_helper()
+
+        tempdirname = tempfile.mkdtemp()
+
+        """ test API """
+        # test valid repo names
+        buildHelper.create_repository(dirname=os.path.join(tempdirname, 'a'))
+        buildHelper.create_repository(dirname=os.path.join(tempdirname, 'a2'))
+        buildHelper.create_repository(dirname=os.path.join(tempdirname, 'a_2'))
+        self.assertRaises(Exception, buildHelper.create_repository, dirname=os.path.join(tempdirname, '2'))
+        self.assertRaises(Exception, buildHelper.create_repository, dirname=os.path.join(tempdirname, 'a-'))
+
+        # check files create correctly
+        self.assertTrue(os.path.isdir(os.path.join(tempdirname, 'a', '.git')))
+
+        """ test CLI """
+        with self.construct_environment():
+            with KarrLabBuildUtilsCli(argv=['create-repository', '--dirname', os.path.join(tempdirname, 'b')]) as app:
+                app.run()
+
+        self.assertTrue(os.path.isdir(os.path.join(tempdirname, 'b', '.git')))
+
+        """ cleanup """
+        shutil.rmtree(tempdirname)
+
+    def test_setup_repository(self):
+        buildHelper = self.construct_build_helper()
+
+        tempdirname = tempfile.mkdtemp()
+
+        """ test API """
+        # test valid repo names
+        buildHelper.setup_repository(dirname=os.path.join(tempdirname, 'a'))
+        buildHelper.setup_repository(dirname=os.path.join(tempdirname, 'a2'))
+        buildHelper.setup_repository(dirname=os.path.join(tempdirname, 'a_2'))
+        self.assertRaises(Exception, buildHelper.setup_repository, dirname=os.path.join(tempdirname, '2'))
+        self.assertRaises(Exception, buildHelper.setup_repository, dirname=os.path.join(tempdirname, 'a-'))
+
+        # check files create correctly
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', '.gitignore')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'LICENSE')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'MANIFEST.in')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'README.md')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'requirements.txt')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'setup.py')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'setup.cfg')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'a', '__init__.py')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'tests', 'requirements.txt')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'docs', 'conf.py')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'docs', 'requirements.txt')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', '.circleci', 'config.yml')))
+
+        """ test CLI """
+        with self.construct_environment():
+            with KarrLabBuildUtilsCli(argv=['setup-repository', '--dirname', os.path.join(tempdirname, 'b')]) as app:
+                app.run()
+
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', '.gitignore')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'LICENSE')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'MANIFEST.in')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'README.md')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'requirements.txt')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'setup.py')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'setup.cfg')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'b', '__init__.py')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'tests', 'requirements.txt')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'docs', 'conf.py')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'docs', 'requirements.txt')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', '.circleci', 'config.yml')))
+
+        """ cleanup """
+        shutil.rmtree(tempdirname)
 
     def test_create_circleci_build(self):
         buildHelper = self.construct_build_helper()
@@ -261,30 +337,42 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with KarrLabBuildUtilsCli(argv=['upload-coverage-report-to-code-climate']) as app:
                 app.run()
 
-    def test_create_documentation_configuration(self):
+    def test_create_documentation_template(self):
         buildHelper = self.construct_build_helper()
 
         filenames = ['conf.py', 'index.rst', 'overview.rst', 'installation.rst', 'about.rst']
 
-        """ test API """        
-        for filename in filenames:
-            if os.path.isfile(os.path.join(buildHelper.proj_docs_dir, filename)):
-                os.rename(os.path.join(buildHelper.proj_docs_dir, filename), os.path.join(buildHelper.proj_docs_dir, filename + '.back'))
+        """ test API """
+        tempdirname = tempfile.mkdtemp()
+        name = os.path.basename(os.path.abspath(tempdirname))
 
-        buildHelper.create_documentation_configuration()
+        with open(resource_filename('karr_lab_build_utils', 'templates/setup.cfg'), 'r') as file:
+            template = Template(file.read())
+        template.stream(name=name).dump(os.path.join(tempdirname, 'setup.cfg'))
+
+        buildHelper.create_documentation_template(tempdirname)
 
         for filename in filenames:
-            self.assertTrue(os.path.isfile(os.path.join(buildHelper.proj_docs_dir, filename)))
+            self.assertTrue(os.path.isfile(os.path.join(tempdirname, buildHelper.proj_docs_dir, filename)))
+
+        shutil.rmtree(tempdirname)
 
         """ test CLI """
+        tempdirname = tempfile.mkdtemp()
+        name = os.path.basename(os.path.abspath(tempdirname))
+
+        with open(resource_filename('karr_lab_build_utils', 'templates/setup.cfg'), 'r') as file:
+            template = Template(file.read())
+        template.stream(name=name).dump(os.path.join(tempdirname, 'setup.cfg'))
+
         with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['generate-documentation-configuration']) as app:
+            with KarrLabBuildUtilsCli(argv=['create-documentation-template', '--dirname', tempdirname]) as app:
                 app.run()
 
-        # reset conf, index
         for filename in filenames:
-            if os.path.isfile(os.path.join(buildHelper.proj_docs_dir, filename + '.back')):
-                os.rename(os.path.join(buildHelper.proj_docs_dir, filename + '.back'), os.path.join(buildHelper.proj_docs_dir, filename))
+            self.assertTrue(os.path.isfile(os.path.join(tempdirname, buildHelper.proj_docs_dir, filename)))
+
+        shutil.rmtree(tempdirname)
 
     def test_make_documentation(self):
         buildHelper = self.construct_build_helper()

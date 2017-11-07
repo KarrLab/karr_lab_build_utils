@@ -9,28 +9,48 @@
 # Karr Lab build utilities
 
 This package performs several aspects of the Karr Lab's build system:
+
+* Create repositories with our default directory structure and files
+
+  * Files for packaging Python code
+  * Sphinx documentation configuration
+  * CircleCI build configuration
+
 * Tests code with Python 2 and 3 using pytest
 * Uploads test reports to our test history server
 * Uploads coverage report to Coveralls
 * Generates HTML API documentation using Sphinx
 
 The build system is primarily designed for:
+
 * Code that is implemented with Python 2/3
 * Tests that can be run with pytest
 * Code that is documented with Sphinx in Napolean/Google style
+* Continuous integration with CircleCI
 
 ## Installation
+
 1. Install dependencies
+
+  * `git`
   * `libffi-dev`
+  * `pygit2`
+
 2. Install package 
   ```
   pip install git+git://github.com/KarrLab/Karr-Lab-build-utils#egg=karr_lab_build_utils
   ```
 
-## Usage
+## Using the utilities to build, test, and document Python packages
 
-### Package organization
-To use the utilities, your package should follow this organization scheme:
+### Create a Git repository for the package
+
+Use the `create_repository` subcommand to create a new Git repository
+```
+karr-lab-build-utils create_repository --dirname /path/to/new_repo --url https://github.com/KarrLab/new_repo.git
+```
+
+This will create a repository with the following directory structure and files
 ```
 /path/to/repo/
   LICENSE
@@ -54,85 +74,17 @@ To use the utilities, your package should follow this organization scheme:
     _static (optional for any files needed for the documentation)
 ```
 
-### Setup settings
-The following options should be set in `setup.cfg`
-```
-[coverage:run]
-source = 
-    <repo_name>
+### Write your code
 
-[sphinx-apidocs]
-packages = 
-    <repo_name>
-```
+Follow the [Google Python style guide](https://google.github.io/styleguide/pyguide.html)
 
-### Sphinx settings
-Add/uncomment these lines in `docs/conf.py`
-```
-import os
-import sys
-sys.path.insert(0, os.path.abspath('..'))
-```
+### Test your code
 
-Enable the napolean and google analytics extensions in `docs/conf.py`
-```
-extensions = [
-    ...
-    'sphinx.ext.napoleon',
-    'sphinxcontrib.googleanalytics',
-]
-```
+See our [primer](http://intro-to-wc-modeling.readthedocs.io/en/latest/concepts_skills/software_engineering/testing_python.html)
 
-Set the version and release in `docs/conf.py`
-```
-version = <repo_name>.__version__
-release = version
-```
+### Document your code
 
-Set the napolean options in `docs/conf.py`
-```
-napoleon_google_docstring = True
-napoleon_numpy_docstring = False
-napoleon_include_private_with_doc = False
-napoleon_include_special_with_doc = True
-napoleon_use_admonition_for_examples = False
-napoleon_use_admonition_for_notes = False
-napoleon_use_admonition_for_references = False
-napoleon_use_ivar = False
-napoleon_use_param = True
-napoleon_use_rtype = True
-```
-
-Configure `docs/conf.py` to use the Read the Docs theme
-```
-import sphinx_rtd_theme
-html_theme = 'sphinx_rtd_theme'
-html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
-```
-
-Set the google analytics id in `docs/conf.py`
-```
-googleanalytics_id = 'UA-86340737-1'
-```
-
-Add the following to trigger API documentation when the documenation is compiled
-```
-from configparser import ConfigParser
-from sphinx import apidoc
-
-def run_apidoc(app):
-    this_dir = os.path.dirname(__file__)
-    parser = ConfigParser()
-    parser.read(os.path.join(this_dir, '..', 'setup.cfg'))
-    packages = parser.get('sphinx-apidocs', 'packages').strip().split('\n')
-    for package in packages:
-        apidoc.main(argv=['sphinx-apidoc', '-f', '-o', os.path.join(this_dir, 'source'), os.path.join(this_dir, '..', package)])
-
-def setup(app):
-    app.connect('builder-inited', run_apidoc)
-```
-
-### Sphinx examples
+Follow the following examples
 
 #### Class
 ```
@@ -173,30 +125,11 @@ def my_method(self, arg1, arg2):
     ...
 ```
 
-### Command line
+### Install the package, run the tests, and generate the documentation
 ```
-export CIRCLE_PROJECT_REPONAME=Karr-Lab-build-utils
-export CIRCLE_BUILD_NUM=1
-export CODE_SERVER_PASSWORD=*******
-karr-lab-build-utils-install-requirements
-karr-lab-build-utils-run-tests --test_path /path/to/tests --with_xml_report --with_coverage
-karr-lab-build-utils-make-and-archive-reports
-```
-
-### CircleCI build configuration
-```
-machine:
-  python:
-    version: 2.7.11
-dependencies:
-  pre:
-    - pip install git+git://github.com/KarrLab/Karr-Lab-build-utils#egg=karr_lab_build_utils
-    - karr-lab-build-utils install-requirements
-test:
-  override:
-    - karr-lab-build-utils run-tests --test_path tests --with_xml_report --with_coverage
-  post:
-    - karr-lab-build-utils make-and-archive-reports
+karr-lab-build-utils install-requirements
+karr-lab-build-utils run-tests
+karr-lab-build-utils make-documentation
 ```
 
 ## Documentation
