@@ -1,3 +1,6 @@
+configparser
 Sphinx
 sphinx_rtd_theme
 robpol86-sphinxcontrib-googleanalytics
+sphinxcontrib-bibtex
+sphinxcontrib-spelling; python_version >= '3.0'

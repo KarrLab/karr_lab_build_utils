@@ -209,7 +209,7 @@ class BuildHelper(object):
             '.circleci/config.yml',
         )
 
-        kwargs = {
+        context = {
             'name': name,
             'version': self.INITIAL_PACKAGE_VERSION,
             'year': datetime.now().year,
@@ -219,11 +219,11 @@ class BuildHelper(object):
         for filename in filenames:
             with open(resource_filename('karr_lab_build_utils', os.path.join('templates', filename)), 'r') as file:
                 template = Template(file.read())
-            template.stream(**kwargs).dump(os.path.join(dirname, filename))
+            template.stream(**context).dump(os.path.join(dirname, filename))
 
         with open(resource_filename('karr_lab_build_utils', os.path.join('templates', 'package', '__init__.py')), 'r') as file:
             template = Template(file.read())
-        template.stream(**kwargs).dump(os.path.join(dirname, name, '__init__.py'))
+        template.stream(**context).dump(os.path.join(dirname, name, '__init__.py'))
 
         self.create_documentation_template(dirname)
 
@@ -310,7 +310,7 @@ class BuildHelper(object):
             cmd = ['install', '-U', '-r', req_file]
         else:
             cmd = ['install', '-r', req_file]
-        with abduct.captured(abduct.err()) as stderr:            
+        with abduct.captured(abduct.err()) as stderr:
             result = pip.main(cmd)
             err_msg = stderr.getvalue()
 
@@ -538,36 +538,42 @@ class BuildHelper(object):
             os.mkdir(os.path.join(dirname, self.proj_docs_dir))
 
         for package in packages:
+            context = {
+                "package": package,
+                'version': self.INITIAL_PACKAGE_VERSION,
+                'year': datetime.now().year,
+                'package_underline': '=' * len(package),
+            }
+
             # configuration
             with open(resource_filename('karr_lab_build_utils', 'templates/docs/conf.py'), 'r') as file:
                 template = Template(file.read())
-            template.stream(package=package).dump(os.path.join(dirname, self.proj_docs_dir, 'conf.py'))
+            template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'conf.py'))
 
             # requirements
             with open(resource_filename('karr_lab_build_utils', 'templates/docs/requirements.txt'), 'r') as file:
                 template = Template(file.read())
-            template.stream(package=package).dump(os.path.join(dirname, self.proj_docs_dir, 'requirements.txt'))
+            template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'requirements.txt'))
 
             # index
             with open(resource_filename('karr_lab_build_utils', 'templates/docs/index.rst'), 'r') as file:
                 template = Template(file.read())
-            title = "`{}` documentation".format(package)
-            template.stream(title=title, title_underline='=' * len(title)).dump(os.path.join(dirname, self.proj_docs_dir, 'index.rst'))
+            template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'index.rst'))
 
             # overview
             with open(resource_filename('karr_lab_build_utils', 'templates/docs/overview.rst'), 'r') as file:
                 template = Template(file.read())
-            template.stream().dump(os.path.join(dirname, self.proj_docs_dir, 'overview.rst'))
+            template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'overview.rst'))
 
             # installation
             with open(resource_filename('karr_lab_build_utils', 'templates/docs/installation.rst'), 'r') as file:
                 template = Template(file.read())
-            template.stream(package=package).dump(os.path.join(dirname, self.proj_docs_dir, 'installation.rst'))
+            template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'installation.rst'))
 
             # about
             with open(resource_filename('karr_lab_build_utils', 'templates/docs/about.rst'), 'r') as file:
                 template = Template(file.read())
-            template.stream().dump(os.path.join(dirname, self.proj_docs_dir, 'about.rst'))
+            template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'about.rst'))
 
     def make_documentation(self, spell_check=False):
         """ Make HTML documentation using Sphinx for one or more packages. Save documentation to `proj_docs_build_html_dir` 

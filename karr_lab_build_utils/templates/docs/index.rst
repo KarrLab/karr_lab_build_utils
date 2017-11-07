@@ -1,5 +1,5 @@
-{{ title }}
-{{ title_underline }}
+{{ package }} documentation
+{{ package_underline }}==============
 
 Contents
 --------
