@@ -84,7 +84,7 @@ class BuildHelper(object):
     """
 
     INITIAL_PACKAGE_VERSION = '0.0.1'
-    DEFAULT_BUILD_IMAGE_VERSION = '0.0.6'
+    DEFAULT_BUILD_IMAGE_VERSION = '0.0.7'
 
     DEFAULT_TEST_RUNNER = 'pytest'
     DEFAULT_PROJ_TESTS_DIR = 'tests'
