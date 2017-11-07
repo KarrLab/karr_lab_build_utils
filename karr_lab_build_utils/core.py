@@ -278,8 +278,9 @@ class BuildHelper(object):
 
         # upgrade pip, setuptools
         cmd = ['install', '-U', 'pip', 'setuptools']
-        result = pip.main(cmd)
-        err_msg = stderr.getvalue()
+        with abduct.captured(abduct.err()) as stderr:
+            result = pip.main(cmd)
+            err_msg = stderr.getvalue()
 
         if result:
             sep = 'During handling of the above exception, another exception occurred:\n\n'
@@ -305,11 +306,11 @@ class BuildHelper(object):
         if not os.path.isfile(req_file):
             return
 
-        with abduct.captured(abduct.err()) as stderr:
-            if update:
-                cmd = ['install', '-U', '-r', req_file]
-            else:
-                cmd = ['install', '-r', req_file]
+        if update:
+            cmd = ['install', '-U', '-r', req_file]
+        else:
+            cmd = ['install', '-r', req_file]
+        with abduct.captured(abduct.err()) as stderr:            
             result = pip.main(cmd)
             err_msg = stderr.getvalue()
 
