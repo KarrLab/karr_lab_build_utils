@@ -276,6 +276,22 @@ class BuildHelper(object):
     def install_requirements(self):
         """ Install requirements """
 
+        # upgrade pip, setuptools
+        cmd = ['install', '-U', 'pip', 'setuptools']
+        result = pip.main(cmd)
+        err_msg = stderr.getvalue()
+
+        if result:
+            sep = 'During handling of the above exception, another exception occurred:\n\n'
+            i_sep = err_msg.find(sep)
+            if i_sep >= 0:
+                sys.stderr.write(err_msg[i_sep + len(sep):])
+            else:
+                sys.stderr.write(err_msg)
+
+            sys.stderr.flush()
+            sys.exit(1)
+
         # requirements for package
         self._install_requirements_helper('requirements.txt')
 
@@ -291,7 +307,7 @@ class BuildHelper(object):
 
         with abduct.captured(abduct.err()) as stderr:
             if update:
-                cmd = ['install', '-U', '--upgrade-strategy', 'only-if-needed', '-r', req_file]
+                cmd = ['install', '-U', '-r', req_file]
             else:
                 cmd = ['install', '-r', req_file]
             result = pip.main(cmd)
@@ -314,7 +330,7 @@ class BuildHelper(object):
     def _update_requirements_github(self, req_file):
         with open(req_file, 'r') as req_file_id:
             for req in filter(lambda req: req.startswith('git+') and '://github.com/KarrLab/' in req, req_file_id.readlines()):
-                result = pip.main(['install', '-U', '--upgrade-strategy', 'only-if-needed', req])
+                result = pip.main(['install', '-U', req])
 
                 if result:
                     sep = 'During handling of the above exception, another exception occurred:\n\n'
