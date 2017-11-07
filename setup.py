@@ -37,7 +37,8 @@ for dependency_link in dependency_links:
 
 # read old console scripts
 egg_dir = os.path.join(os.path.dirname(__file__), 'karr_lab_build_utils.egg-info')
-if os.path.isdir(egg_dir):
+had_egg_dir = os.path.isdir(egg_dir)
+if had_egg_dir:
     pip.main(['install', 'configparser'])
     import configparser
     parser = configparser.ConfigParser()
@@ -83,7 +84,7 @@ setup(
 )
 
 # restore old console scripts
-if os.path.isdir(egg_dir):
+if had_egg_dir:
     parser = configparser.ConfigParser()
 
     parser.read(os.path.join(egg_dir, 'entry_points.txt'))
