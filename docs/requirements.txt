@@ -8,7 +8,7 @@ nose
 pytest
 requests
 six
-Sphinx
+Sphinx >= 1.6
 sphinx_rtd_theme
 sphinxcontrib-bibtex
 robpol86-sphinxcontrib-googleanalytics
