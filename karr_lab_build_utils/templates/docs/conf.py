@@ -3,6 +3,7 @@
 # Documentation build configuration file, created by karr_lab_build_utils.
 #
 import os
+import six
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 import {{ package }}
@@ -17,14 +18,14 @@ import {{ package }}
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',    
+    'sphinx.ext.autodoc',
     'sphinx.ext.autosectionlabel',
     'sphinx.ext.coverage',
     'sphinx.ext.imgconverter',
     'sphinx.ext.linkcode',
     'sphinx.ext.mathjax',
-    'sphinx.ext.napoleon',      
-    'sphinx.ext.viewcode',
+    'sphinx.ext.napoleon',
+    'sphinx.ext.todo',
     'sphinxcontrib.bibtex',
     'sphinxcontrib.googleanalytics',
 ]

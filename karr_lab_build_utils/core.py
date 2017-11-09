@@ -560,6 +560,15 @@ class BuildHelper(object):
                 template = Template(file.read())
             template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'index.rst'))
 
+            # references
+            with open(resource_filename('karr_lab_build_utils', 'templates/docs/references.rst'), 'r') as file:
+                template = Template(file.read())
+            template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'references.rst'))
+
+            with open(resource_filename('karr_lab_build_utils', 'templates/docs/references.bib'), 'r') as file:
+                template = Template(file.read())
+            template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'references.bib'))
+
             # overview
             with open(resource_filename('karr_lab_build_utils', 'templates/docs/overview.rst'), 'r') as file:
                 template = Template(file.read())

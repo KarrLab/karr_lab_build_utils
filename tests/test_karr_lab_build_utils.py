@@ -340,7 +340,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     def test_create_documentation_template(self):
         buildHelper = self.construct_build_helper()
 
-        filenames = ['conf.py', 'index.rst', 'overview.rst', 'installation.rst', 'about.rst']
+        filenames = ['conf.py', 'index.rst', 'overview.rst', 'installation.rst', 'about.rst', 'references.rst', 'references.bib']
 
         """ test API """
         tempdirname = tempfile.mkdtemp()

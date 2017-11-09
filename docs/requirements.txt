@@ -7,6 +7,9 @@ coveralls
 nose
 pytest
 requests
+six
 Sphinx
 sphinx_rtd_theme
+sphinxcontrib-bibtex
 robpol86-sphinxcontrib-googleanalytics
+sphinxcontrib-spelling; python_version >= '3.0'
