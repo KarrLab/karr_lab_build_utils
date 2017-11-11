@@ -9,10 +9,13 @@
 from glob import glob
 from jinja2 import Template
 from karr_lab_build_utils.__main__ import App as KarrLabBuildUtilsCli
-from karr_lab_build_utils.core import BuildHelper
+from karr_lab_build_utils import core
 from pkg_resources import resource_filename
-import shutil
+import karr_lab_build_utils
+import karr_lab_build_utils.__init__
+import mock
 import os
+import shutil
 import sys
 import tempfile
 import unittest
@@ -67,22 +70,22 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     @staticmethod
     def construct_build_helper():
         with TestKarrLabBuildUtils.construct_environment():
-            buildHelper = BuildHelper()
+            build_helper = core.BuildHelper()
 
-        return buildHelper
+        return build_helper
 
     def test_create_repository(self):
-        buildHelper = self.construct_build_helper()
+        build_helper = self.construct_build_helper()
 
         tempdirname = tempfile.mkdtemp()
 
         """ test API """
         # test valid repo names
-        buildHelper.create_repository(dirname=os.path.join(tempdirname, 'a'))
-        buildHelper.create_repository(dirname=os.path.join(tempdirname, 'a2'))
-        buildHelper.create_repository(dirname=os.path.join(tempdirname, 'a_2'))
-        self.assertRaises(Exception, buildHelper.create_repository, dirname=os.path.join(tempdirname, '2'))
-        self.assertRaises(Exception, buildHelper.create_repository, dirname=os.path.join(tempdirname, 'a-'))
+        build_helper.create_repository(dirname=os.path.join(tempdirname, 'a'))
+        build_helper.create_repository(dirname=os.path.join(tempdirname, 'a2'))
+        build_helper.create_repository(dirname=os.path.join(tempdirname, 'a_2'))
+        self.assertRaises(Exception, build_helper.create_repository, dirname=os.path.join(tempdirname, '2'))
+        self.assertRaises(Exception, build_helper.create_repository, dirname=os.path.join(tempdirname, 'a-'))
 
         # check files create correctly
         self.assertTrue(os.path.isdir(os.path.join(tempdirname, 'a', '.git')))
@@ -98,17 +101,17 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         shutil.rmtree(tempdirname)
 
     def test_setup_repository(self):
-        buildHelper = self.construct_build_helper()
+        build_helper = self.construct_build_helper()
 
         tempdirname = tempfile.mkdtemp()
 
         """ test API """
         # test valid repo names
-        buildHelper.setup_repository(dirname=os.path.join(tempdirname, 'a'))
-        buildHelper.setup_repository(dirname=os.path.join(tempdirname, 'a2'))
-        buildHelper.setup_repository(dirname=os.path.join(tempdirname, 'a_2'))
-        self.assertRaises(Exception, buildHelper.setup_repository, dirname=os.path.join(tempdirname, '2'))
-        self.assertRaises(Exception, buildHelper.setup_repository, dirname=os.path.join(tempdirname, 'a-'))
+        build_helper.setup_repository(dirname=os.path.join(tempdirname, 'a'))
+        build_helper.setup_repository(dirname=os.path.join(tempdirname, 'a2'))
+        build_helper.setup_repository(dirname=os.path.join(tempdirname, 'a_2'))
+        self.assertRaises(Exception, build_helper.setup_repository, dirname=os.path.join(tempdirname, '2'))
+        self.assertRaises(Exception, build_helper.setup_repository, dirname=os.path.join(tempdirname, 'a-'))
 
         # check files create correctly
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', '.gitignore')))
@@ -146,10 +149,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         shutil.rmtree(tempdirname)
 
     def test_create_circleci_build(self):
-        buildHelper = self.construct_build_helper()
+        build_helper = self.construct_build_helper()
 
         """ test API """
-        buildHelper.create_circleci_build()
+        build_helper.create_circleci_build()
 
         """ test CLI """
         with self.construct_environment():
@@ -157,11 +160,11 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 app.run()
 
     def test_create_codeclimate_github_webhook(self):
-        buildHelper = self.construct_build_helper()
+        build_helper = self.construct_build_helper()
 
         """ test API """
         try:
-            buildHelper.create_codeclimate_github_webhook()
+            build_helper.create_codeclimate_github_webhook()
         except ValueError as err:
             pass
 
@@ -174,10 +177,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     pass
 
     def test_install_requirements(self):
-        buildHelper = self.construct_build_helper()
+        build_helper = self.construct_build_helper()
 
         """ test API """
-        buildHelper.install_requirements()
+        build_helper.install_requirements()
 
         """ test CLI """
         with self.construct_environment():
@@ -189,20 +192,20 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.help_run('nose')
 
     def help_run(self, test_runner):
-        buildHelper = self.construct_build_helper()
-        buildHelper.test_runner = test_runner
-        py_v = buildHelper.get_python_version()
+        build_helper = self.construct_build_helper()
+        build_helper.test_runner = test_runner
+        py_v = build_helper.get_python_version()
 
         """ test API """
-        latest_results_filename = os.path.join(buildHelper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
-            buildHelper.proj_tests_xml_latest_filename, py_v))
+        latest_results_filename = os.path.join(build_helper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
+            build_helper.proj_tests_xml_latest_filename, py_v))
         lastest_cov_filename = '.coverage.{}'.format(py_v)
         if os.path.isfile(latest_results_filename):
             os.remove(latest_results_filename)
         if os.path.isfile(lastest_cov_filename):
             os.remove(lastest_cov_filename)
 
-        buildHelper.run_tests(test_path=self.DUMMY_TEST,
+        build_helper.run_tests(test_path=self.DUMMY_TEST,
                               with_xunit=True, with_coverage=True, exit_on_failure=False)
 
         self.assertTrue(os.path.isfile(latest_results_filename))
@@ -218,24 +221,24 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 self.assertTrue(app.pargs.with_coverage)
 
     def test_make_and_archive_reports(self):
-        buildHelper = self.construct_build_helper()
-        buildHelper.run_tests(test_path=self.DUMMY_TEST,
+        build_helper = self.construct_build_helper()
+        build_helper.run_tests(test_path=self.DUMMY_TEST,
                               with_xunit=True, with_coverage=True, exit_on_failure=False)
 
-        py_v = buildHelper.get_python_version()
+        py_v = build_helper.get_python_version()
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
-                buildHelper.proj_tests_xml_latest_filename, py_v)),
-            os.path.join(buildHelper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(10000000000000001, py_v))
+            os.path.join(build_helper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
+                build_helper.proj_tests_xml_latest_filename, py_v)),
+            os.path.join(build_helper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(10000000000000001, py_v))
         )
         shutil.copyfile(
-            os.path.join(buildHelper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
-                buildHelper.proj_tests_xml_latest_filename, py_v)),
-            os.path.join(buildHelper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(10000000000000002, py_v))
+            os.path.join(build_helper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
+                build_helper.proj_tests_xml_latest_filename, py_v)),
+            os.path.join(build_helper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(10000000000000002, py_v))
         )
 
         """ test API """
-        buildHelper.make_and_archive_reports()
+        build_helper.make_and_archive_reports()
 
         """ test CLI """
         with self.construct_environment():
@@ -243,12 +246,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 app.run()
 
     def test_archive_test_report(self):
-        buildHelper = self.construct_build_helper()
-        buildHelper.run_tests(test_path=self.DUMMY_TEST,
+        build_helper = self.construct_build_helper()
+        build_helper.run_tests(test_path=self.DUMMY_TEST,
                               with_xunit=True, with_coverage=True, exit_on_failure=False)
 
         """ test API """
-        buildHelper.archive_test_report()
+        build_helper.archive_test_report()
 
         """ test CLI """
         with self.construct_environment():
@@ -256,10 +259,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 app.run()
 
     def test_combine_coverage_reports(self):
-        buildHelper = self.construct_build_helper()
-        buildHelper.run_tests(test_path=self.DUMMY_TEST,
+        build_helper = self.construct_build_helper()
+        build_helper.run_tests(test_path=self.DUMMY_TEST,
                               with_xunit=True, with_coverage=True, exit_on_failure=False)
-        shutil.move('.coverage.{}'.format(buildHelper.get_python_version()), '.coverage.1')
+        shutil.move('.coverage.{}'.format(build_helper.get_python_version()), '.coverage.1')
         shutil.copyfile('.coverage.1', '.coverage.2')
 
         """ test API """
@@ -268,7 +271,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.assertTrue(os.path.isfile('.coverage.1'))
         self.assertTrue(os.path.isfile('.coverage.2'))
 
-        buildHelper.combine_coverage_reports()
+        build_helper.combine_coverage_reports()
 
         self.assertTrue(os.path.isfile('.coverage'))
         self.assertTrue(os.path.isfile('.coverage.1'))
@@ -293,14 +296,14 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         os.remove('.coverage.2')
 
     def test_archive_coverage_report(self):
-        buildHelper = self.construct_build_helper()
-        buildHelper.run_tests(test_path=self.DUMMY_TEST,
+        build_helper = self.construct_build_helper()
+        build_helper.run_tests(test_path=self.DUMMY_TEST,
                               with_xunit=True, with_coverage=True, exit_on_failure=False)
 
-        buildHelper.combine_coverage_reports()
+        build_helper.combine_coverage_reports()
 
         """ test API """
-        buildHelper.archive_coverage_report()
+        build_helper.archive_coverage_report()
 
         """ test CLI """
         with self.construct_environment():
@@ -308,14 +311,14 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 app.run()
 
     def test_upload_coverage_report_to_coveralls(self):
-        buildHelper = self.construct_build_helper()
-        buildHelper.run_tests(test_path=self.DUMMY_TEST,
+        build_helper = self.construct_build_helper()
+        build_helper.run_tests(test_path=self.DUMMY_TEST,
                               with_xunit=True, with_coverage=True, exit_on_failure=False)
 
-        shutil.move('.coverage.{}'.format(buildHelper.get_python_version()), '.coverage')
+        shutil.move('.coverage.{}'.format(build_helper.get_python_version()), '.coverage')
 
         """ test API """
-        buildHelper.upload_coverage_report_to_coveralls()
+        build_helper.upload_coverage_report_to_coveralls()
 
         """ test CLI """
         with self.construct_environment():
@@ -323,14 +326,14 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 app.run()
 
     def test_upload_coverage_report_to_code_climate(self):
-        buildHelper = self.construct_build_helper()
-        buildHelper.run_tests(test_path=self.DUMMY_TEST,
+        build_helper = self.construct_build_helper()
+        build_helper.run_tests(test_path=self.DUMMY_TEST,
                               with_xunit=True, with_coverage=True, exit_on_failure=False)
 
-        shutil.move('.coverage.{}'.format(buildHelper.get_python_version()), '.coverage')
+        shutil.move('.coverage.{}'.format(build_helper.get_python_version()), '.coverage')
 
         """ test API """
-        buildHelper.upload_coverage_report_to_code_climate()
+        build_helper.upload_coverage_report_to_code_climate()
 
         """ test CLI """
         with self.construct_environment():
@@ -338,7 +341,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 app.run()
 
     def test_create_documentation_template(self):
-        buildHelper = self.construct_build_helper()
+        build_helper = self.construct_build_helper()
 
         filenames = ['conf.py', 'index.rst', 'overview.rst', 'installation.rst', 'about.rst', 'references.rst', 'references.bib']
 
@@ -350,10 +353,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             template = Template(file.read())
         template.stream(name=name).dump(os.path.join(tempdirname, 'setup.cfg'))
 
-        buildHelper.create_documentation_template(tempdirname)
+        build_helper.create_documentation_template(tempdirname)
 
         for filename in filenames:
-            self.assertTrue(os.path.isfile(os.path.join(tempdirname, buildHelper.proj_docs_dir, filename)))
+            self.assertTrue(os.path.isfile(os.path.join(tempdirname, build_helper.proj_docs_dir, filename)))
 
         shutil.rmtree(tempdirname)
 
@@ -370,20 +373,20 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 app.run()
 
         for filename in filenames:
-            self.assertTrue(os.path.isfile(os.path.join(tempdirname, buildHelper.proj_docs_dir, filename)))
+            self.assertTrue(os.path.isfile(os.path.join(tempdirname, build_helper.proj_docs_dir, filename)))
 
         shutil.rmtree(tempdirname)
 
     def test_make_documentation(self):
-        buildHelper = self.construct_build_helper()
+        build_helper = self.construct_build_helper()
 
         """ test API """
-        if os.path.isdir(buildHelper.proj_docs_build_html_dir):
-            shutil.rmtree(buildHelper.proj_docs_build_html_dir)
+        if os.path.isdir(build_helper.proj_docs_build_html_dir):
+            shutil.rmtree(build_helper.proj_docs_build_html_dir)
 
-        buildHelper.make_documentation()
+        build_helper.make_documentation()
 
-        self.assertTrue(os.path.isfile(os.path.join(buildHelper.proj_docs_build_html_dir, 'index.html')))
+        self.assertTrue(os.path.isfile(os.path.join(build_helper.proj_docs_build_html_dir, 'index.html')))
 
         """ test CLI """
         with self.construct_environment():
@@ -391,16 +394,41 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 app.run()
 
     def test_get_version(self):
+        self.assertIsInstance(karr_lab_build_utils.__init__.__version__, str)
+
         """ setup """
-        buildHelper = self.construct_build_helper()
+        build_helper = self.construct_build_helper()
 
         """ test API """
-        buildHelper.get_version()
+        build_helper.get_version()
 
         """ test CLI """
         with self.construct_environment():
             with KarrLabBuildUtilsCli(argv=['get-version']) as app:
                 app.run()
 
+    def test_raw_cli(self):
+        with mock.patch('sys.argv', ['karr_lab_build_utils', '--help']):
+            with self.assertRaises(SystemExit) as context:
+                karr_lab_build_utils.__main__.main()
+                self.assertRegexpMatches(context.Exception, 'usage: karr_lab_build_utils')
+
+    def test_unsupported_test_runner(self):
+        with self.assertRaisesRegexp(Exception, 'Unsupported test runner'):
+            env = EnvironmentVarGuard()
+            env.set('TEST_RUNNER', 'unsupported')
+            with env:
+                core.BuildHelper()
+
+    def test_no_build_num(self):
+        env = EnvironmentVarGuard()
+        env.set('CIRCLE_BUILD_NUM', '')
+        with env:
+            build_helper = core.BuildHelper()
+            self.assertEqual(build_helper.build_num, 0)
+
+    def test_BuildHelperError(self):
+        self.assertIsInstance(core.BuildHelperError(), Exception)
+
     def test_dummy_test(self):
-        buildHelper = self.construct_build_helper()
+        build_helper = self.construct_build_helper()
