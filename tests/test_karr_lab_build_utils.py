@@ -31,6 +31,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     CODECLIMATE_REPO_TOKEN = ''
     DUMMY_TEST = 'tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test'
 
+    def setUp(self):
+        self.coverage_dirname = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.coverage_dirname)
+
     @staticmethod
     def construct_environment():
         env = EnvironmentVarGuard()
@@ -199,14 +205,16 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         """ test API """
         latest_results_filename = os.path.join(build_helper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
             build_helper.proj_tests_xml_latest_filename, py_v))
-        lastest_cov_filename = '.coverage.{}'.format(py_v)
+        lastest_cov_filename = os.path.join(self.coverage_dirname, '.coverage.{}'.format(py_v))
         if os.path.isfile(latest_results_filename):
             os.remove(latest_results_filename)
         if os.path.isfile(lastest_cov_filename):
             os.remove(lastest_cov_filename)
 
         build_helper.run_tests(test_path=self.DUMMY_TEST,
-                              with_xunit=True, with_coverage=True, exit_on_failure=False)
+                               with_xunit=True,
+                               with_coverage=True, coverage_dirname=self.coverage_dirname,
+                               exit_on_failure=False)
 
         self.assertTrue(os.path.isfile(latest_results_filename))
         self.assertTrue(os.path.isfile(lastest_cov_filename))
@@ -223,7 +231,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     def test_make_and_archive_reports(self):
         build_helper = self.construct_build_helper()
         build_helper.run_tests(test_path=self.DUMMY_TEST,
-                              with_xunit=True, with_coverage=True, exit_on_failure=False)
+                               with_xunit=True,
+                               with_coverage=True, coverage_dirname=self.coverage_dirname,
+                               exit_on_failure=False)
 
         py_v = build_helper.get_python_version()
         shutil.copyfile(
@@ -238,17 +248,19 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         )
 
         """ test API """
-        build_helper.make_and_archive_reports()
+        build_helper.make_and_archive_reports(coverage_dirname=self.coverage_dirname, dry_run=True)
 
         """ test CLI """
         with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['make-and-archive-reports']) as app:
+            with KarrLabBuildUtilsCli(argv=['make-and-archive-reports', '--coverage-dirname', self.coverage_dirname, '--dry-run']) as app:
                 app.run()
 
     def test_archive_test_report(self):
         build_helper = self.construct_build_helper()
         build_helper.run_tests(test_path=self.DUMMY_TEST,
-                              with_xunit=True, with_coverage=True, exit_on_failure=False)
+                               with_xunit=True,
+                               with_coverage=True, coverage_dirname=self.coverage_dirname,
+                               exit_on_failure=False)
 
         """ test API """
         build_helper.archive_test_report()
@@ -261,83 +273,95 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     def test_combine_coverage_reports(self):
         build_helper = self.construct_build_helper()
         build_helper.run_tests(test_path=self.DUMMY_TEST,
-                              with_xunit=True, with_coverage=True, exit_on_failure=False)
-        shutil.move('.coverage.{}'.format(build_helper.get_python_version()), '.coverage.1')
-        shutil.copyfile('.coverage.1', '.coverage.2')
+                               with_xunit=True,
+                               with_coverage=True, coverage_dirname=self.coverage_dirname,
+                               exit_on_failure=False)
+        shutil.move(
+            os.path.join(self.coverage_dirname, '.coverage.{}'.format(build_helper.get_python_version())),
+            os.path.join(self.coverage_dirname, '.coverage.1'))
+        shutil.copyfile(
+            os.path.join(self.coverage_dirname, '.coverage.1'), 
+            os.path.join(self.coverage_dirname, '.coverage.2'))
 
         """ test API """
-        if os.path.isfile('.coverage'):
-            os.remove('.coverage')
-        self.assertTrue(os.path.isfile('.coverage.1'))
-        self.assertTrue(os.path.isfile('.coverage.2'))
+        if os.path.isfile(os.path.join(self.coverage_dirname, '.coverage')):
+            os.remove(os.path.join(self.coverage_dirname, '.coverage'))
+        self.assertTrue(os.path.isfile(os.path.join(self.coverage_dirname, '.coverage.1')))
+        self.assertTrue(os.path.isfile(os.path.join(self.coverage_dirname, '.coverage.2')))
 
-        build_helper.combine_coverage_reports()
+        build_helper.combine_coverage_reports(coverage_dirname=self.coverage_dirname)
 
-        self.assertTrue(os.path.isfile('.coverage'))
-        self.assertTrue(os.path.isfile('.coverage.1'))
-        self.assertTrue(os.path.isfile('.coverage.2'))
+        self.assertTrue(os.path.isfile(os.path.join(self.coverage_dirname, '.coverage')))
+        self.assertTrue(os.path.isfile(os.path.join(self.coverage_dirname, '.coverage.1')))
+        self.assertTrue(os.path.isfile(os.path.join(self.coverage_dirname, '.coverage.2')))
 
         """ test CLI """
-        if os.path.isfile('.coverage'):
-            os.remove('.coverage')
-        self.assertTrue(os.path.isfile('.coverage.1'))
-        self.assertTrue(os.path.isfile('.coverage.2'))
+        if os.path.isfile(os.path.join(self.coverage_dirname, '.coverage')):
+            os.remove(os.path.join(self.coverage_dirname, '.coverage'))
+        self.assertTrue(os.path.isfile(os.path.join(self.coverage_dirname, '.coverage.1')))
+        self.assertTrue(os.path.isfile(os.path.join(self.coverage_dirname, '.coverage.2')))
 
         with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['combine-coverage-reports']) as app:
+            with KarrLabBuildUtilsCli(argv=['combine-coverage-reports', '--coverage-dirname', self.coverage_dirname]) as app:
                 app.run()
 
-        self.assertTrue(os.path.isfile('.coverage'))
-        self.assertTrue(os.path.isfile('.coverage.1'))
-        self.assertTrue(os.path.isfile('.coverage.2'))
-
-        # cleanup
-        os.remove('.coverage.1')
-        os.remove('.coverage.2')
+        self.assertTrue(os.path.isfile(os.path.join(self.coverage_dirname, '.coverage')))
+        self.assertTrue(os.path.isfile(os.path.join(self.coverage_dirname, '.coverage.1')))
+        self.assertTrue(os.path.isfile(os.path.join(self.coverage_dirname, '.coverage.2')))
 
     def test_archive_coverage_report(self):
         build_helper = self.construct_build_helper()
         build_helper.run_tests(test_path=self.DUMMY_TEST,
-                              with_xunit=True, with_coverage=True, exit_on_failure=False)
+                               with_xunit=True,
+                               with_coverage=True, coverage_dirname=self.coverage_dirname,
+                               exit_on_failure=False)
 
-        build_helper.combine_coverage_reports()
+        build_helper.combine_coverage_reports(coverage_dirname=self.coverage_dirname)
 
         """ test API """
-        build_helper.archive_coverage_report()
+        build_helper.archive_coverage_report(coverage_dirname=self.coverage_dirname, dry_run=True)
 
         """ test CLI """
         with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['archive-coverage-report']) as app:
+            with KarrLabBuildUtilsCli(argv=['archive-coverage-report', '--coverage-dirname', self.coverage_dirname, '--dry-run']) as app:
                 app.run()
 
     def test_upload_coverage_report_to_coveralls(self):
         build_helper = self.construct_build_helper()
         build_helper.run_tests(test_path=self.DUMMY_TEST,
-                              with_xunit=True, with_coverage=True, exit_on_failure=False)
+                               with_xunit=True,
+                               with_coverage=True, coverage_dirname=self.coverage_dirname,
+                               exit_on_failure=False)
 
-        shutil.move('.coverage.{}'.format(build_helper.get_python_version()), '.coverage')
+        shutil.move(
+            os.path.join(self.coverage_dirname, '.coverage.{}'.format(build_helper.get_python_version())),
+            os.path.join(self.coverage_dirname, '.coverage'))
 
         """ test API """
-        build_helper.upload_coverage_report_to_coveralls()
+        build_helper.upload_coverage_report_to_coveralls(coverage_dirname=self.coverage_dirname, dry_run=True)
 
         """ test CLI """
         with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['upload-coverage-report-to-coveralls']) as app:
+            with KarrLabBuildUtilsCli(argv=['upload-coverage-report-to-coveralls', '--coverage-dirname', self.coverage_dirname, '--dry-run']) as app:
                 app.run()
 
     def test_upload_coverage_report_to_code_climate(self):
         build_helper = self.construct_build_helper()
         build_helper.run_tests(test_path=self.DUMMY_TEST,
-                              with_xunit=True, with_coverage=True, exit_on_failure=False)
+                               with_xunit=True,
+                               with_coverage=True, coverage_dirname=self.coverage_dirname,
+                               exit_on_failure=False)
 
-        shutil.move('.coverage.{}'.format(build_helper.get_python_version()), '.coverage')
+        shutil.move(
+            os.path.join(self.coverage_dirname, '.coverage.{}'.format(build_helper.get_python_version())),
+            os.path.join(self.coverage_dirname, '.coverage'))
 
         """ test API """
-        build_helper.upload_coverage_report_to_code_climate()
+        build_helper.upload_coverage_report_to_code_climate(coverage_dirname=self.coverage_dirname, dry_run=True)
 
         """ test CLI """
         with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['upload-coverage-report-to-code-climate']) as app:
+            with KarrLabBuildUtilsCli(argv=['upload-coverage-report-to-code-climate', '--coverage-dirname', self.coverage_dirname, '--dry-run']) as app:
                 app.run()
 
     def test_create_documentation_template(self):

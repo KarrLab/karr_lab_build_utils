@@ -345,7 +345,7 @@ class BuildHelper(object):
     ########################
     # Running tests
     ########################
-    def run_tests(self, test_path='tests', with_xunit=False, with_coverage=False, exit_on_failure=True):
+    def run_tests(self, test_path='tests', with_xunit=False, with_coverage=False, coverage_dirname='.', exit_on_failure=True):
         """ Run unit tests located at `test_path`.
         Optionally, generate a coverage report.
         Optionally, save the results to a file
@@ -355,9 +355,10 @@ class BuildHelper(object):
         configuration is in https://coverage.readthedocs.io/en/coverage-4.2/config.html
 
         Args:
-            test_path (:obj:`str`, optional): path to tests that should be run
-            with_coverage (:obj:`bool`, optional): whether or not coverage should be assessed
+            test_path (:obj:`str`, optional): path to tests that should be run            
             with_xunit (:obj:`bool`, optional): whether or not to save test results
+            with_coverage (:obj:`bool`, optional): whether or not coverage should be assessed
+            coverage_dirname (:obj:`str`, optional): directory to save coverage data
             exit_on_failure (:obj:`bool`, optional): whether or not to exit on test failure
 
         Raises:
@@ -369,7 +370,7 @@ class BuildHelper(object):
             self.proj_tests_xml_dir, '{0}.{1}.xml'.format(self.proj_tests_xml_latest_filename, py_v))
 
         if with_coverage:
-            cov = coverage(data_file='.coverage', data_suffix=py_v, config_file=True)
+            cov = coverage(data_file=os.path.join(coverage_dirname, '.coverage'), data_suffix=py_v, config_file=True)
             cov.start()
 
         if with_xunit and not os.path.isdir(self.proj_tests_xml_dir):
@@ -406,11 +407,15 @@ class BuildHelper(object):
         if exit_on_failure and result != 0:
             sys.exit(1)
 
-    def make_and_archive_reports(self):
+    def make_and_archive_reports(self, coverage_dirname='.', dry_run=False):
         """ Make and archive reports:
 
         * Upload test report to history server
         * Upload coverage report to Coveralls and Code Climate
+
+        Args:
+            coverage_dirname (:obj:`str`, optional): directory to merge coverage files
+            dry_run (:obj:`bool`, optional): if true, don't upload to the coveralls and code climate servers
         """
 
         """ test reports """
@@ -421,8 +426,8 @@ class BuildHelper(object):
         # Merge coverage reports
         # Generate HTML report
         # Upload coverage report to Coveralls and Code Climate
-        self.combine_coverage_reports()
-        self.archive_coverage_report()
+        self.combine_coverage_reports(coverage_dirname=coverage_dirname)
+        self.archive_coverage_report(coverage_dirname=coverage_dirname, dry_run=dry_run)
 
         """ documentation """
         self.make_documentation()
@@ -472,45 +477,76 @@ class BuildHelper(object):
     ########################
     # Coverage reports
     ########################
-    def combine_coverage_reports(self):
+    def combine_coverage_reports(self, coverage_dirname='.'):
+        """
+        Args:
+            coverage_dirname (:obj:`str`, optional): directory to merge coverage files
+        """
         data_paths = []
-        for name in glob('.coverage.*'):
+        for name in glob(os.path.join(coverage_dirname, '.coverage.*')):
             data_path = tempfile.mktemp()
             shutil.copyfile(name, data_path)
             data_paths.append(data_path)
 
-        coverage_doc = coverage()
+        coverage_doc = coverage(data_file=os.path.join(coverage_dirname, '.coverage'))
         coverage_doc.combine(data_paths=data_paths)
         coverage_doc.save()
 
-    def archive_coverage_report(self):
+    def archive_coverage_report(self, coverage_dirname='.', dry_run=False):
         """ Archive coverage report:
+
+        Args:
+            coverage_dirname (:obj:`str`, optional): directory to save coverage data
+            dry_run (:obj:`bool`, optional): if true, don't upload to the coveralls and code climate servers
 
         * Upload report to Coveralls and Code Climate
         """
 
         # upload to Coveralls
         if self.COVERALLS_ENABLED:
-            self.upload_coverage_report_to_coveralls()
+            self.upload_coverage_report_to_coveralls(coverage_dirname=coverage_dirname, dry_run=dry_run)
 
         # upload to Code Climate
         if self.CODE_CLIMATE_ENABLED:
-            self.upload_coverage_report_to_code_climate()  # disabled becase
+            self.upload_coverage_report_to_code_climate(coverage_dirname=coverage_dirname, dry_run=dry_run)
 
-    def upload_coverage_report_to_coveralls(self):
-        """ Upload coverage report to Coveralls """
+    def upload_coverage_report_to_coveralls(self, coverage_dirname='.', dry_run=False):
+        """ Upload coverage report to Coveralls 
+
+        Args:
+            coverage_dirname (:obj:`str`, optional): directory to save coverage data
+            dry_run (:obj:`bool`, optional): if true, don't upload to the coveralls server
+        """
         if self.coveralls_token:
-            Coveralls(True, repo_token=self.coveralls_token,
-                      service_name='circle-ci', service_job_id=self.build_num).wear()
+            coveralls = Coveralls(True, repo_token=self.coveralls_token,
+                                  service_name='circle-ci', service_job_id=self.build_num)
 
-    def upload_coverage_report_to_code_climate(self):
+            def get_coverage():
+                workman = coverage(data_file=os.path.join(coverage_dirname, '.coverage'))
+                workman.load()
+
+                if hasattr(workman, '_harvest_data'):
+                    workman._harvest_data()
+                else:
+                    workman.get_data()
+
+                return CoverallReporter(workman, workman.config).report()
+
+            with patch.object(Coveralls, 'get_coverage', return_value=get_coverage()):
+                coveralls.wear(dry_run=dry_run)
+
+    def upload_coverage_report_to_code_climate(self, coverage_dirname='.', dry_run=False):
         """ Upload coverage report to Code Climate 
+
+        Args:
+            coverage_dirname (:obj:`str`, optional): directory to save coverage data
+            dry_run (:obj:`bool`, optional): if true, don't upload to the coveralls server
 
         Raises:
             :obj:`BuildHelperError`: If error uploading code coverage to Code Climate
         """
         if self.code_climate_token:
-            result = CodeClimateRunner(['--token', self.code_climate_token, '--file', '.coverage']).run()
+            result = CodeClimateRunner(['--token', self.code_climate_token, '--file', os.path.join(coverage_dirname, '.coverage')]).run()
             if result != 0:
                 raise BuildHelperError('Error uploading coverage report to Code Climate')
 

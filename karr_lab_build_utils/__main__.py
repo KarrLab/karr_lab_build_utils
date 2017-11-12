@@ -12,26 +12,11 @@ class BaseController(CementBaseController):
         label = 'base'
         description = "Karr Lab build utilities"
 
-    @expose(help='Archive coverage report')
-    def archive_coverage_report(self):
-        """ Archive a coverage report:
-
-        * Upload report to Coveralls and Code Climate
-        """
-        buildHelper = BuildHelper()
-        buildHelper.archive_coverage_report()
-
     @expose(help='Archive test report')
     def archive_test_report(self):
         """ Upload test report to history server """
         buildHelper = BuildHelper()
         buildHelper.archive_test_report()
-
-    @expose(help='Combine coverage reports (.coverage.*) into a single file (.coverage)')
-    def combine_coverage_reports(self):
-        """ Combine coverage reports """
-        buildHelper = BuildHelper()
-        buildHelper.combine_coverage_reports()
 
     @expose(help='Create CircleCI build for the current repository')
     def create_circleci_build(self):
@@ -50,29 +35,6 @@ class BaseController(CementBaseController):
         """ Install requirements """
         buildHelper = BuildHelper()
         buildHelper.install_requirements()
-
-    @expose(help='Make and archive reports')
-    def make_and_archive_reports(self):
-        """ Make and archive reports:
-
-        * Generate HTML test history reports
-        * Generate HTML API documentation
-        * Archive coverage report to Coveralls and Code Climate
-        """
-        buildHelper = BuildHelper()
-        buildHelper.make_and_archive_reports()
-
-    @expose(help='Upload coverage report to Coveralls')
-    def upload_coverage_report_to_coveralls(self):
-        """ Upload coverage report to Coveralls """
-        buildHelper = BuildHelper()
-        buildHelper.upload_coverage_report_to_coveralls()
-
-    @expose(help='Upload coverage report to Code Climate')
-    def upload_coverage_report_to_code_climate(self):
-        """ Upload coverage report to Code Climate """
-        buildHelper = BuildHelper()
-        buildHelper.upload_coverage_report_to_code_climate()
 
     @expose(help='Get version')
     def get_version(self):
@@ -167,13 +129,138 @@ class RunTestsController(CementBaseController):
                 default=False, dest='with_xunit', action='store_true', help='True/False to save test results to XML file')),
             (['--with-coverage'], dict(
                 default=False, dest='with_coverage', action='store_true', help='True/False to assess code coverage')),
+            (['--coverage-dirname'], dict(
+                default='.', dest='coverage_dirname', help='Directory to store coverage data')),
         ]
 
     @expose(hide=True)
     def default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
-        buildHelper.run_tests(test_path=args.test_path, with_xunit=args.with_xunit, with_coverage=args.with_coverage)
+        buildHelper.run_tests(test_path=args.test_path, with_xunit=args.with_xunit,
+                              with_coverage=args.with_coverage, coverage_dirname=args.coverage_dirname)
+
+
+class MakeAndArchiveReportsController(CementBaseController):
+    """ Make and archive reports:
+
+    * Generate HTML test history reports
+    * Generate HTML API documentation
+    * Archive coverage report to Coveralls and Code Climate
+    """
+
+    class Meta:
+        label = 'make-and-archive-reports'
+        description = 'Make and archive reports'
+        stacked_on = 'base'
+        stacked_type = 'nested'
+        arguments = [
+            (['--coverage-dirname'], dict(
+                default='.', type=str, help='Directory to save coverage reports')),
+            (['--dry-run'], dict(
+                default=False, dest='dry_run', action='store_true', help='If true, do not send results to Coveralls and Code Climate')),
+        ]
+
+    @expose(hide=True)
+    def default(self):
+        args = self.app.pargs
+        buildHelper = BuildHelper()
+        buildHelper.make_and_archive_reports(coverage_dirname=args.coverage_dirname, dry_run=args.dry_run)
+
+
+class CombineCoverageReportsController(CementBaseController):
+    """ Combine coverage reports """
+
+    class Meta:
+        label = 'combine-coverage-reports'
+        description = 'Combine coverage reports (.coverage.*) into a single file (.coverage)'
+        stacked_on = 'base'
+        stacked_type = 'nested'
+        arguments = [
+            (['--coverage-dirname'], dict(
+                default='.', type=str, help='Directory to save coverage reports')),
+        ]
+
+    @expose(hide=True)
+    def default(self):
+        args = self.app.pargs
+        buildHelper = BuildHelper()
+        buildHelper.combine_coverage_reports(coverage_dirname=args.coverage_dirname)
+
+
+class ArchiveCoverageReportController(CementBaseController):
+    """ Archive a coverage report:
+
+    * Upload report to Coveralls and Code Climate
+    """
+
+    class Meta:
+        label = 'archive-coverage-report'
+        description = 'Archive coverage report'
+        stacked_on = 'base'
+        stacked_type = 'nested'
+        arguments = [
+            (['--coverage-dirname'], dict(
+                default='.', type=str, help='Directory to save coverage reports')),
+            (['--dry-run'], dict(
+                default=False, dest='dry_run', action='store_true', help='If true, do not send results to Coveralls and Code Climate')),
+        ]
+
+    @expose(hide=True)
+    def default(self):
+        """ Archive a coverage report:
+
+        * Upload report to Coveralls and Code Climate
+        """
+        args = self.app.pargs
+        buildHelper = BuildHelper()
+        buildHelper.archive_coverage_report(coverage_dirname=args.coverage_dirname, dry_run=args.dry_run)
+
+
+class UploadCoverageReportToCoverallsController(CementBaseController):
+    """ Upload coverage report to Code Climate """
+
+    class Meta:
+        label = 'upload-coverage-report-to-coveralls'
+        description = 'Upload coverage report to Coveralls'
+        stacked_on = 'base'
+        stacked_type = 'nested'
+        arguments = [
+            (['--coverage-dirname'], dict(
+                default='.', type=str, help='Directory to save coverage reports')),
+            (['--dry-run'], dict(
+                default=False, dest='dry_run', action='store_true', help='If true, do not send results to Coveralls')),
+        ]
+
+    @expose(hide=True)
+    def default(self):
+        """ Upload coverage report to Coveralls """
+        args = self.app.pargs
+        buildHelper = BuildHelper()
+        buildHelper.upload_coverage_report_to_coveralls(coverage_dirname=args.coverage_dirname, dry_run=args.dry_run)
+
+
+class UploadCoverageReportToCodeClimateController(CementBaseController):
+    """ Upload coverage report to Code Climate """
+
+    class Meta:
+        label = 'upload-coverage-report-to-code-climate'
+        description = 'Upload coverage report to Code Climate'
+        stacked_on = 'base'
+        stacked_type = 'nested'
+        arguments = [
+            (['--coverage-dirname'], dict(
+                default='.', type=str, help='Directory to save coverage reports')),
+            (['--dry-run'], dict(
+                default=False, dest='dry_run', action='store_true', help='If true, do not send results to Code Climate')),
+        ]
+
+    @expose(hide=True)
+    def default(self):
+        """ Upload coverage report to Code Climate """
+        args = self.app.pargs
+        buildHelper = BuildHelper()
+        buildHelper.upload_coverage_report_to_code_climate(coverage_dirname=args.coverage_dirname, dry_run=args.dry_run)
 
 
 class MakeDocumentationController(CementBaseController):
@@ -210,6 +297,11 @@ class App(CementApp):
             SetupRepositoryController,
             CreateDocumentationTemplateController,
             RunTestsController,
+            MakeAndArchiveReportsController,
+            CombineCoverageReportsController,
+            ArchiveCoverageReportController,
+            UploadCoverageReportToCoverallsController,
+            UploadCoverageReportToCodeClimateController,
             MakeDocumentationController,
         ]
 
