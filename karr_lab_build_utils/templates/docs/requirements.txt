@@ -1,7 +1,6 @@
 configparser
-six
 Sphinx >= 1.6
 sphinx_rtd_theme
 robpol86-sphinxcontrib-googleanalytics
 sphinxcontrib-bibtex
-sphinxcontrib-spelling; python_version >= '3.0'
+sphinxcontrib-spelling

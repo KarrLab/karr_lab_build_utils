@@ -12,4 +12,4 @@ pytest
 requests
 Sphinx
 sphinx_rtd_theme
-sphinxcontrib-spelling; python_version >= '3.0'
+sphinxcontrib-spelling
