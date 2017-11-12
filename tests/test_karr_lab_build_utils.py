@@ -8,17 +8,25 @@
 
 from glob import glob
 from jinja2 import Template
-from karr_lab_build_utils.__main__ import App as KarrLabBuildUtilsCli
+from karr_lab_build_utils import __main__
 from karr_lab_build_utils import core
 from pkg_resources import resource_filename
+import imp
 import karr_lab_build_utils
 import karr_lab_build_utils.__init__
 import mock
 import os
 import shutil
+import six
 import sys
 import tempfile
 import unittest
+
+# reload modules to get coverage correct
+imp.reload(core)
+imp.reload(karr_lab_build_utils)
+imp.reload(karr_lab_build_utils.__init__)
+imp.reload(__main__)
 
 if sys.version_info >= (3, 0, 0):
     from test.support import EnvironmentVarGuard
@@ -27,8 +35,8 @@ else:
 
 
 class TestKarrLabBuildUtils(unittest.TestCase):
-    COVERALLS_REPO_TOKEN = ''
-    CODECLIMATE_REPO_TOKEN = ''
+    COVERALLS_REPO_TOKEN = 'xxx'
+    CODECLIMATE_REPO_TOKEN = 'xxx'
     DUMMY_TEST = 'tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test'
 
     def setUp(self):
@@ -98,7 +106,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['create-repository', '--dirname', os.path.join(tempdirname, 'b')]) as app:
+            with __main__.App(argv=['create-repository', '--dirname', os.path.join(tempdirname, 'b')]) as app:
                 app.run()
 
         self.assertTrue(os.path.isdir(os.path.join(tempdirname, 'b', '.git')))
@@ -135,7 +143,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['setup-repository', '--dirname', os.path.join(tempdirname, 'b')]) as app:
+            with __main__.App(argv=['setup-repository', '--dirname', os.path.join(tempdirname, 'b')]) as app:
                 app.run()
 
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', '.gitignore')))
@@ -162,7 +170,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['create-circleci-build']) as app:
+            with __main__.App(argv=['create-circleci-build']) as app:
                 app.run()
 
     def test_create_codeclimate_github_webhook(self):
@@ -176,7 +184,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['create-codeclimate-github-webhook']) as app:
+            with __main__.App(argv=['create-codeclimate-github-webhook']) as app:
                 try:
                     app.run()
                 except ValueError as err:
@@ -190,7 +198,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['install-requirements']) as app:
+            with __main__.App(argv=['install-requirements']) as app:
                 app.run()
 
     def test_run_tests(self):
@@ -222,7 +230,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         """ test CLI """
         argv = ['run-tests', TestKarrLabBuildUtils.DUMMY_TEST, '--with-xunit', '--with-coverage']
         with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=argv) as app:
+            with __main__.App(argv=argv) as app:
                 app.run()
                 self.assertEqual(TestKarrLabBuildUtils.DUMMY_TEST, app.pargs.test_path)
                 self.assertTrue(app.pargs.with_xunit)
@@ -252,7 +260,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['make-and-archive-reports', '--coverage-dirname', self.coverage_dirname, '--dry-run']) as app:
+            with __main__.App(argv=['make-and-archive-reports', '--coverage-dirname', self.coverage_dirname, '--dry-run']) as app:
                 app.run()
 
     def test_archive_test_report(self):
@@ -267,7 +275,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['archive-test-report']) as app:
+            with __main__.App(argv=['archive-test-report']) as app:
                 app.run()
 
     def test_combine_coverage_reports(self):
@@ -302,7 +310,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.assertTrue(os.path.isfile(os.path.join(self.coverage_dirname, '.coverage.2')))
 
         with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['combine-coverage-reports', '--coverage-dirname', self.coverage_dirname]) as app:
+            with __main__.App(argv=['combine-coverage-reports', '--coverage-dirname', self.coverage_dirname]) as app:
                 app.run()
 
         self.assertTrue(os.path.isfile(os.path.join(self.coverage_dirname, '.coverage')))
@@ -323,7 +331,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['archive-coverage-report', '--coverage-dirname', self.coverage_dirname, '--dry-run']) as app:
+            with __main__.App(argv=['archive-coverage-report', '--coverage-dirname', self.coverage_dirname, '--dry-run']) as app:
                 app.run()
 
     def test_upload_coverage_report_to_coveralls(self):
@@ -342,7 +350,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['upload-coverage-report-to-coveralls', '--coverage-dirname', self.coverage_dirname, '--dry-run']) as app:
+            with __main__.App(argv=['upload-coverage-report-to-coveralls', '--coverage-dirname', self.coverage_dirname, '--dry-run']) as app:
                 app.run()
 
     def test_upload_coverage_report_to_code_climate(self):
@@ -361,7 +369,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['upload-coverage-report-to-code-climate', '--coverage-dirname', self.coverage_dirname, '--dry-run']) as app:
+            with __main__.App(argv=['upload-coverage-report-to-code-climate', '--coverage-dirname', self.coverage_dirname, '--dry-run']) as app:
                 app.run()
 
     def test_create_documentation_template(self):
@@ -393,7 +401,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         template.stream(name=name).dump(os.path.join(tempdirname, 'setup.cfg'))
 
         with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['create-documentation-template', '--dirname', tempdirname]) as app:
+            with __main__.App(argv=['create-documentation-template', '--dirname', tempdirname]) as app:
                 app.run()
 
         for filename in filenames:
@@ -407,14 +415,16 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         """ test API """
         if os.path.isdir(build_helper.proj_docs_build_html_dir):
             shutil.rmtree(build_helper.proj_docs_build_html_dir)
+        if os.path.isdir(build_helper.proj_docs_static_dir):
+            shutil.rmtree(build_helper.proj_docs_static_dir)
 
-        build_helper.make_documentation()
+        build_helper.make_documentation(spell_check=six.PY3)
 
         self.assertTrue(os.path.isfile(os.path.join(build_helper.proj_docs_build_html_dir, 'index.html')))
 
         """ test CLI """
         with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['make-documentation']) as app:
+            with __main__.App(argv=['make-documentation']) as app:
                 app.run()
 
     def test_get_version(self):
@@ -428,7 +438,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with KarrLabBuildUtilsCli(argv=['get-version']) as app:
+            with __main__.App(argv=['get-version']) as app:
                 app.run()
 
     def test_raw_cli(self):

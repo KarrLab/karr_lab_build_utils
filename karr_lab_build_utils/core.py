@@ -9,14 +9,15 @@
 from codeclimate_test_reporter.components.runner import Runner as CodeClimateRunner
 from configparser import ConfigParser
 from coverage import coverage
-from coveralls import Coveralls
 from datetime import datetime
 from glob import glob
 from jinja2 import Template
 from pkg_resources import resource_filename
 from sphinx import build_main as sphinx_build
 from sphinx.apidoc import main as sphinx_apidoc
+from mock import patch
 import abduct
+import coveralls
 import karr_lab_build_utils
 import nose
 import os
@@ -277,21 +278,7 @@ class BuildHelper(object):
         """ Install requirements """
 
         # upgrade pip, setuptools
-        cmd = ['install', '-U', 'pip', 'setuptools']
-        with abduct.captured(abduct.err()) as stderr:
-            result = pip.main(cmd)
-            err_msg = stderr.getvalue()
-
-        if result:
-            sep = 'During handling of the above exception, another exception occurred:\n\n'
-            i_sep = err_msg.find(sep)
-            if i_sep >= 0:
-                sys.stderr.write(err_msg[i_sep + len(sep):])
-            else:
-                sys.stderr.write(err_msg)
-
-            sys.stderr.flush()
-            sys.exit(1)
+        self.run_method_and_capture_stderr(pip.main, ['install', '-U', 'pip', 'setuptools'])
 
         # requirements for package
         self._install_requirements_helper('requirements.txt')
@@ -302,45 +289,11 @@ class BuildHelper(object):
         self._install_requirements_helper(os.path.join(self.proj_tests_dir, 'requirements.txt'))
         self._install_requirements_helper(os.path.join(self.proj_docs_dir, 'requirements.txt'))
 
-    def _install_requirements_helper(self, req_file, update=True):
+    def _install_requirements_helper(self, req_file):
         if not os.path.isfile(req_file):
             return
 
-        if update:
-            cmd = ['install', '-U', '-r', req_file]
-        else:
-            cmd = ['install', '-r', req_file]
-        with abduct.captured(abduct.err()) as stderr:
-            result = pip.main(cmd)
-            err_msg = stderr.getvalue()
-
-        if result:
-            sep = 'During handling of the above exception, another exception occurred:\n\n'
-            i_sep = err_msg.find(sep)
-            if i_sep >= 0:
-                sys.stderr.write(err_msg[i_sep + len(sep):])
-            else:
-                sys.stderr.write(err_msg)
-
-            sys.stderr.flush()
-            sys.exit(1)
-
-        if not update:
-            self._update_requirements_github(req_file)
-
-    def _update_requirements_github(self, req_file):
-        with open(req_file, 'r') as req_file_id:
-            for req in filter(lambda req: req.startswith('git+') and '://github.com/KarrLab/' in req, req_file_id.readlines()):
-                result = pip.main(['install', '-U', req])
-
-                if result:
-                    sep = 'During handling of the above exception, another exception occurred:\n\n'
-                    i_sep = long_err_msg.find(sep)
-                    short_err_msg = long_err_msg[i_sep + len(sep):]
-
-                    sys.stderr.write(short_err_msg)
-                    sys.stderr.flush()
-                    sys.exit(1)
+        self.run_method_and_capture_stderr(pip.main, ['install', '-U', '-r', req_file])
 
     ########################
     # Running tests
@@ -518,7 +471,7 @@ class BuildHelper(object):
             dry_run (:obj:`bool`, optional): if true, don't upload to the coveralls server
         """
         if self.coveralls_token:
-            coveralls = Coveralls(True, repo_token=self.coveralls_token,
+            runner = coveralls.Coveralls(True, repo_token=self.coveralls_token,
                                   service_name='circle-ci', service_job_id=self.build_num)
 
             def get_coverage():
@@ -530,10 +483,10 @@ class BuildHelper(object):
                 else:
                     workman.get_data()
 
-                return CoverallReporter(workman, workman.config).report()
+                return coveralls.reporter.CoverallReporter(workman, workman.config).report()
 
-            with patch.object(Coveralls, 'get_coverage', return_value=get_coverage()):
-                coveralls.wear(dry_run=dry_run)
+            with patch.object(coveralls.Coveralls, 'get_coverage', return_value=get_coverage()):
+                runner.wear(dry_run=dry_run)
 
     def upload_coverage_report_to_code_climate(self, coverage_dirname='.', dry_run=False):
         """ Upload coverage report to Code Climate 
@@ -546,9 +499,12 @@ class BuildHelper(object):
             :obj:`BuildHelperError`: If error uploading code coverage to Code Climate
         """
         if self.code_climate_token:
-            result = CodeClimateRunner(['--token', self.code_climate_token, '--file', os.path.join(coverage_dirname, '.coverage')]).run()
-            if result != 0:
-                raise BuildHelperError('Error uploading coverage report to Code Climate')
+            code_climate_runner = CodeClimateRunner([
+                '--token', self.code_climate_token,
+                '--file', os.path.join(coverage_dirname, '.coverage'),
+            ])
+            if not dry_run:
+                self.run_method_and_capture_stderr(code_climate_runner.run)
 
     ########################
     # Documentation
@@ -635,27 +591,55 @@ class BuildHelper(object):
             os.mkdir(self.proj_docs_static_dir)
 
         # build HTML documentation
-        result = sphinx_build(['sphinx-build', self.proj_docs_dir, self.proj_docs_build_html_dir])
-        if result != 0:
-            sys.exit(result)
+        self.run_method_and_capture_stderr(sphinx_build, ['sphinx-build', self.proj_docs_dir, self.proj_docs_build_html_dir])
 
         # run spell check
         if spell_check:
-            result = sphinx_build(['sphinx-build',
-                                   '-b', 'spelling',
-                                   '-d', self.proj_docs_build_doctrees_dir,
-                                   self.proj_docs_dir,
-                                   self.proj_docs_build_spelling_dir,
-                                   ])
-            if result != 0:
-                sys.exit(result)
+            self.run_method_and_capture_stderr(sphinx_build, [
+                'sphinx-build',
+                '-b', 'spelling',
+                '-d', self.proj_docs_build_doctrees_dir,
+                self.proj_docs_dir,
+                self.proj_docs_build_spelling_dir,
+            ])
 
     def get_version(self):
+        """ Get the version of this package
+
+        Returns:
+            :obj:`str`: the version
+        """
         return '{0:s} (Python {1[0]:d}.{1[1]:d}.{1[2]:d})'.format(karr_lab_build_utils.__version__, sys.version_info)
 
     @staticmethod
     def get_python_version():
+        """ Get the Python version
+
+        Returns:
+            :obj:`str`: the Python version
+        """
         return '{0[0]:d}.{0[1]:d}.{0[2]:d}'.format(sys.version_info)
+
+    def run_method_and_capture_stderr(self, func, *args, **kwargs):
+        """ Run a method that returns a numerical error value, and exit if the return value is non-zero
+
+        Args:
+            func (:obj:`function`): function to run
+        """
+        with abduct.captured(abduct.err()) as stderr:
+            result = func(*args, **kwargs)
+            err_msg = stderr.getvalue()
+
+        if result != 0:
+            sep = 'During handling of the above exception, another exception occurred:\n\n'
+            i_sep = err_msg.find(sep)
+            if i_sep >= 0:
+                sys.stderr.write(err_msg[i_sep + len(sep):])
+            else:
+                sys.stderr.write(err_msg)
+
+            sys.stderr.flush()
+            sys.exit(1)
 
 
 class BuildHelperError(Exception):

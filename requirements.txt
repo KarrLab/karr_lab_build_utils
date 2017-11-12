@@ -5,9 +5,11 @@ configparser
 coverage<4.4
 coveralls
 jinja2
+mock
 nose
 pygit2<=0.26.0
 pytest
 requests
 Sphinx
 sphinx_rtd_theme
+sphinxcontrib-spelling; python_version >= '3.0'

@@ -3,3 +3,4 @@ coveralls
 mock
 nose
 robpol86-sphinxcontrib-googleanalytics
+six
