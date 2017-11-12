@@ -241,7 +241,8 @@ class BuildHelper(object):
             self.CIRCLE_API_ENDPOINT, self.repo_type, self.repo_owner, self.repo_name, self.circle_api_token)
         response = requests.post(url)
         response.raise_for_status()
-        if not response.json()['following']:
+        response_json = response.json()
+        if 'following' not in response_json or not response_json['following']:
             raise ValueError(
                 'Unable to create CircleCI build for repository {}/{}'.format(self.repo_owner, self.repo_name))
 
@@ -346,10 +347,7 @@ class BuildHelper(object):
             if with_xunit:
                 argv += ['--with-xunit', '--xunit-file', abs_xml_latest_filename]
 
-            if nose.run(argv=argv):
-                result = 0
-            else:
-                result = 1
+            result = int(not nose.run(argv=argv))
         else:
             raise Exception('Unsupported test runner {}'.format(self.test_runner))
 
@@ -421,10 +419,9 @@ class BuildHelper(object):
                               files={
                                   'report': open(abs_xml_latest_filename, 'rb'),
                               })
-
+            r.raise_for_status()
             r_json = r.json()
-
-            if not r_json['success']:
+            if 'success' not in r_json or not r_json['success']:
                 raise BuildHelperError('Error uploading report to test history server: {}'.format(r_json['message']))
 
     ########################
@@ -472,16 +469,12 @@ class BuildHelper(object):
         """
         if self.coveralls_token:
             runner = coveralls.Coveralls(True, repo_token=self.coveralls_token,
-                                  service_name='circle-ci', service_job_id=self.build_num)
+                                         service_name='circle-ci', service_job_id=self.build_num)
 
             def get_coverage():
                 workman = coverage(data_file=os.path.join(coverage_dirname, '.coverage'))
                 workman.load()
-
-                if hasattr(workman, '_harvest_data'):
-                    workman._harvest_data()
-                else:
-                    workman.get_data()
+                workman.get_data()
 
                 return coveralls.reporter.CoverallReporter(workman, workman.config).report()
 
@@ -631,12 +624,7 @@ class BuildHelper(object):
             err_msg = stderr.getvalue()
 
         if result != 0:
-            sep = 'During handling of the above exception, another exception occurred:\n\n'
-            i_sep = err_msg.find(sep)
-            if i_sep >= 0:
-                sys.stderr.write(err_msg[i_sep + len(sep):])
-            else:
-                sys.stderr.write(err_msg)
+            sys.stderr.write(err_msg)
 
             sys.stderr.flush()
             sys.exit(1)

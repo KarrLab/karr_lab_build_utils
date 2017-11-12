@@ -6,18 +6,24 @@
 :License: MIT
 """
 
+from codeclimate_test_reporter.components.runner import Runner as CodeClimateRunner
 from glob import glob
 from jinja2 import Template
 from karr_lab_build_utils import __main__
 from karr_lab_build_utils import core
 from pkg_resources import resource_filename
+import abduct
+import configparser
 import imp
 import karr_lab_build_utils
 import karr_lab_build_utils.__init__
 import mock
+import nose
 import os
+import pip
+import pytest
+import requests
 import shutil
-import six
 import sys
 import tempfile
 import unittest
@@ -173,6 +179,20 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with __main__.App(argv=['create-circleci-build']) as app:
                 app.run()
 
+    def test_create_circleci_build_error(self):
+        build_helper = self.construct_build_helper()
+
+        class Result(object):
+
+            def raise_for_status(self):
+                return
+            def json(self):
+                return {'following': False}
+
+        with mock.patch.object(requests, 'post', return_value=Result()):
+            with self.assertRaisesRegexp(ValueError, '^Unable to create CircleCI build for repository'):
+                build_helper.create_circleci_build()
+
     def test_create_codeclimate_github_webhook(self):
         build_helper = self.construct_build_helper()
 
@@ -190,6 +210,21 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 except ValueError as err:
                     pass
 
+    def test_create_codeclimate_github_webhook_error(self):
+        build_helper = self.construct_build_helper()
+
+        class Result(object):
+
+            def __init__(self):
+                self.status_code = 0
+
+            def json(self):
+                return {'message': 'Error!'}
+
+        with mock.patch.object(requests, 'post', return_value=Result()):
+            with self.assertRaisesRegexp(ValueError, '^Unable to create webhook for'):
+                build_helper.create_codeclimate_github_webhook()
+
     def test_install_requirements(self):
         build_helper = self.construct_build_helper()
 
@@ -201,6 +236,17 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with __main__.App(argv=['install-requirements']) as app:
                 app.run()
 
+    def test_install_requirements_no_file(self):
+        build_helper = self.construct_build_helper()
+
+        tempdirname = tempfile.mkdtemp()
+        build_helper.proj_tests_dir = tempdirname
+        build_helper.proj_docs_dir = tempdirname
+
+        build_helper.install_requirements()
+
+        shutil.rmtree(tempdirname)
+
     def test_run_tests(self):
         self.help_run('pytest')
         self.help_run('nose')
@@ -210,10 +256,16 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         build_helper.test_runner = test_runner
         py_v = build_helper.get_python_version()
 
+        tempdirname = tempfile.mkdtemp()
+        shutil.rmtree(tempdirname)
+        build_helper.proj_tests_xml_dir = tempdirname
+
         """ test API """
         latest_results_filename = os.path.join(build_helper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
             build_helper.proj_tests_xml_latest_filename, py_v))
         lastest_cov_filename = os.path.join(self.coverage_dirname, '.coverage.{}'.format(py_v))
+        if os.path.isdir(build_helper.proj_tests_xml_dir):
+            shutil.rmtree(build_helper.proj_tests_xml_dir)
         if os.path.isfile(latest_results_filename):
             os.remove(latest_results_filename)
         if os.path.isfile(lastest_cov_filename):
@@ -221,8 +273,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         build_helper.run_tests(test_path=self.DUMMY_TEST,
                                with_xunit=True,
-                               with_coverage=True, coverage_dirname=self.coverage_dirname,
-                               exit_on_failure=False)
+                               with_coverage=True, coverage_dirname=self.coverage_dirname)
 
         self.assertTrue(os.path.isfile(latest_results_filename))
         self.assertTrue(os.path.isfile(lastest_cov_filename))
@@ -236,12 +287,36 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 self.assertTrue(app.pargs.with_xunit)
                 self.assertTrue(app.pargs.with_coverage)
 
+        shutil.rmtree(tempdirname)
+
+    def test_run_tests_error(self):
+        build_helper = self.construct_build_helper()
+
+        tempdirname = tempfile.mkdtemp()
+        shutil.rmtree(tempdirname)
+        build_helper.proj_tests_xml_dir = tempdirname
+        
+        build_helper.test_runner = 'unsupported_runner'
+        with self.assertRaisesRegexp(Exception, '^Unsupported test runner'):
+            build_helper.run_tests(test_path=self.DUMMY_TEST, with_xunit=True)
+
+        build_helper.test_runner = 'pytest'
+        with mock.patch.object(pytest, 'main', return_value=1):
+            with self.assertRaises(SystemExit):
+                build_helper.run_tests(test_path=self.DUMMY_TEST, with_xunit=True)
+
+        build_helper.test_runner = 'nose'
+        with mock.patch.object(nose, 'run', return_value=False):
+            with self.assertRaises(SystemExit):
+                build_helper.run_tests(test_path=self.DUMMY_TEST, with_xunit=True)
+
+        shutil.rmtree(tempdirname)
+
     def test_make_and_archive_reports(self):
         build_helper = self.construct_build_helper()
         build_helper.run_tests(test_path=self.DUMMY_TEST,
                                with_xunit=True,
-                               with_coverage=True, coverage_dirname=self.coverage_dirname,
-                               exit_on_failure=False)
+                               with_coverage=True, coverage_dirname=self.coverage_dirname)
 
         py_v = build_helper.get_python_version()
         shutil.copyfile(
@@ -267,8 +342,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         build_helper = self.construct_build_helper()
         build_helper.run_tests(test_path=self.DUMMY_TEST,
                                with_xunit=True,
-                               with_coverage=True, coverage_dirname=self.coverage_dirname,
-                               exit_on_failure=False)
+                               with_coverage=True, coverage_dirname=self.coverage_dirname)
 
         """ test API """
         build_helper.archive_test_report()
@@ -278,17 +352,39 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with __main__.App(argv=['archive-test-report']) as app:
                 app.run()
 
+    def test_archive_test_report_no_repo(self):
+        build_helper = self.construct_build_helper()
+        build_helper.repo_revision = None
+        build_helper.archive_test_report()
+
+    def test_archive_test_report_err(self):
+        build_helper = self.construct_build_helper()
+        build_helper.run_tests(test_path=self.DUMMY_TEST,
+                               with_xunit=True,
+                               with_coverage=True, coverage_dirname=self.coverage_dirname)
+
+        class Result(object):
+
+            def raise_for_status(self):
+                return
+
+            def json(self):
+                return {'success': False, 'message': 'Error!'}
+
+        with mock.patch.object(requests, 'post', return_value=Result()):
+            with self.assertRaisesRegexp(core.BuildHelperError, '^Error uploading report to test history server:'):
+                build_helper.archive_test_report()
+
     def test_combine_coverage_reports(self):
         build_helper = self.construct_build_helper()
         build_helper.run_tests(test_path=self.DUMMY_TEST,
                                with_xunit=True,
-                               with_coverage=True, coverage_dirname=self.coverage_dirname,
-                               exit_on_failure=False)
+                               with_coverage=True, coverage_dirname=self.coverage_dirname)
         shutil.move(
             os.path.join(self.coverage_dirname, '.coverage.{}'.format(build_helper.get_python_version())),
             os.path.join(self.coverage_dirname, '.coverage.1'))
         shutil.copyfile(
-            os.path.join(self.coverage_dirname, '.coverage.1'), 
+            os.path.join(self.coverage_dirname, '.coverage.1'),
             os.path.join(self.coverage_dirname, '.coverage.2'))
 
         """ test API """
@@ -321,8 +417,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         build_helper = self.construct_build_helper()
         build_helper.run_tests(test_path=self.DUMMY_TEST,
                                with_xunit=True,
-                               with_coverage=True, coverage_dirname=self.coverage_dirname,
-                               exit_on_failure=False)
+                               with_coverage=True, coverage_dirname=self.coverage_dirname)
 
         build_helper.combine_coverage_reports(coverage_dirname=self.coverage_dirname)
 
@@ -338,8 +433,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         build_helper = self.construct_build_helper()
         build_helper.run_tests(test_path=self.DUMMY_TEST,
                                with_xunit=True,
-                               with_coverage=True, coverage_dirname=self.coverage_dirname,
-                               exit_on_failure=False)
+                               with_coverage=True, coverage_dirname=self.coverage_dirname)
 
         shutil.move(
             os.path.join(self.coverage_dirname, '.coverage.{}'.format(build_helper.get_python_version())),
@@ -350,27 +444,35 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with __main__.App(argv=['upload-coverage-report-to-coveralls', '--coverage-dirname', self.coverage_dirname, '--dry-run']) as app:
+            with __main__.App(
+                    argv=['upload-coverage-report-to-coveralls',
+                          '--coverage-dirname', self.coverage_dirname,
+                          '--dry-run'
+                          ]) as app:
                 app.run()
 
     def test_upload_coverage_report_to_code_climate(self):
         build_helper = self.construct_build_helper()
         build_helper.run_tests(test_path=self.DUMMY_TEST,
                                with_xunit=True,
-                               with_coverage=True, coverage_dirname=self.coverage_dirname,
-                               exit_on_failure=False)
+                               with_coverage=True, coverage_dirname=self.coverage_dirname)
 
         shutil.move(
             os.path.join(self.coverage_dirname, '.coverage.{}'.format(build_helper.get_python_version())),
             os.path.join(self.coverage_dirname, '.coverage'))
 
         """ test API """
-        build_helper.upload_coverage_report_to_code_climate(coverage_dirname=self.coverage_dirname, dry_run=True)
+        with mock.patch.object(CodeClimateRunner, 'run', return_value=0):
+            build_helper.upload_coverage_report_to_code_climate(coverage_dirname=self.coverage_dirname)
 
         """ test CLI """
         with self.construct_environment():
-            with __main__.App(argv=['upload-coverage-report-to-code-climate', '--coverage-dirname', self.coverage_dirname, '--dry-run']) as app:
-                app.run()
+            with __main__.App(
+                    argv=['upload-coverage-report-to-code-climate',
+                          '--coverage-dirname', self.coverage_dirname,
+                          ]) as app:
+                with mock.patch.object(CodeClimateRunner, 'run', return_value=0):
+                    app.run()
 
     def test_create_documentation_template(self):
         build_helper = self.construct_build_helper()
@@ -409,6 +511,23 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         shutil.rmtree(tempdirname)
 
+    def test_create_documentation_template_error(self):
+        build_helper = self.construct_build_helper()
+
+        tempdirname = tempfile.mkdtemp()
+        name = os.path.basename(os.path.abspath(tempdirname))
+
+        parser = configparser.ConfigParser()
+        parser.read(resource_filename('karr_lab_build_utils', 'templates/setup.cfg'))
+        parser.set('sphinx-apidocs', 'packages', '\npkg_1\npkg_2\n')
+        with open(os.path.join(tempdirname, 'setup.cfg'), 'w') as file:
+            parser.write(file)
+
+        with self.assertRaisesRegexp(ValueError, '^Sphinx configuration auto-generation only supports'):
+            build_helper.create_documentation_template(tempdirname)
+
+        # shutil.rmtree(tempdirname)
+
     def test_make_documentation(self):
         build_helper = self.construct_build_helper()
 
@@ -418,7 +537,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         if os.path.isdir(build_helper.proj_docs_static_dir):
             shutil.rmtree(build_helper.proj_docs_static_dir)
 
-        build_helper.make_documentation(spell_check=six.PY3)
+        build_helper.make_documentation(spell_check=True)
 
         self.assertTrue(os.path.isfile(os.path.join(build_helper.proj_docs_build_html_dir, 'index.html')))
 
@@ -464,5 +583,27 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     def test_BuildHelperError(self):
         self.assertIsInstance(core.BuildHelperError(), Exception)
 
+    def test_run_method_and_capture_stderr(self):
+        build_helper = core.BuildHelper()
+
+        def ok_func(arg1, arg2, arg3=None, arg4=None):
+            sys.stdout.write('Success!')
+            return 0
+
+        def err_func(arg1, arg2, arg3=None, arg4=None):
+            sys.stderr.write('Error!')
+            return 1
+
+        with abduct.captured(abduct.out(), abduct.err()) as (stdout, stderr):
+            build_helper.run_method_and_capture_stderr(ok_func, '', '', arg3=None)
+            self.assertEqual(stdout.getvalue(), 'Success!')
+            self.assertEqual(stderr.getvalue(), '')
+
+        with abduct.captured(abduct.out(), abduct.err()) as (stdout, stderr):
+            with self.assertRaises(SystemExit):
+                build_helper.run_method_and_capture_stderr(err_func, '', '', arg3=None)
+            self.assertEqual(stdout.getvalue(), '')
+            self.assertEqual(stderr.getvalue(), 'Error!')
+
     def test_dummy_test(self):
-        build_helper = self.construct_build_helper()
+        pass
