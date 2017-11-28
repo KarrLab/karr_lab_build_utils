@@ -352,7 +352,7 @@ class BuildHelper(object):
             raise Exception('Unsupported test runner {}'.format(self.test_runner))
 
         if with_coverage:
-            cov.stop()
+            cov.stop() # pragma: no cover # this line can't be covered
             cov.save()
 
         if exit_on_failure and result != 0:
