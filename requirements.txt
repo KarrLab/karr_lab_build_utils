@@ -8,9 +8,12 @@ jinja2
 mock
 nose
 pyyaml
-pygit2<=0.26.0
 pytest
 requests
+git+https://github.com/davidfischer/requirements-parser.git#egg=requirements-parser
 Sphinx
 sphinx_rtd_theme
 sphinxcontrib-spelling
+
+# optional
+pygit2[git] <=0.26.0
