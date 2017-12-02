@@ -11,6 +11,7 @@ tests/reports
 
 # coverage file
 .coverage*
+htmlcov/
 
 # .rst-formatted README
 README.rst

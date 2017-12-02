@@ -131,6 +131,8 @@ class RunTestsController(CementBaseController):
                 default=False, dest='with_coverage', action='store_true', help='True/False to assess code coverage')),
             (['--coverage-dirname'], dict(
                 default='.', dest='coverage_dirname', help='Directory to store coverage data')),
+            (['--environment'], dict(
+                type=str, default='local', help='Environment to run tests (local, docker, or circleci-local-executor)')),
         ]
 
     @expose(hide=True)
@@ -138,7 +140,8 @@ class RunTestsController(CementBaseController):
         args = self.app.pargs
         buildHelper = BuildHelper()
         buildHelper.run_tests(test_path=args.test_path, with_xunit=args.with_xunit,
-                              with_coverage=args.with_coverage, coverage_dirname=args.coverage_dirname)
+                              with_coverage=args.with_coverage, coverage_dirname=args.coverage_dirname,
+                              environment=args.environment)
 
 
 class MakeAndArchiveReportsController(CementBaseController):

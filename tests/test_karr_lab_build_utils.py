@@ -142,10 +142,14 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'setup.py')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'setup.cfg')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'a', '__init__.py')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'a', 'VERSION')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'tests', 'requirements.txt')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'docs', 'conf.py')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'docs', 'requirements.txt')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'docs', 'conda.environment.yml')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'docs', 'spelling_wordlist.txt')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', '.circleci', 'config.yml')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', '.readthedocs.yml')))
 
         """ test CLI """
         with self.construct_environment():
@@ -160,10 +164,14 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'setup.py')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'setup.cfg')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'b', '__init__.py')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'b', 'VERSION')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'tests', 'requirements.txt')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'docs', 'conf.py')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'docs', 'requirements.txt')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'docs', 'conda.environment.yml')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'docs', 'spelling_wordlist.txt')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', '.circleci', 'config.yml')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', '.readthedocs.yml')))
 
         """ cleanup """
         shutil.rmtree(tempdirname)

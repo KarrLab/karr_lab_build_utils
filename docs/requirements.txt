@@ -6,6 +6,7 @@ coverage<4.4
 coveralls
 nose
 pytest
+pyyaml
 requests
 Sphinx >= 1.6
 sphinx_rtd_theme

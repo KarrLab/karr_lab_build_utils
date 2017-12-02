@@ -1,7 +1,18 @@
 from setuptools import setup, find_packages
-import {{ name }}
+import os
 import pip
 import re
+
+# get long description
+if os.path.isfile('README.rst'):
+    with open('README.rst', 'r') as file:
+        long_description = file.read()
+else:
+    long_description = ''
+
+# get version
+with open('{{ name }}/VERSION', 'r') as file:
+    version = file.read().strip()
 
 # parse dependencies and their links from requirements.txt files
 install_requires = []
@@ -36,17 +47,20 @@ for dependency_link in dependency_links:
 # install package
 setup(
     name="{{ name }}",
-    version={{ name }}.__version__,
+    version=version,
     description="{{ name }}",
+    long_description=long_description,
     url="https://github.com/KarrLab/{{ name }}",
-    download_url='https://github.com/KarrLab/{{ name }}/tarball/{}'.format({{ name }}.__version__),
+    download_url='https://github.com/KarrLab/{{ name }}',
     author="Karr Lab",
     author_email="karr@mssm.com",
     license="MIT",
     keywords='',
     packages=find_packages(exclude=['tests', 'tests.*']),
     package_data={
-        '{{ name }}': [],
+        '{{ name }}': [
+            'VERSION',
+        ],
     },
     install_requires=install_requires,
     tests_require=tests_require,

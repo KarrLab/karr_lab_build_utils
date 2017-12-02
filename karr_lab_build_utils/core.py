@@ -10,26 +10,28 @@ from codeclimate_test_reporter.components.runner import Runner as CodeClimateRun
 from configparser import ConfigParser
 from coverage import coverage
 from datetime import datetime
-from glob import glob
 from jinja2 import Template
-from pkg_resources import resource_filename
 from sphinx import build_main as sphinx_build
 from sphinx.apidoc import main as sphinx_apidoc
 from mock import patch
 import abduct
 import coveralls
+import glob
 import karr_lab_build_utils
 import nose
 import os
 import pip
+import pkg_resources
 import pygit2
 import pytest
-import requests
 import re
+import requests
 import shutil
 import subprocess
 import sys
 import tempfile
+import time
+import yaml
 
 
 class BuildHelper(object):
@@ -56,6 +58,7 @@ class BuildHelper(object):
         proj_docs_build_doctrees_dir (:obj:`str`): local directory where doc trees should be saved
         proj_docs_build_html_dir (:obj:`str`): local directory where generated HTML documentation should be saved
         proj_docs_build_spelling_dir (:obj:`str`): local directory where spell check results should be saved
+        build_image (:obj:`str`): Docker image to use to run tests
 
         test_server_token (:obj:`str`): test history report server token
         coveralls_token (:obj:`str`): Coveralls token
@@ -76,6 +79,7 @@ class BuildHelper(object):
         DEFAULT_PROJ_DOCS_SOURCE_DIR (:obj:`str`): default local directory of source documentation files created by sphinx-apidoc
         DEFAULT_PROJ_DOCS_SPELLING_DIR (:obj:`str`): default local directory where spell check results should be saved
         DEFAULT_PROJ_DOCS_BUILD_HTML_DIR (:obj:`str`): default local directory where generated HTML documentation should be saved
+        DEFAULT_BUILD_IMAGE (:obj:`str`): default Docker image to use to run tests
 
         GITHUB_API_ENDPOINT (:obj:`str`): GitHub API endpoint
         CIRCLE_API_ENDPOINT (:obj:`str`): CircleCI API endpoint
@@ -85,7 +89,7 @@ class BuildHelper(object):
     """
 
     INITIAL_PACKAGE_VERSION = '0.0.1'
-    DEFAULT_BUILD_IMAGE_VERSION = '0.0.7'
+    DEFAULT_BUILD_IMAGE_VERSION = '0.0.11'
 
     DEFAULT_TEST_RUNNER = 'pytest'
     DEFAULT_PROJ_TESTS_DIR = 'tests'
@@ -97,6 +101,7 @@ class BuildHelper(object):
     DEFAULT_PROJ_DOCS_BUILD_DOCTREES_DIR = 'docs/_build/doctrees'
     DEFAULT_PROJ_DOCS_BUILD_HTML_DIR = 'docs/_build/html'
     DEFAULT_PROJ_DOCS_BUILD_SPELLING_DIR = 'docs/_build/spelling'
+    DEFAULT_BUILD_IMAGE = 'karrlab/build:latest'
 
     GITHUB_API_ENDPOINT = 'https://api.github.com'
     CIRCLE_API_ENDPOINT = 'https://circleci.com/api/v1.1'
@@ -131,6 +136,7 @@ class BuildHelper(object):
         self.proj_docs_build_doctrees_dir = self.DEFAULT_PROJ_DOCS_BUILD_DOCTREES_DIR
         self.proj_docs_build_html_dir = self.DEFAULT_PROJ_DOCS_BUILD_HTML_DIR
         self.proj_docs_build_spelling_dir = self.DEFAULT_PROJ_DOCS_BUILD_SPELLING_DIR
+        self.build_image = self.DEFAULT_BUILD_IMAGE
 
         self.test_server_token = os.getenv('TEST_SERVER_TOKEN')
         self.coveralls_token = os.getenv('COVERALLS_REPO_TOKEN')
@@ -164,7 +170,7 @@ class BuildHelper(object):
             os.makedirs(dirname)
 
         # initialize Git
-        pygit2.init_repository(dirname, origin_url=url or None)
+        repo = pygit2.init_repository(dirname, origin_url=url or None)
 
         # setup repository
         self.setup_repository(dirname=dirname, build_image_version=build_image_version)
@@ -208,6 +214,7 @@ class BuildHelper(object):
             'setup.cfg',
             'tests/requirements.txt',
             '.circleci/config.yml',
+            '.readthedocs.yml',
         )
 
         context = {
@@ -218,13 +225,23 @@ class BuildHelper(object):
         }
 
         for filename in filenames:
-            with open(resource_filename('karr_lab_build_utils', os.path.join('templates', filename)), 'r') as file:
+            with open(pkg_resources.resource_filename(
+                    'karr_lab_build_utils',
+                    os.path.join('templates', filename)), 'r') as file:
                 template = Template(file.read())
             template.stream(**context).dump(os.path.join(dirname, filename))
 
-        with open(resource_filename('karr_lab_build_utils', os.path.join('templates', 'package', '__init__.py')), 'r') as file:
+        with open(pkg_resources.resource_filename(
+                'karr_lab_build_utils',
+                os.path.join('templates', 'package', '__init__.py')), 'r') as file:
             template = Template(file.read())
         template.stream(**context).dump(os.path.join(dirname, name, '__init__.py'))
+
+        with open(pkg_resources.resource_filename(
+                'karr_lab_build_utils',
+                os.path.join('templates', 'package', 'VERSION')), 'r') as file:
+            template = Template(file.read())
+        template.stream(**context).dump(os.path.join(dirname, name, 'VERSION'))
 
         self.create_documentation_template(dirname)
 
@@ -283,24 +300,76 @@ class BuildHelper(object):
 
         # requirements for package
         self._install_requirements_helper('requirements.txt')
-
-        # requirements for testing and documentation
-        subprocess.check_call(['sudo', 'apt-get', 'install', 'libffi-dev'])
-
         self._install_requirements_helper(os.path.join(self.proj_tests_dir, 'requirements.txt'))
         self._install_requirements_helper(os.path.join(self.proj_docs_dir, 'requirements.txt'))
 
-    def _install_requirements_helper(self, req_file):
-        if not os.path.isfile(req_file):
+    def _install_requirements_helper(self, filename):
+        """ Install the packages in a requirements.txt file, including all optional dependencies
+
+        Args:
+            filename (:obj:`str`): path to requirements file
+        """
+        if not os.path.isfile(filename):
             return
 
-        self.run_method_and_capture_stderr(pip.main, ['install', '-U', '-r', req_file])
+        # create a temporary file that has the optional markings removed
+        all_file, all_filename = tempfile.mkstemp(suffix='.txt')
+        os.close(all_file)
+
+        with open(filename, 'r') as file:
+            with open(all_filename, 'w') as all_file:
+                for line in file:
+                    all_file.write(re.sub(r'\[.*?\]', '', line))
+
+        self.run_method_and_capture_stderr(pip.main, ['install', '-U', '-r', all_filename])
+
+        # cleanup temporary file
+        os.remove(all_filename)
 
     ########################
     # Running tests
     ########################
-    def run_tests(self, test_path='tests', with_xunit=False, with_coverage=False, coverage_dirname='.', exit_on_failure=True):
+    def run_tests(self, test_path='tests', with_xunit=False, with_coverage=False, coverage_dirname='.',
+                  environment='local', exit_on_failure=True):
         """ Run unit tests located at `test_path`.
+
+        Optionally, generate a coverage report.
+        Optionally, save the results to a file
+
+        To configure coverage, place a .coveragerc configuration file in the root directory
+        of the repository - the same directory that holds .coverage. Documentation of coverage
+        configuration is in https://coverage.readthedocs.io/en/coverage-4.2/config.html
+
+        Args:
+            test_path (:obj:`str`, optional): path to tests that should be run            
+            with_xunit (:obj:`bool`, optional): whether or not to save test results
+            with_coverage (:obj:`bool`, optional): whether or not coverage should be assessed
+            coverage_dirname (:obj:`str`, optional): directory to save coverage data
+            environment (:obj:`str`, optional): environment to run tests (local, docker, or circleci-local-executor)
+            exit_on_failure (:obj:`bool`, optional): whether or not to exit on test failure
+
+        Raises:
+            :obj:`BuildHelperError`: If the environment is not supported or the package directory not set
+        """
+        if environment == 'local':
+            self._run_tests_local(test_path=test_path, with_xunit=with_xunit,
+                                  with_coverage=with_coverage, coverage_dirname=coverage_dirname,
+                                  exit_on_failure=exit_on_failure)
+        elif environment == 'docker':
+            self._run_tests_docker(test_path=test_path, with_xunit=with_xunit,
+                                   with_coverage=with_coverage, coverage_dirname=coverage_dirname,
+                                   exit_on_failure=exit_on_failure)
+        elif environment == 'circleci-local-executor':
+            self._run_tests_circleci(test_path=test_path, with_xunit=with_xunit,
+                                     with_coverage=with_coverage, coverage_dirname=coverage_dirname,
+                                     exit_on_failure=exit_on_failure)
+        else:
+            raise BuildHelperError('Unsupported environment: {}'.format(environment))
+
+    def _run_tests_local(self, test_path='tests', with_xunit=False, with_coverage=False, coverage_dirname='.',
+                         exit_on_failure=True):
+        """ Run unit tests located at `test_path` locally
+
         Optionally, generate a coverage report.
         Optionally, save the results to a file
 
@@ -316,7 +385,7 @@ class BuildHelper(object):
             exit_on_failure (:obj:`bool`, optional): whether or not to exit on test failure
 
         Raises:
-            :obj:`BuildHelperError`: If package directory not set
+            :obj:`BuildHelperError`: If the package directory not set
         """
 
         py_v = self.get_python_version()
@@ -352,11 +421,145 @@ class BuildHelper(object):
             raise Exception('Unsupported test runner {}'.format(self.test_runner))
 
         if with_coverage:
-            cov.stop() # pragma: no cover # this line can't be covered
+            cov.stop()  # pragma: no cover # this line can't be covered
             cov.save()
 
         if exit_on_failure and result != 0:
             sys.exit(1)
+
+    def _run_tests_docker(self, test_path='tests', with_xunit=False, with_coverage=False, coverage_dirname='.',
+                          exit_on_failure=True):
+        """ Run unit tests located at `test_path` using a Docker image
+
+        Optionally, generate a coverage report.
+        Optionally, save the results to a file
+
+        To configure coverage, place a .coveragerc configuration file in the root directory
+        of the repository - the same directory that holds .coverage. Documentation of coverage
+        configuration is in https://coverage.readthedocs.io/en/coverage-4.2/config.html
+
+        Args:
+            test_path (:obj:`str`, optional): path to tests that should be run            
+            with_xunit (:obj:`bool`, optional): whether or not to save test results
+            with_coverage (:obj:`bool`, optional): whether or not coverage should be assessed
+            coverage_dirname (:obj:`str`, optional): directory to save coverage data
+            exit_on_failure (:obj:`bool`, optional): whether or not to exit on test failure
+
+        Raises:
+            :obj:`BuildHelperError`: If the package directory not set
+        """
+        # create container
+        process = subprocess.Popen(['docker', 'run', '-it', '-d', '--name', 'build', self.build_image, 'bash'],
+                                   stdout=subprocess.PIPE)
+        while process.poll() is None:
+            time.sleep(0.5)
+        if process.returncode and process.returncode != 0:
+            raise Exception(process.communicate()[1])
+
+        # copy GitHub ssh key to container
+        process = subprocess.Popen(['docker', 'cp', os.path.expanduser(os.path.join('~', '.ssh', 'id_rsa')), 'build:/root/.ssh/'],
+                                   stdout=subprocess.PIPE)
+        while process.poll() is None:
+            time.sleep(0.5)
+        if process.returncode and process.returncode != 0:
+            raise Exception(process.communicate()[1])
+
+        # copy scripts to container
+        process = subprocess.Popen(['docker', 'cp', os.path.join(os.path.dirname(__file__), 'test_package.sh'), 'build:/root/'],
+                                   stdout=subprocess.PIPE)
+        while process.poll() is None:
+            time.sleep(0.5)
+        if process.returncode and process.returncode != 0:
+            raise Exception(process.communicate()[1])
+
+        # copy package to container
+        process = subprocess.Popen(['docker', 'cp', os.path.join(os.path.dirname(__file__), '..', '..', package), 'build:/root/'],
+                                   stdout=subprocess.PIPE)
+        while process.poll() is None:
+            time.sleep(0.5)
+        if process.returncode and process.returncode != 0:
+            raise Exception(process.communicate()[1])
+
+        # test package in container
+        process = subprocess.Popen(['docker', 'exec',
+                                    '-e', 'CIRCLE_PROJECT_REPONAME=' + package,
+                                    '-e', 'CIRCLE_PROJECT_USERNAME=KarrLab',
+                                    'build',
+                                    'bash', '-c', '/root/test_package.sh',
+                                    ])
+        while process.poll() is None:
+            time.sleep(0.5)
+        if process.returncode and process.returncode != 0:
+            valid = False
+        else:
+            valid = True
+
+        # stop and remove container
+        process = subprocess.Popen(['docker', 'rm', '-f', 'build'],
+                                   stdout=subprocess.PIPE)
+        while process.poll() is None:
+            time.sleep(0.5)
+        if process.returncode and process.returncode != 0:
+            raise Exception(process.communicate()[1])
+
+        return valid
+
+    def _run_tests_circleci(self, test_path='tests', with_xunit=False, with_coverage=False, coverage_dirname='.',
+                            exit_on_failure=True):
+        """ Run unit tests located at `test_path` using the CircleCI local executor
+
+        Optionally, generate a coverage report.
+        Optionally, save the results to a file
+
+        To configure coverage, place a .coveragerc configuration file in the root directory
+        of the repository - the same directory that holds .coverage. Documentation of coverage
+        configuration is in https://coverage.readthedocs.io/en/coverage-4.2/config.html
+
+        Args:
+            test_path (:obj:`str`, optional): path to tests that should be run            
+            with_xunit (:obj:`bool`, optional): whether or not to save test results
+            with_coverage (:obj:`bool`, optional): whether or not coverage should be assessed
+            coverage_dirname (:obj:`str`, optional): directory to save coverage data
+            exit_on_failure (:obj:`bool`, optional): whether or not to exit on test failure
+
+        Raises:
+            :obj:`BuildHelperError`: If the package directory not set
+        """
+        package_dir = os.path.join(os.path.dirname(__file__), '..', '..', package)
+
+        # remove __pycache__ files
+        for path in glob.glob(os.path.join(package_dir, '**', '__pycache__'), recursive=True):
+            shutil.rmtree(path)
+
+        # update CircleCI to use build image with SSH key
+        with open(os.path.join(package_dir, '.circleci', 'config.yml'), 'r') as file:
+            config = yaml.load(file)
+
+        if len(config['jobs']['build']['docker']) != 1:
+            raise Exception('Only one docker build is supported at this time')
+
+        image_name = config['jobs']['build']['docker'][0]['image']
+        image_with_ssh_key_name = image_name + '.with_ssh_key'
+
+        shutil.copyfile(os.path.join(package_dir, '.circleci', 'config.yml'), os.path.join(package_dir, '.circleci', 'config.yml.user'))
+        config['jobs']['build']['docker'][0]['image'] = image_with_ssh_key_name
+        with open(os.path.join(package_dir, '.circleci', 'config.yml'), 'w') as file:
+            yaml.dump(config, file)
+
+        # test package
+        process = subprocess.Popen(['circleci', 'build',
+                                    '-e', 'TEST_SERVER_TOKEN=' + TEST_SERVER_TOKEN,
+                                    ], cwd=package_dir)
+        while process.poll() is None:
+            time.sleep(0.5)
+
+        # undo changes to CircleCI config
+        shutil.move(os.path.join(package_dir, '.circleci', 'config.yml.user'), os.path.join(package_dir, '.circleci', 'config.yml'))
+
+        # return
+        if process.returncode != 0 and process.communicate()[1] is not None:
+            return False
+        return True
 
     def make_and_archive_reports(self, coverage_dirname='.', dry_run=False):
         """ Make and archive reports:
@@ -403,7 +606,7 @@ class BuildHelper(object):
 
         abs_xml_latest_filename_pattern = os.path.join(
             self.proj_tests_xml_dir, '{0}.*.xml'.format(self.proj_tests_xml_latest_filename))
-        for abs_xml_latest_filename in glob(abs_xml_latest_filename_pattern):
+        for abs_xml_latest_filename in glob.glob(abs_xml_latest_filename_pattern):
             match = re.match('^.*?\.(\d+\.\d+\.\d+)\.xml$', abs_xml_latest_filename)
             pyv = match.group(1)
             r = requests.post('http://tests.karrlab.org/rest/submit_report',
@@ -433,7 +636,7 @@ class BuildHelper(object):
             coverage_dirname (:obj:`str`, optional): directory to merge coverage files
         """
         data_paths = []
-        for name in glob(os.path.join(coverage_dirname, '.coverage.*')):
+        for name in glob.glob(os.path.join(coverage_dirname, '.coverage.*')):
             data_path = tempfile.mktemp()
             shutil.copyfile(name, data_path)
             data_paths.append(data_path)
@@ -531,41 +734,51 @@ class BuildHelper(object):
             }
 
             # configuration
-            with open(resource_filename('karr_lab_build_utils', 'templates/docs/conf.py'), 'r') as file:
+            with open(pkg_resources.resource_filename('karr_lab_build_utils', 'templates/docs/conf.py'), 'r') as file:
                 template = Template(file.read())
             template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'conf.py'))
 
             # requirements
-            with open(resource_filename('karr_lab_build_utils', 'templates/docs/requirements.txt'), 'r') as file:
+            with open(pkg_resources.resource_filename('karr_lab_build_utils', 'templates/docs/requirements.txt'), 'r') as file:
                 template = Template(file.read())
             template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'requirements.txt'))
 
+            # requirements
+            with open(pkg_resources.resource_filename('karr_lab_build_utils', 'templates/docs/conda.environment.yml'), 'r') as file:
+                template = Template(file.read())
+            template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'conda.environment.yml'))
+
+            # requirements
+            with open(pkg_resources.resource_filename('karr_lab_build_utils', 'templates/docs/spelling_wordlist.txt'), 'r') as file:
+                template = Template(file.read())
+            template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'spelling_wordlist.txt'))
+
             # index
-            with open(resource_filename('karr_lab_build_utils', 'templates/docs/index.rst'), 'r') as file:
+            with open(pkg_resources.resource_filename('karr_lab_build_utils', 'templates/docs/index.rst'), 'r') as file:
                 template = Template(file.read())
             template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'index.rst'))
 
             # references
-            with open(resource_filename('karr_lab_build_utils', 'templates/docs/references.rst'), 'r') as file:
+            with open(pkg_resources.resource_filename('karr_lab_build_utils', 'templates/docs/references.rst'), 'r') as file:
                 template = Template(file.read())
             template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'references.rst'))
 
-            with open(resource_filename('karr_lab_build_utils', 'templates/docs/references.bib'), 'r') as file:
+            with open(pkg_resources.resource_filename('karr_lab_build_utils', 'templates/docs/references.bib'), 'r') as file:
                 template = Template(file.read())
             template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'references.bib'))
 
             # overview
-            with open(resource_filename('karr_lab_build_utils', 'templates/docs/overview.rst'), 'r') as file:
+            with open(pkg_resources.resource_filename('karr_lab_build_utils', 'templates/docs/overview.rst'), 'r') as file:
                 template = Template(file.read())
             template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'overview.rst'))
 
             # installation
-            with open(resource_filename('karr_lab_build_utils', 'templates/docs/installation.rst'), 'r') as file:
+            with open(pkg_resources.resource_filename('karr_lab_build_utils', 'templates/docs/installation.rst'), 'r') as file:
                 template = Template(file.read())
             template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'installation.rst'))
 
             # about
-            with open(resource_filename('karr_lab_build_utils', 'templates/docs/about.rst'), 'r') as file:
+            with open(pkg_resources.resource_filename('karr_lab_build_utils', 'templates/docs/about.rst'), 'r') as file:
                 template = Template(file.read())
             template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'about.rst'))
 

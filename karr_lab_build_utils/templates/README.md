@@ -1,4 +1,4 @@
-<!--[![PyPI package](https://img.shields.io/pypi/v/{{ name }}.svg)](https://pypi.python.org/pypi/{{ name }})-->
+[//]: # ( [![PyPI package](https://img.shields.io/pypi/v/{{ name }}.svg)](https://pypi.python.org/pypi/{{ name }}) )
 [![Documentation](https://readthedocs.org/projects/{{ name }}/badge/?version=latest)](http://{{ name }}.readthedocs.org)
 [![Test results](https://circleci.com/gh/KarrLab/{{ name }}.svg?style=shield)](https://circleci.com/gh/KarrLab/{{ name }})
 [![Test coverage](https://coveralls.io/repos/github/KarrLab/{{ name }}/badge.svg)](https://coveralls.io/github/KarrLab/{{ name }})

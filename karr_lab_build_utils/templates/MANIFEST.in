@@ -1,3 +1,9 @@
+# description
+README.rst
+
+# version
+include {{ name }}/VERSION
+
 # license
 include LICENSE
 

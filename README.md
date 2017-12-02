@@ -1,4 +1,4 @@
-<!--[![PyPI package](https://img.shields.io/pypi/v/karr_lab_build_utils.svg)](https://pypi.python.org/pypi/karr_lab_build_utils)-->
+[//]: # ( [![PyPI package](https://img.shields.io/pypi/v/karr_lab_build_utils.svg)](https://pypi.python.org/pypi/karr_lab_build_utils) )
 [![Documentation](https://readthedocs.org/projects/karr_lab_build_utils/badge/?version=latest)](http://karr_lab_build_utils.readthedocs.org)
 [![Test results](https://circleci.com/gh/KarrLab/karr_lab_build_utils.svg?style=shield)](https://circleci.com/gh/KarrLab/karr_lab_build_utils)
 [![Test coverage](https://coveralls.io/repos/github/KarrLab/karr_lab_build_utils/badge.svg)](https://coveralls.io/github/KarrLab/karr_lab_build_utils)

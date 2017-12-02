@@ -1,9 +1,19 @@
 from setuptools import setup, find_packages
-import karr_lab_build_utils
 import os
 import pip
 import re
 import sys
+
+# get long description
+if os.path.isfile('README.rst'):
+    with open('README.rst', 'r') as file:
+        long_description = file.read()
+else:
+    long_description = ''
+
+# get version
+with open('karr_lab_build_utils/VERSION', 'r') as file:
+    version = file.read().strip()
 
 # parse dependencies and their links from requirements.txt files
 install_requires = []
@@ -48,17 +58,21 @@ if had_egg_dir:
 # install package
 setup(
     name="karr_lab_build_utils",
-    version=karr_lab_build_utils.__version__,
+    version=version,
     description="Karr Lab build utilities",
+    long_description=long_description,
     url="https://github.com/KarrLab/karr_lab_build_utils",
-    download_url='https://github.com/KarrLab/karr_lab_build_utils/tarball/{}'.format(karr_lab_build_utils.__version__),
+    download_url='https://github.com/KarrLab/karr_lab_build_utils',
     author="Jonathan Karr",
     author_email="jonrkarr@gmail.com",
     license="MIT",
     keywords='unit test coverage API documentation nose xunit junit unitth HTML Coveralls Sphinx',
     packages=find_packages(exclude=['tests', 'tests.*']),
     package_data={
-        'karr_lab_build_utils': ['templates'],
+        'karr_lab_build_utils': [
+            'VERSION',
+            'templates',
+        ],
     },
     install_requires=install_requires,
     tests_require=tests_require,

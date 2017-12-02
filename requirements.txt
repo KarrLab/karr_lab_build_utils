@@ -7,6 +7,7 @@ coveralls
 jinja2
 mock
 nose
+pyyaml
 pygit2<=0.26.0
 pytest
 requests
