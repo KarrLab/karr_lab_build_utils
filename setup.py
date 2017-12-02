@@ -80,7 +80,7 @@ for marker_match, reqs in dependency_links.items():
     dependency_links[marker_match] = list(reqs)
 
 # install non-PyPI dependencies because setup doesn't do this correctly
-for dependency_link in dependency_links:
+for dependency_link in dependency_links[True]:
     pip.main(['install', dependency_link])
 
 # read old console scripts
@@ -115,7 +115,7 @@ setup(
     install_requires=install_requires,
     extras_require=extras_require,
     tests_require=tests_require,
-    dependency_links=dependency_links,
+    dependency_links=dependency_links[True] + dependency_links[False],
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
