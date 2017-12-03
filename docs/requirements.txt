@@ -1,18 +1,15 @@
 abduct
 cement
-codeclimate-test-reporter
+codeclimate_test_reporter
 configparser
-coverage<4.4
+coverage < 4.4
 coveralls
 nose
 pytest
 pyyaml
 requests
-Sphinx >= 1.6
+sphinx >= 1.6
 sphinx_rtd_theme
-sphinxcontrib-bibtex
-robpol86-sphinxcontrib-googleanalytics
-sphinxcontrib-spelling
-
-#optional
-pygit2[git] <=0.26.0
+sphinxcontrib_bibtex
+robpol86_sphinxcontrib_googleanalytics
+sphinxcontrib_spelling

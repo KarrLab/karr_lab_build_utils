@@ -9,6 +9,7 @@ include LICENSE
 
 # requirements
 include requirements.txt
+include requirements.optional.txt
 
 # templates
 graft karr_lab_build_utils/templates

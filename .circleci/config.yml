@@ -13,11 +13,11 @@ jobs:
             - cache-v4-{{ .Branch }}-
             - cache-v4-
       
-      - run: pip2 install -e .[git,tests,docs]
       - run: karr_lab_build_utils2 install-requirements
+      - run: pip2 install -e .[all]
 
-      - run: pip3 install -e .[git,tests,docs]
       - run: karr_lab_build_utils3 install-requirements
+      - run: pip3 install -e .[all]
       
       - save_cache:
           key: cache-v4-{{ .Branch }}-{{ checksum "requirements.txt" }}

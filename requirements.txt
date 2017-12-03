@@ -1,8 +1,8 @@
 abduct
 cement
-codeclimate-test-reporter
+codeclimate_test_reporter
 configparser
-coverage<4.4
+coverage < 4.4
 coveralls
 jinja2
 mock
@@ -10,10 +10,7 @@ nose
 pyyaml
 pytest
 requests
-git+https://github.com/davidfischer/requirements-parser.git#egg=requirements-parser
-Sphinx
+git+https://github.com/KarrLab/setuptools_utils.git#egg=setuptools_utils
+sphinx
 sphinx_rtd_theme
-sphinxcontrib-spelling
-
-# optional
-pygit2[git] <=0.26.0
+sphinxcontrib_spelling

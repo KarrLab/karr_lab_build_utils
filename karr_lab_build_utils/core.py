@@ -22,7 +22,6 @@ import nose
 import os
 import pip
 import pkg_resources
-import pygit2
 import pytest
 import re
 import requests
@@ -170,6 +169,7 @@ class BuildHelper(object):
             os.makedirs(dirname)
 
         # initialize Git
+        import pygit2
         repo = pygit2.init_repository(dirname, origin_url=url or None)
 
         # setup repository
