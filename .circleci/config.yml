@@ -13,10 +13,10 @@ jobs:
             - cache-v5-{{ .Branch }}-
             - cache-v5-
           
-      - run: pip2 install -e .[all]
+      - run: pip2 install -U -e .[all]
       - run: karr_lab_build_utils2 install-requirements
       
-      - run: pip3 install -e .[all]
+      - run: pip3 install -U -e .[all]
       - run: karr_lab_build_utils3 install-requirements
       
       - save_cache:
