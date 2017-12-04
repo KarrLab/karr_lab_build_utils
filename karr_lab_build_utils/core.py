@@ -327,7 +327,7 @@ class BuildHelper(object):
                         line = line.strip()
                         if line and line[0] == '[':
                             continue
-                        sanitized_file.write(line)
+                        sanitized_file.write(line + '\n')
 
             filename = sanitized_filename
 
