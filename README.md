@@ -16,7 +16,7 @@ This package performs several aspects of the Karr Lab's build system:
   * Sphinx documentation configuration
   * CircleCI build configuration
 
-* Tests code with Python 2 and 3 using pytest
+* Tests code with Python 2 and 3 using pytest locally, using a Docker image, or using the CircleCI local executor
 * Uploads test reports to our test history server
 * Uploads coverage report to Coveralls
 * Generates HTML API documentation using Sphinx
