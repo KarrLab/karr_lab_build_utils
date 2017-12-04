@@ -210,6 +210,7 @@ class BuildHelper(object):
             'MANIFEST.in',
             'README.md',
             'requirements.txt',
+            'requirements.optional.txt',
             'setup.py',
             'setup.cfg',
             'tests/requirements.txt',
@@ -300,31 +301,41 @@ class BuildHelper(object):
 
         # requirements for package
         self._install_requirements_helper('requirements.txt')
+        self._install_requirements_helper('requirements.optional.txt', ignore_options=True)
         self._install_requirements_helper(os.path.join(self.proj_tests_dir, 'requirements.txt'))
         self._install_requirements_helper(os.path.join(self.proj_docs_dir, 'requirements.txt'))
 
-    def _install_requirements_helper(self, filename):
+    def _install_requirements_helper(self, filename, ignore_options=False):
         """ Install the packages in a requirements.txt file, including all optional dependencies
 
         Args:
             filename (:obj:`str`): path to requirements file
+            ignore_options (:obj:`bool`, optional): if :obj:`True`, ignore option headings 
+                (e.g. for requirements.optional.txt)
         """
         if not os.path.isfile(filename):
             return
 
         # create a temporary file that has the optional markings removed
-        all_file, all_filename = tempfile.mkstemp(suffix='.txt')
-        os.close(all_file)
+        if ignore_options:
+            sanitized_file, sanitized_filename = tempfile.mkstemp(suffix='.txt')
+            os.close(sanitized_file)
 
-        with open(filename, 'r') as file:
-            with open(all_filename, 'w') as all_file:
-                for line in file:
-                    all_file.write(re.sub(r'\[.*?\]', '', line))
+            with open(filename, 'r') as file:
+                with open(sanitized_filename, 'w') as sanitized_file:
+                    for line in file:
+                        line = line.strip()
+                        if line and line[0] == '[':
+                            continue
+                        sanitized_file.write(line)
 
-        self.run_method_and_capture_stderr(pip.main, ['install', '-U', '-r', all_filename])
+            filename = sanitized_filename
+
+        self.run_method_and_capture_stderr(pip.main, ['install', '-U', '-r', filename])
 
         # cleanup temporary file
-        os.remove(all_filename)
+        if ignore_options:
+            os.remove(sanitized_filename)
 
     ########################
     # Running tests
