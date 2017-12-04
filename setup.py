@@ -1,10 +1,10 @@
 import setuptools
 try:
-    import setuptools_utils
+    import pkg_utils
 except ImportError:
     import pip
-    pip.main(['install', 'git+https://github.com/KarrLab/setuptools_utils.git#egg=setuptools_utils'])
-    import setuptools_utils
+    pip.main(['install', 'git+https://github.com/KarrLab/pkg_utils.git#egg=pkg_utils'])
+    import pkg_utils
 import os
 import sys
 
@@ -12,10 +12,10 @@ name = 'karr_lab_build_utils'
 dirname = os.path.dirname(__file__)
 
 # get package metadata
-md = setuptools_utils.get_package_metadata(dirname, name)
+md = pkg_utils.get_package_metadata(dirname, name)
 
 # read old console scripts
-console_scripts = setuptools_utils.get_console_scripts(dirname, name)
+console_scripts = pkg_utils.get_console_scripts(dirname, name)
 
 # install package
 setuptools.setup(
@@ -62,4 +62,4 @@ setuptools.setup(
 )
 
 # restore old console scripts
-setuptools_utils.add_console_scripts(dirname, name, console_scripts)
+pkg_utils.add_console_scripts(dirname, name, console_scripts)

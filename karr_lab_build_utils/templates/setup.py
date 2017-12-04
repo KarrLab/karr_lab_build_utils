@@ -1,17 +1,17 @@
 import setuptools
 try:
-    import setuptools_utils
+    import pkg_utils
 except ImportError:
     import pip
-    pip.main(['install', 'git+https://github.com/KarrLab/setuptools_utils.git#egg=setuptools_utils'])
-    import setuptools_utils
+    pip.main(['install', 'git+https://github.com/KarrLab/pkg_utils.git#egg=pkg_utils'])
+    import pkg_utils
 import os
 
 name = '{{ name }}'
 dirname = os.path.dirname(__file__)
 
 # get package metadata
-md = setuptools_utils.get_package_metadata(dirname, name)
+md = pkg_utils.get_package_metadata(dirname, name)
 
 # install package
 setup(
