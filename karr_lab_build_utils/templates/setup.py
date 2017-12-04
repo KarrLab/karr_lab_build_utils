@@ -14,7 +14,7 @@ dirname = os.path.dirname(__file__)
 md = pkg_utils.get_package_metadata(dirname, name)
 
 # install package
-setup(
+setuptools.setup(
     name=name,
     version=md.version,
     description=name,
@@ -25,7 +25,7 @@ setup(
     author_email="karr@mssm.com",
     license="MIT",
     keywords='',
-    packages=find_packages(exclude=['tests', 'tests.*']),
+    packages=setuptools.find_packages(exclude=['tests', 'tests.*']),
     package_data={
         name: [
             'VERSION',
