@@ -1,2 +1,2 @@
 [git]
-pygit2 <= 0.26.0
+pygit2
