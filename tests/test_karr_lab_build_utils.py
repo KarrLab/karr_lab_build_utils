@@ -13,6 +13,7 @@ from karr_lab_build_utils import __main__
 from karr_lab_build_utils import core
 from pkg_resources import resource_filename
 import abduct
+import capturer
 import configparser
 import imp
 import karr_lab_build_utils
@@ -305,7 +306,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         tempdirname = tempfile.mkdtemp()
         shutil.rmtree(tempdirname)
         build_helper.proj_tests_xml_dir = tempdirname
-        
+
         build_helper.test_runner = 'unsupported_runner'
         with self.assertRaisesRegexp(Exception, '^Unsupported test runner'):
             build_helper.run_tests(test_path=self.DUMMY_TEST, with_xunit=True)
@@ -555,6 +556,59 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with self.construct_environment():
             with __main__.App(argv=['make-documentation']) as app:
                 app.run()
+
+    def test_upload_package_to_pypi(self):
+        dirname = 'tests/fixtures/karr_lab_build_utils_test_package'
+
+        # get username and password
+        filename = 'tests/fixtures/secret/TEST_PYPI_USERNAME'
+        if os.path.isfile(filename):
+            with open(filename, 'r') as file:
+                username = file.read()
+        else:
+            username = os.getenv('TEST_PYPI_USERNAME')
+
+        filename = 'tests/fixtures/secret/TEST_PYPI_PASSWORD'
+        if os.path.isfile(filename):
+            with open(filename, 'r') as file:
+                password = file.read()
+        else:
+            password = os.getenv('TEST_PYPI_PASSWORD')
+
+        pypi_config_filename = 'tests/fixtures/secret/.pypirc'
+        with open(pypi_config_filename, 'w') as file:
+            file.write('[distutils]\n')
+            file.write('index-servers =\n')
+            file.write('    testpypi\n')
+            file.write('\n')
+            file.write('[testpypi]\n')
+            file.write('repository: https://test.pypi.org/legacy/\n')
+            file.write('username: {}\n'.format(username))
+            file.write('password: {}\n'.format(password))
+
+        if not os.path.isdir('tests/fixtures/karr_lab_build_utils_test_package/build'):
+            os.mkdir('tests/fixtures/karr_lab_build_utils_test_package/build')
+
+        if not os.path.isdir('tests/fixtures/karr_lab_build_utils_test_package/dist'):
+            os.mkdir('tests/fixtures/karr_lab_build_utils_test_package/dist')
+
+        # test api
+        build_helper = core.BuildHelper()
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            build_helper.upload_package_to_pypi(dirname=dirname, repository='testpypi', pypi_config_filename=pypi_config_filename)
+            self.assertRegexpMatches(captured.stdout.get_text(), 'Uploading distributions to https://test\.pypi\.org/legacy/')
+            self.assertEqual(captured.stderr.get_text().strip(), '')
+
+        # test cli
+        with self.construct_environment():
+            with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                with __main__.App(argv=['upload-package-to-pypi',
+                                        '--dirname', dirname,
+                                        '--repository', 'testpypi',
+                                        '--pypi-config-filename', pypi_config_filename]) as app:
+                    app.run()
+                    self.assertRegexpMatches(captured.stdout.get_text(), 'Uploading distributions to https://test\.pypi\.org/legacy/')
+                    self.assertEqual(captured.stderr.get_text().strip(), '')
 
     def test_get_version(self):
         self.assertIsInstance(karr_lab_build_utils.__init__.__version__, str)

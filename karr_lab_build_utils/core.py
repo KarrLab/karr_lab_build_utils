@@ -30,6 +30,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import twine.commands.upload
 import yaml
 
 
@@ -852,6 +853,42 @@ class BuildHelper(object):
 
             sys.stderr.flush()
             sys.exit(1)
+
+    def upload_package_to_pypi(self, dirname='.', repository='pypi', pypi_config_filename='~/.pypirc'):
+        """ Upload a package to PyPI
+
+        Args:
+            dirname (:obj:`str`, optional): path to package to upload
+            repository (:obj:`str`, optional): repository to upload code to (section in .pypirc or a full URL)
+            pypi_config_filename (:obj:`str`, optional): path to .pypirc
+        """
+        # cleanup
+        if os.path.isdir(os.path.join(dirname, 'build')):
+            shutil.rmtree(os.path.join(dirname, 'build'))
+        if os.path.isdir(os.path.join(dirname, 'dist')):
+            shutil.rmtree(os.path.join(dirname, 'dist'))
+
+        # package code
+        subprocess.check_call([sys.executable, os.path.join(os.path.abspath(dirname), 'setup.py'), 'sdist', 'bdist_wheel'],
+                              cwd=dirname)
+
+        # upload
+        options = []
+
+        if repository:
+            options += ['--repository', repository]
+
+        if pypi_config_filename:
+            options += ['--config-file', os.path.abspath(os.path.expanduser(pypi_config_filename))]
+
+        uploads = []
+        for path in glob.glob(os.path.join(dirname, 'dist', '*')):
+            uploads.append(path)
+        twine.commands.upload.main(options + uploads)
+
+        # cleanup
+        shutil.rmtree(os.path.join(dirname, 'build'))
+        shutil.rmtree(os.path.join(dirname, 'dist'))
 
 
 class BuildHelperError(Exception):

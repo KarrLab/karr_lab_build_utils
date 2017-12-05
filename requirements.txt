@@ -10,7 +10,10 @@ nose
 pyyaml
 pytest
 requests
-git+https://github.com/KarrLab/pkg_utils.git#egg=pkg_utils
+git+https://github.com/KarrLab/pkg_utils.git#egg=pkg_utils[all]
+setuptools
 sphinx
 sphinx_rtd_theme
 sphinxcontrib_spelling
+twine
+wheel

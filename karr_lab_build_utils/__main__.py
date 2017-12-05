@@ -289,6 +289,34 @@ class MakeDocumentationController(CementBaseController):
         buildHelper.make_documentation(spell_check=args.spell_check)
 
 
+class UploadPackageToPypiController(CementBaseController):
+    """ Upload package to PyPI
+    """
+
+    class Meta:
+        label = 'upload-package-to-pypi'
+        description = 'Upload package to PyPI'
+        stacked_on = 'base'
+        stacked_type = 'nested'
+        arguments = [
+            (['--dirname'], dict(
+                default='.', help='Path to package (e.g. parent directory of setup.py)')),
+            (['--repository'], dict(
+                default='pypi', help='Repository upload package (e.g. pypi or testpypi)')),
+            (['--pypi-config-filename'], dict(
+                default='~/.pypirc', help='Path to .pypirc file')),
+        ]
+
+    @expose(hide=True)
+    def default(self):
+        args = self.app.pargs
+        buildHelper = BuildHelper()
+        buildHelper.upload_package_to_pypi(
+            dirname=args.dirname,
+            repository=args.repository,
+            pypi_config_filename=args.pypi_config_filename)
+
+
 class App(CementApp):
     """ Command line application """
     class Meta:
@@ -306,6 +334,7 @@ class App(CementApp):
             UploadCoverageReportToCoverallsController,
             UploadCoverageReportToCodeClimateController,
             MakeDocumentationController,
+            UploadPackageToPypiController,
         ]
 
 
