@@ -347,6 +347,7 @@ class FindMissingRequirementsController(CementBaseController):
         buildHelper = BuildHelper()
         missing = buildHelper.find_missing_requirements(
             args.package_name, dirname=args.dirname, ignore_files=args.ignore_files)
+        missing = sorted(missing, key=lambda m: m[0])
         if missing:
             print('The following dependencies should likely be added to requirements.txt\n')
             for name, uses in missing:
@@ -384,7 +385,7 @@ class FindUnusedRequirementsController(CementBaseController):
             ignore_files=args.ignore_files)
         if unuseds:
             print('The following requirements from requirements.txt may not be necessary:\n')
-            for name in unuseds:
+            for name in sorted(unuseds):
                 print('  {}\n'.format(name))
         else:
             print('All of the dependencies appear to be necessary')

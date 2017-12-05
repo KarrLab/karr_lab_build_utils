@@ -588,7 +588,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         # test api
         build_helper = core.BuildHelper()
         missing = build_helper.find_missing_requirements('karr_lab_build_utils', ignore_files=['karr_lab_build_utils/templates/*'])
-        self.assertEqual([m[0] for m in missing], ['pygit2'])
+        self.assertEqual(missing, [])
 
         # test cli
         with self.construct_environment():
@@ -597,31 +597,32 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                         'find-missing-requirements', 'karr_lab_build_utils',
                         '--ignore-files', 'karr_lab_build_utils/templates/*']) as app:
                     app.run()
-                    self.assertRegexpMatches(captured.stdout.get_text(), '^The following dependencies should likely be added to')
+                    self.assertEqual(captured.stdout.get_text(), 'requirements.txt appears to contain all of the dependencies')
                     self.assertEqual(captured.stderr.get_text(), '')
 
-        shutil.copy('requirements.txt', 'requirements.txt.save')
-        with open('requirements.txt', 'a') as file:
-            file.write('pygit2')
+        shutil.copy('requirements.optional.txt', 'requirements.optional.txt.save')
+        with open('requirements.optional.txt', 'w') as file:
+            pass
         with self.construct_environment():
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
                 with __main__.App(argv=[
                         'find-missing-requirements', 'karr_lab_build_utils',
                         '--ignore-files', 'karr_lab_build_utils/templates/*']) as app:
                     app.run()
-                    self.assertEqual(captured.stdout.get_text(), 'requirements.txt appears to contain all of the dependencies')
+                    self.assertRegexpMatches(captured.stdout.get_text(), '^The following dependencies should likely be added to')
                     self.assertEqual(captured.stderr.get_text(), '')
-        os.remove('requirements.txt')
-        os.rename('requirements.txt.save', 'requirements.txt')
+        os.remove('requirements.optional.txt')
+        os.rename('requirements.optional.txt.save', 'requirements.optional.txt')
 
     def test_find_unused_requirements(self):
         # test api
         build_helper = core.BuildHelper()
         unused = build_helper.find_unused_requirements('karr_lab_build_utils', ignore_files=['karr_lab_build_utils/templates/*'])
+        unused.sort()
         if six.PY3:
-            self.assertEqual(unused, ['enum34', 'pkg_utils', 'sphinx_rtd_theme', 'sphinxcontrib_spelling', 'wheel'])
+            self.assertEqual(unused, ['enum34', 'sphinx_rtd_theme', 'sphinxcontrib_spelling', 'wheel'])
         else:
-            self.assertEqual(unused, ['pkg_utils', 'sphinx_rtd_theme', 'sphinxcontrib_spelling', 'wheel'])
+            self.assertEqual(unused, ['sphinx_rtd_theme', 'sphinxcontrib_spelling', 'wheel'])
 
         # test cli
         with self.construct_environment():

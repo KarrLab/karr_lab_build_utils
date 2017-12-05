@@ -24,12 +24,14 @@ import glob
 import json
 import karr_lab_build_utils
 import logging
+import mock
 import nose
 import os
 import pip
 import pip_check_reqs
 import pip_check_reqs.find_extra_reqs
 import pip_check_reqs.find_missing_reqs
+import pkg_utils
 import pkg_resources
 import pytest
 import re
@@ -965,8 +967,6 @@ class BuildHelper(object):
 
         Returns:
             :obj:`list`: list of missing dependencies and their occurences in the code
-
-        :todo: support requirements.optional.txt
         """
 
         options = attrdict.AttrDict()
@@ -978,7 +978,17 @@ class BuildHelper(object):
         options.version = False
         pip_check_reqs.find_missing_reqs.log.setLevel(logging.ERROR)
 
-        return pip_check_reqs.find_missing_reqs.find_missing_reqs(options)
+        missing = pip_check_reqs.find_missing_reqs.find_missing_reqs(options)
+
+        # filter out optional dependencies
+        install_requires, extras_require, _, _ = pkg_utils.get_dependencies(dirname, include_specs=False, include_markers=False)
+        all_deps = install_requires
+        for option, opt_deps in extras_require.items():
+            if option not in ['all', 'tests', 'docs']:
+                all_deps += opt_deps
+        missing = list(filter(lambda m: m[0] not in all_deps, missing))
+
+        return missing
 
     def find_unused_requirements(self, package_name, dirname='.', ignore_files=None):
         """ Finding unused_requirements
@@ -990,8 +1000,6 @@ class BuildHelper(object):
 
         Returns:
             :obj:`list`: name of the unused dependencies
-
-        :todo: support requirements.optional.txt
         """
         options = attrdict.AttrDict()
         options.paths = [package_name]
@@ -1002,9 +1010,28 @@ class BuildHelper(object):
         options.debug = False
         options.version = False
         pip_check_reqs.find_extra_reqs.log.setLevel(logging.ERROR)
-        unuseds = pip_check_reqs.find_extra_reqs.find_extra_reqs(options)
+
+        # get all requirements
+        install_requires, extras_require, _, _ = pkg_utils.get_dependencies(dirname, include_specs=False, include_markers=False)
+        all_deps = set(install_requires)
+        for option, opt_deps in extras_require.items():
+            if option not in ['all', 'tests', 'docs']:
+                all_deps = all_deps | set(opt_deps)
+        all_deps = [dep.replace('_', '-') for dep in all_deps]
+
+        # find unused requirements
+        with mock.patch('pip_check_reqs.common.find_required_modules', return_value=all_deps):
+            unuseds = pip_check_reqs.find_extra_reqs.find_extra_reqs(options)
+
+        # correct for editablly-installed packages
+        useds = pip_check_reqs.common.find_imported_modules(options).keys()
+        useds = [used.partition('.')[0].replace('_', '-') for used in useds]
+        unuseds = list(set(unuseds).difference(set(useds)))
+
+        # return canonical names
         unuseds = [unused.replace('-', '_') for unused in unuseds]
-        return sorted(unuseds)
+
+        return unuseds
 
     def upload_package_to_pypi(self, dirname='.', repository='pypi', pypi_config_filename='~/.pypirc'):
         """ Upload a package to PyPI
