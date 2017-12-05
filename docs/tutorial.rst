@@ -119,6 +119,18 @@ Run this command to create a CircleCI build for a package instead of usign the C
     karr_lab_build_utils create-circleci-build
 
 
+Compile the downstream dependencies of a package
+------------------------------------------------
+
+Run this command to compile the downstream dependencies of your package::
+
+    karr_lab_build_utils compile-downstream-dependencies --packages-parent-dir ~/Documents
+
+Optionaly, add the ``--downstream-dependencies-filename`` option to save the dependencies to a YAML file::
+
+    karr_lab_build_utils compile-downstream-dependencies --packages-parent-dir ~/Documents --downstream-dependencies-filename .circleci/downstream_dependencies.yml
+
+
 Trigger CircleCI to test downstream dependencies of a package
 -------------------------------------------------------------
 

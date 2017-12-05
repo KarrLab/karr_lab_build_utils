@@ -5,6 +5,7 @@ codeclimate_test_reporter
 coverage < 4.4
 coveralls
 enum34
+graphviz
 # instrumental
 jinja2
 mock

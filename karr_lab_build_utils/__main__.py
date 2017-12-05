@@ -139,7 +139,7 @@ class RunTestsController(CementBaseController):
                 help='Type of coverage analysis to run {statemment, branch, or multiple-decision}')),
             (['--environment'], dict(
                 type=str, default='local',
-                help='Environment to run tests (local, docker, or circleci-local-executor)')),
+                help='Environment to run tests (local, docker, or circleci)')),
         ]
 
     @expose(hide=True)
@@ -149,7 +149,7 @@ class RunTestsController(CementBaseController):
         coverage_type = karr_lab_build_utils.core.CoverageType[args.coverage_type.lower().replace('-', '_')]
         buildHelper.run_tests(dirname=args.dirname, test_path=args.test_path, with_xunit=args.with_xunit,
                               with_coverage=args.with_coverage, coverage_dirname=args.coverage_dirname,
-                              coverage_type=coverage_type, environment=args.environment)
+                              coverage_type=coverage_type, environment=karr_lab_build_utils.core.Environment[args.environment])
 
 
 class MakeAndArchiveReportsController(CementBaseController):
@@ -297,7 +297,85 @@ class MakeDocumentationController(CementBaseController):
         buildHelper.make_documentation(spell_check=args.spell_check)
 
 
-class AnalyzePackage(CementBaseController):
+class CompileDownstreamDependenciesController(CementBaseController):
+    """ Compile the downstream dependencies of a package by analyzing the requirements files of other packages """
+
+    class Meta:
+        label = 'compile-downstream-dependencies'
+        description = 'Compile the downstream dependencies of a package by analyzing the requirements files of other packages'
+        stacked_on = 'base'
+        stacked_type = 'nested'
+        arguments = [
+            (['--dirname'], dict(
+                type=str, default='.', help='Path to package')),
+            (['--packages-parent-dir'], dict(
+                type=str, default='..', help='Path to the parent directory of the other packages')),
+            (['--downstream-dependencies-filename'], dict(
+                type=str, default=None, help='Path to save the downstream dependencies in YAML format')),
+        ]
+
+    @expose(hide=True)
+    def default(self):
+        args = self.app.pargs
+        buildHelper = BuildHelper()
+        packages = buildHelper.compile_downstream_dependencies(
+            dirname=args.dirname,
+            packages_parent_dir=args.packages_parent_dir,
+            downstream_dependencies_filename=args.downstream_dependencies_filename)
+
+        if packages:
+            print('The following downstream dependencies were found:')
+            for package in packages:
+                print('  {}'.format(package))
+        else:
+            print('No downstream packages were found.')
+
+
+class VisualizePackageDependenciesController(CementBaseController):
+    """ Visualize downstream package dependencies as a graph """
+
+    class Meta:
+        label = 'visualize-package-dependencies'
+        description = 'Visualize downstream package dependencies as a graph'
+        stacked_on = 'base'
+        stacked_type = 'nested'
+        arguments = [
+            (['--packages-parent-dir'], dict(
+                type=str, default='..', help='Path to the parent directory of the other packages')),
+            (['--out-filename'], dict(
+                type=str, default='../package_dependencies.pdf', help='Path to save the visualization')),
+        ]
+
+    @expose(hide=True)
+    def default(self):
+        args = self.app.pargs
+        buildHelper = BuildHelper()
+        buildHelper.visualize_package_dependencies(packages_parent_dir=args.packages_parent_dir, out_filename=args.out_filename)
+
+
+class TriggerTestsOfDownstreamDependenciesController(CementBaseController):
+    """ Trigger CircleCI to test downstream dependencies """
+
+    class Meta:
+        label = 'trigger-tests-of-downstream-dependencies'
+        description = 'Trigger CircleCI to test downstream dependencies'
+        stacked_on = 'base'
+        stacked_type = 'nested'
+        arguments = [
+            (['--downstream-dependencies-filename'], dict(
+                type=str, default='.circleci/downstream_dependencies.yml', help='Path to YAML-formatted list of downstream dependencies')),
+        ]
+
+    @expose(hide=True)
+    def default(self):
+        args = self.app.pargs
+        buildHelper = BuildHelper()
+        packages = buildHelper.trigger_tests_of_downstream_dependencies(
+            downstream_dependencies_filename=args.downstream_dependencies_filename)
+        print('{} dependent builds were triggered.'.format(len(packages)))
+
+
+class AnalyzePackageController(CementBaseController):
     """ Perform static analyses of a package using Pylint """
 
     class Meta:
@@ -349,11 +427,11 @@ class FindMissingRequirementsController(CementBaseController):
             args.package_name, dirname=args.dirname, ignore_files=args.ignore_files)
         missing = sorted(missing, key=lambda m: m[0])
         if missing:
-            print('The following dependencies should likely be added to requirements.txt\n')
+            print('The following dependencies should likely be added to requirements.txt')
             for name, uses in missing:
                 for use in uses:
                     for filename, lineno in use.locations:
-                        print('  {:s}:{:d} dist={:s} module={:s}\n'.format(
+                        print('  {:s}:{:d} dist={:s} module={:s}'.format(
                             os.path.relpath(filename), lineno, name, use.modname))
         else:
             print('requirements.txt appears to contain all of the dependencies')
@@ -384,9 +462,9 @@ class FindUnusedRequirementsController(CementBaseController):
             args.package_name, dirname=args.dirname,
             ignore_files=args.ignore_files)
         if unuseds:
-            print('The following requirements from requirements.txt may not be necessary:\n')
+            print('The following requirements from requirements.txt may not be necessary:')
             for name in sorted(unuseds):
-                print('  {}\n'.format(name))
+                print('  {}'.format(name))
         else:
             print('All of the dependencies appear to be necessary')
 
@@ -436,7 +514,10 @@ class App(CementApp):
             UploadCoverageReportToCoverallsController,
             UploadCoverageReportToCodeClimateController,
             MakeDocumentationController,
-            AnalyzePackage,
+            CompileDownstreamDependenciesController,
+            VisualizePackageDependenciesController,
+            TriggerTestsOfDownstreamDependenciesController,
+            AnalyzePackageController,
             FindMissingRequirementsController,
             FindUnusedRequirementsController,
             UploadPackageToPypiController,

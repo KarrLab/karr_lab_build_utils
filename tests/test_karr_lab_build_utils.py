@@ -14,6 +14,7 @@ from karr_lab_build_utils import core
 from pkg_resources import resource_filename
 from six.moves import configparser
 import abduct
+import attrdict
 import capturer
 import imp
 import karr_lab_build_utils
@@ -29,6 +30,7 @@ import six
 import sys
 import tempfile
 import unittest
+import yaml
 
 # reload modules to get coverage correct
 imp.reload(core)
@@ -560,6 +562,154 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with self.construct_environment():
             with __main__.App(argv=['make-documentation']) as app:
                 app.run()
+
+    def test_compile_downstream_dependencies(self):
+        # create temp directory with temp packages
+        packages_parent_dir = tempfile.mkdtemp()
+        os.mkdir(os.path.join(packages_parent_dir, 'pkg_1'))
+        os.mkdir(os.path.join(packages_parent_dir, 'pkg_2'))
+        os.mkdir(os.path.join(packages_parent_dir, 'pkg_3'))
+        os.mkdir(os.path.join(packages_parent_dir, 'pkg_1', '.circleci'))
+        os.mkdir(os.path.join(packages_parent_dir, 'pkg_2', '.circleci'))
+        os.mkdir(os.path.join(packages_parent_dir, 'pkg_3', '.circleci'))
+        with open(os.path.join(packages_parent_dir, 'pkg_1', '.circleci', 'config.yml'), 'w') as file:
+            pass
+        with open(os.path.join(packages_parent_dir, 'pkg_2', '.circleci', 'config.yml'), 'w') as file:
+            pass
+        with open(os.path.join(packages_parent_dir, 'pkg_3', '.circleci', 'config.yml'), 'w') as file:
+            pass
+        with open(os.path.join(packages_parent_dir, 'pkg_1', 'requirements.txt'), 'w') as file:
+            file.write('dep_1\n')
+            file.write('git+https://github.com/KarrLab/karr_lab_build_utils.git#egg=karr_lab_build_utils\n')
+            file.write('dep_2\n')
+        with open(os.path.join(packages_parent_dir, 'pkg_2', 'requirements.txt'), 'w') as file:
+            file.write('dep_3\n')
+            file.write('dep_4\n')
+            file.write('dep_5\n')
+        with open(os.path.join(packages_parent_dir, 'pkg_3', 'requirements.txt'), 'w') as file:
+            file.write('dep_6\n')
+            file.write('dep_7\n')
+            file.write('git+https://github.com/KarrLab/karr_lab_build_utils.git#egg=karr_lab_build_utils\n')
+
+        # create temp filename to save dependencies
+        tmp_file, downstream_dependencies_filename = tempfile.mkstemp(suffix='.yml')
+        os.close(tmp_file)
+        os.remove(downstream_dependencies_filename)
+
+        # test api
+        build_helper = core.BuildHelper()
+        deps = build_helper.compile_downstream_dependencies(
+            packages_parent_dir=packages_parent_dir,
+            downstream_dependencies_filename=downstream_dependencies_filename)
+        self.assertEqual(sorted(deps), ['pkg_1', 'pkg_3'])
+
+        with open(downstream_dependencies_filename, 'r') as file:
+            self.assertEqual(sorted(yaml.load(file.read())), ['pkg_1', 'pkg_3'])
+
+        with open(os.path.join(packages_parent_dir, 'pkg_1', 'setup.cfg'), 'w') as file:
+            file.write('[coverage:run]\n')
+            file.write('source = \n')
+            file.write('    pkg_1\n')
+            file.write('    mod_2\n')
+        with self.assertRaisesRegexp(core.BuildHelperError, 'Package should have only one module'):
+            deps = build_helper.compile_downstream_dependencies(
+                dirname=os.path.join(packages_parent_dir, 'pkg_1'),
+                packages_parent_dir=packages_parent_dir,
+                downstream_dependencies_filename=downstream_dependencies_filename)
+
+        # test cli
+        with self.construct_environment():
+            with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                with __main__.App(argv=['compile-downstream-dependencies', '--packages-parent-dir', packages_parent_dir]) as app:
+                    app.run()
+                    self.assertRegexpMatches(captured.stdout.get_text(), '^The following downstream dependencies were found')
+                    self.assertEqual(captured.stderr.get_text(), '')
+
+        with self.construct_environment():
+            with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                with __main__.App(argv=['compile-downstream-dependencies',
+                                        '--packages-parent-dir', os.path.join(packages_parent_dir, 'pkg_1')]) as app:
+                    app.run()
+                    self.assertEqual(captured.stdout.get_text(), 'No downstream packages were found.')
+                    self.assertEqual(captured.stderr.get_text(), '')
+
+        # cleanup
+        shutil.rmtree(packages_parent_dir)
+        os.remove(downstream_dependencies_filename)
+
+    def test_visualize_package_dependencies(self):
+        packages_parent_dir = tempfile.mkdtemp()
+        os.mkdir(os.path.join(packages_parent_dir, 'pkg_1'))
+        os.mkdir(os.path.join(packages_parent_dir, 'pkg_2'))
+        os.mkdir(os.path.join(packages_parent_dir, 'pkg_3'))
+        os.mkdir(os.path.join(packages_parent_dir, 'pkg_1', '.circleci'))
+        os.mkdir(os.path.join(packages_parent_dir, 'pkg_2', '.circleci'))
+        os.mkdir(os.path.join(packages_parent_dir, 'pkg_3', '.circleci'))
+        with open(os.path.join(packages_parent_dir, 'pkg_1', '.circleci', 'config.yml'), 'w') as file:
+            pass
+        with open(os.path.join(packages_parent_dir, 'pkg_2', '.circleci', 'config.yml'), 'w') as file:
+            pass
+        with open(os.path.join(packages_parent_dir, 'pkg_3', '.circleci', 'config.yml'), 'w') as file:
+            pass
+        with open(os.path.join(packages_parent_dir, 'pkg_1', '.circleci', 'downstream_dependencies.yml'), 'w') as file:
+            file.write('- pkg_2\n')
+        with open(os.path.join(packages_parent_dir, 'pkg_2', '.circleci', 'downstream_dependencies.yml'), 'w') as file:
+            file.write('- pkg_3\n')
+        with open(os.path.join(packages_parent_dir, 'pkg_3', '.circleci', 'downstream_dependencies.yml'), 'w') as file:
+            file.write('- pkg_1\n')
+
+        tmp_file, out_filename = tempfile.mkstemp(suffix='.pdf')
+        os.close(tmp_file)
+        os.remove(out_filename)
+
+        # test api
+        build_helper = core.BuildHelper()
+        build_helper.visualize_package_dependencies(packages_parent_dir=packages_parent_dir, out_filename=out_filename)
+        self.assertTrue(os.path.isfile(out_filename))
+
+        os.remove(out_filename)
+
+        # test cli
+        with self.construct_environment():
+            with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                with __main__.App(argv=['visualize-package-dependencies',
+                                        '--packages-parent-dir', packages_parent_dir,
+                                        '--out-filename', out_filename]) as app:
+                    app.run()
+                    self.assertTrue(os.path.isfile(out_filename))
+                    self.assertEqual(captured.stdout.get_text(), '')
+                    self.assertEqual(captured.stderr.get_text(), '')
+
+        # cleanup
+        shutil.rmtree(packages_parent_dir)
+        os.remove(out_filename)
+
+    def test_trigger_tests_of_downstream_dependencies(self):
+        # test api
+        tmp_file, downstream_dependencies_filename = tempfile.mkstemp(suffix='.yml')
+        os.close(tmp_file)
+        with open(downstream_dependencies_filename, 'w') as file:
+            yaml.dump(['dep_1', 'dep_2'], file)
+
+        build_helper = core.BuildHelper()
+        with mock.patch('requests.post', return_value=attrdict.AttrDict({'raise_for_status': lambda: None})):
+            deps = build_helper.trigger_tests_of_downstream_dependencies(downstream_dependencies_filename=downstream_dependencies_filename)
+            self.assertEqual(deps, ['dep_1', 'dep_2'])
+
+            deps = build_helper.trigger_tests_of_downstream_dependencies(downstream_dependencies_filename='__junk__')
+            self.assertEqual(deps, [])
+
+        # test cli
+        with self.construct_environment():
+            with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                with __main__.App(argv=['trigger-tests-of-downstream-dependencies']) as app:
+                    with mock.patch('requests.post', return_value=attrdict.AttrDict({'raise_for_status': lambda: None})):
+                        app.run()
+                    self.assertRegexpMatches(captured.stdout.get_text(), ' dependent builds were triggered.')
+                    self.assertEqual(captured.stderr.get_text(), '')
+
+        # cleanup
+        os.remove(downstream_dependencies_filename)
 
     def test_analyze_package(self):
         # test api

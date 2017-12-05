@@ -20,6 +20,7 @@ import coverage
 import coveralls
 import enum
 import glob
+import graphviz
 # import instrumental.api
 import json
 import karr_lab_build_utils
@@ -51,6 +52,13 @@ class CoverageType(enum.Enum):
     branch = 1
     multiple_condition = 2
     decision = 2
+
+
+class Environment(enum.Enum):
+    """ Environments to run tests """
+    local = 0
+    docker = 1
+    circleci = 2
 
 
 class BuildHelper(object):
@@ -288,7 +296,7 @@ class BuildHelper(object):
         """ Create GitHub webhook for CodeClimate
 
         Raises:
-            :obj:`ValueError`: if webook wasn't created and didn't already exist
+            :obj:`ValueError`: if webhook wasn't created and didn't already exist
         """
         url = '{}/repos/{}/{}/hooks'.format(self.GITHUB_API_ENDPOINT, self.repo_owner, self.repo_name)
         response = requests.post(url, auth=(self.github_username, self.github_password), json={
@@ -361,7 +369,7 @@ class BuildHelper(object):
     # Running tests
     ########################
     def run_tests(self, dirname='.', test_path='tests', with_xunit=False, with_coverage=False, coverage_dirname='.',
-                  coverage_type=CoverageType.statement, environment='local', exit_on_failure=True):
+                  coverage_type=CoverageType.statement, environment=Environment.local, exit_on_failure=True):
         """ Run unit tests located at `test_path`.
 
         Optionally, generate a coverage report.
@@ -384,15 +392,15 @@ class BuildHelper(object):
         Raises:
             :obj:`BuildHelperError`: If the environment is not supported or the package directory not set
         """
-        if environment == 'local':
+        if environment == Environment.local:
             self._run_tests_local(dirname=dirname, test_path=test_path, with_xunit=with_xunit,
                                   with_coverage=with_coverage, coverage_dirname=coverage_dirname,
                                   coverage_type=coverage_type, exit_on_failure=exit_on_failure)
-        elif environment == 'docker':
+        elif environment == Environment.docker:
             self._run_tests_docker(dirname=dirname, test_path=test_path, with_xunit=with_xunit,
                                    with_coverage=with_coverage, coverage_dirname=coverage_dirname,
                                    coverage_type=coverage_type, exit_on_failure=exit_on_failure)
-        elif environment == 'circleci-local-executor':
+        elif environment == Environment.circleci:
             self._run_tests_circleci(dirname=dirname, test_path=test_path, with_xunit=with_xunit,
                                      with_coverage=with_coverage, coverage_dirname=coverage_dirname,
                                      coverage_type=coverage_type, exit_on_failure=exit_on_failure)
@@ -881,6 +889,99 @@ class BuildHelper(object):
                 self.proj_docs_build_spelling_dir,
             ])
 
+    def compile_downstream_dependencies(self, dirname='.', packages_parent_dir='..', downstream_dependencies_filename=None):
+        """ Compile the downstream dependencies of a package and save them to :obj:`downstream_dependencies_filename`
+
+        Args:
+            dirname (:obj:`str`, optional): path to package
+            packages_parent_dir (:obj:`str`, optional): path to the parent directory of the packages
+            downstream_dependencies_filename (:obj:`str`, optional): path to save list of downstream dependencies in YAML format
+
+        Returns:
+            :obj:`list` of :obj:`str`: downstream dependencies
+
+        Raises:
+            :obj:`BuildHelperError`: if a package has more than one module
+        """
+
+        packages_parent_dir = os.path.abspath(packages_parent_dir)
+
+        # get the name of the current package
+        parser = configparser.ConfigParser()
+        parser.read(os.path.join(dirname, 'setup.cfg'))
+        tmp = parser.get('coverage:run', 'source').strip().split('\n')
+        if len(tmp) != 1:
+            raise BuildHelperError('Package should have only one module')
+        this_pkg_name = tmp[0]
+
+        # collect the downstream dependencies by analyzing the requirements files of other packages
+        downstream_dependencies = []
+        for dirname in glob.glob(os.path.join(packages_parent_dir, '*')):
+            if os.path.isdir(dirname) and os.path.isfile(os.path.join(dirname, '.circleci/config.yml')):
+                other_pkg_name = dirname[len(packages_parent_dir) + 1:]
+                install_requires, extras_require, _, _ = pkg_utils.get_dependencies(
+                    dirname, include_extras=False, include_specs=False, include_markers=False)
+                if this_pkg_name in install_requires or this_pkg_name in extras_require['all']:
+                    downstream_dependencies.append(other_pkg_name)
+
+        # save the downstream dependencies to a file
+        if downstream_dependencies_filename:
+            with open(downstream_dependencies_filename, 'w') as file:
+                yaml.dump(downstream_dependencies, file, default_flow_style=False)
+
+        # return the downstream dependencies
+        return downstream_dependencies
+
+    def visualize_package_dependencies(self, packages_parent_dir='..', out_filename='../package_dependencies.pdf'):
+        """ Visualize downstream package dependencies as a graph
+
+        Args:
+            packages_parent_dir (:obj:`str`, optional): path to the parent directory of the packages
+            out_filename (:obj:`str`, optional): path to save visualization
+        """
+
+        basename, format = os.path.splitext(out_filename)
+        dot = graphviz.Digraph(format=format[1:])
+
+        for dirname in glob.glob(os.path.join(packages_parent_dir, '*')):
+            if os.path.isdir(dirname) and os.path.isfile(os.path.join(dirname, '.circleci/config.yml')):
+                # get package name
+                pkg = dirname[len(packages_parent_dir) + 1:]
+
+                # create node for package
+                dot.node(pkg, pkg)
+
+                # create edges for dependencies
+                dep_filename = os.path.join(dirname, '.circleci/downstream_dependencies.yml')
+                if os.path.isfile(dep_filename):
+                    with open(dep_filename, 'r') as file:
+                        deps = yaml.load(file)
+                    for other_pkg in deps:
+                        dot.edge(pkg, other_pkg)
+
+        dot.render(filename=basename)
+
+    def trigger_tests_of_downstream_dependencies(self, downstream_dependencies_filename='.circleci/downstream_dependencies.yml'):
+        """ Trigger CircleCI to test downstream dependencies listed in :obj:`downstream_dependencies_filename`
+
+        Args:
+            downstream_dependencies_filename (:obj:`str`, optional): path to YAML file which contains a list of downstream dependencies
+        """
+        if os.path.isfile(downstream_dependencies_filename):
+            with open(downstream_dependencies_filename, 'r') as file:
+                packages = yaml.load(file)
+        else:
+            packages = []
+
+        for package in packages:
+            branch = 'master'
+            url = '{}/project/{}/{}/{}/tree/{}?circle-token={}'.format(
+                self.CIRCLE_API_ENDPOINT, self.repo_type, self.repo_owner, package, branch, self.circle_api_token)
+            response = requests.post(url)
+            response.raise_for_status()
+
+        return packages
+
     def get_version(self):
         """ Get the version of this package
 
@@ -981,7 +1082,8 @@ class BuildHelper(object):
         missing = pip_check_reqs.find_missing_reqs.find_missing_reqs(options)
 
         # filter out optional dependencies
-        install_requires, extras_require, _, _ = pkg_utils.get_dependencies(dirname, include_specs=False, include_markers=False)
+        install_requires, extras_require, _, _ = pkg_utils.get_dependencies(
+            dirname, include_extras=False, include_specs=False, include_markers=False)
         all_deps = install_requires
         for option, opt_deps in extras_require.items():
             if option not in ['all', 'tests', 'docs']:
@@ -1012,7 +1114,8 @@ class BuildHelper(object):
         pip_check_reqs.find_extra_reqs.log.setLevel(logging.ERROR)
 
         # get all requirements
-        install_requires, extras_require, _, _ = pkg_utils.get_dependencies(dirname, include_specs=False, include_markers=False)
+        install_requires, extras_require, _, _ = pkg_utils.get_dependencies(
+            dirname, include_extras=False, include_specs=False, include_markers=False)
         all_deps = set(install_requires)
         for option, opt_deps in extras_require.items():
             if option not in ['all', 'tests', 'docs']:
