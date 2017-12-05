@@ -668,6 +668,8 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         else:
             password = os.getenv('TEST_PYPI_PASSWORD')
 
+        if not os.path.isdir('tests/fixtures/secret'):
+            os.makedirs('tests/fixtures/secret')
         pypi_config_filename = 'tests/fixtures/secret/.pypirc'
         with open(pypi_config_filename, 'w') as file:
             file.write('[distutils]\n')
