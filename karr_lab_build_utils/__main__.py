@@ -2,6 +2,7 @@ from cement.core.foundation import CementApp
 from cement.core.controller import CementBaseController, expose
 from karr_lab_build_utils.core import BuildHelper
 import karr_lab_build_utils
+import os
 import sys
 
 
@@ -315,6 +316,73 @@ class AnalyzePackage(CementBaseController):
         buildHelper.analyze_package(args.package_name, messages=messages)
 
 
+class FindMissingRequirementsController(CementBaseController):
+    """ Controller for finding missing requirements """
+
+    class Meta:
+        label = 'find-missing-requirements'
+        description = 'Finding missing requirements for a package.'
+        stacked_on = 'base'
+        stacked_type = 'nested'
+        arguments = [
+            (['package_name'], dict(
+                type=str, help='Package name')),
+            (['--dirname'], dict(
+                type=str, default='.', help='Path to package')),
+            (['--ignore-files'], dict(
+                action="append", default=[], help='Paths to ignore')),
+
+        ]
+
+    @expose(hide=True)
+    def default(self):
+        args = self.app.pargs
+        buildHelper = BuildHelper()
+        missing = buildHelper.find_missing_requirements(
+            args.package_name, dirname=args.dirname, ignore_files=args.ignore_files)
+        if missing:
+            print('The following dependencies should likely be added to requirements.txt\n')
+            for name, uses in missing:
+                for use in uses:
+                    for filename, lineno in use.locations:
+                        print('  {:s}:{:d} dist={:s} module={:s}\n'.format(
+                            os.path.relpath(filename), lineno, name, use.modname))
+        else:
+            print('requirements.txt appears to contain all of the dependencies')
+
+
+class FindUnusedRequirementsController(CementBaseController):
+    """ Controller for finding unused requirements """
+
+    class Meta:
+        label = 'find-unused-requirements'
+        description = 'Finding unused requirements for a package.'
+        stacked_on = 'base'
+        stacked_type = 'nested'
+        arguments = [
+            (['package_name'], dict(
+                type=str, help='Package name')),
+            (['--dirname'], dict(
+                type=str, default='.', help='Path to package')),
+            (['--ignore-file'], dict(
+                dest='ignore_files', action="append", default=[], help='Paths to ignore')),
+        ]
+
+    @expose(hide=True)
+    def default(self):
+        args = self.app.pargs
+        buildHelper = BuildHelper()
+        unuseds = buildHelper.find_unused_requirements(
+            args.package_name, dirname=args.dirname,
+            ignore_files=args.ignore_files)
+        if unuseds:
+            print('The following requirements from requirements.txt may not be necessary:\n')
+            for name in unuseds:
+                print('  {}\n'.format(name))
+        else:
+            print('All of the dependencies appear to be necessary')
+
+
 class UploadPackageToPypiController(CementBaseController):
     """ Upload package to PyPI
     """
@@ -361,6 +429,8 @@ class App(CementApp):
             UploadCoverageReportToCodeClimateController,
             MakeDocumentationController,
             AnalyzePackage,
+            FindMissingRequirementsController,
+            FindUnusedRequirementsController,
             UploadPackageToPypiController,
         ]
 

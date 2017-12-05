@@ -1,18 +1,21 @@
 abduct
+attrdict
 cement
 codeclimate_test_reporter
-configparser
 coverage < 4.4
 coveralls
 jinja2
 mock
 nose
+pip
+pip_check_reqs
 pylint
 pyyaml
 pytest
 requests
 git+https://github.com/KarrLab/pkg_utils.git#egg=pkg_utils[all]
 setuptools
+six
 sphinx
 sphinx_rtd_theme
 sphinxcontrib_spelling

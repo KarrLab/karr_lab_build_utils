@@ -1,7 +1,6 @@
 abduct
 cement
 codeclimate_test_reporter
-configparser
 coverage < 4.4
 coveralls
 nose

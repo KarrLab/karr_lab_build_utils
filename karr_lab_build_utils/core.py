@@ -7,7 +7,6 @@
 """
 
 from codeclimate_test_reporter.components.runner import Runner as CodeClimateRunner
-from configparser import ConfigParser
 from coverage import coverage
 from datetime import datetime
 from jinja2 import Template
@@ -15,14 +14,20 @@ from pylint import epylint
 from sphinx import build_main as sphinx_build
 from sphinx.apidoc import main as sphinx_apidoc
 from mock import patch
+from six.moves import configparser
 import abduct
+import attrdict
 import coveralls
 import glob
 import json
 import karr_lab_build_utils
+import logging
 import nose
 import os
 import pip
+import pip_check_reqs
+import pip_check_reqs.find_extra_reqs
+import pip_check_reqs.find_missing_reqs
 import pkg_resources
 import pytest
 import re
@@ -730,7 +735,7 @@ class BuildHelper(object):
             :obj:`ValueError`: if no package or more than one package is specified
         """
 
-        parser = ConfigParser()
+        parser = configparser.ConfigParser()
         parser.read(os.path.join(dirname, 'setup.cfg'))
         packages = parser.get('sphinx-apidocs', 'packages').strip().split('\n')
         if len(packages) != 1:
@@ -869,10 +874,7 @@ class BuildHelper(object):
 
         Args:
             package_name (:obj:`str`): name of the package to analyze
-            messages (:obj:`list` of :obj:`str`): list of Pylint checks
-
-        Raises:
-            :obj:`BuildHelperError`: if there any Pylint errors
+            messages (:obj:`list` of :obj:`str`): list of Pylint checks to perform
         """
 
         if messages is None:
@@ -901,6 +903,57 @@ class BuildHelper(object):
             '--score=n',
         ]
         epylint.lint(package_name, msg_opts + report_opts)
+
+    def find_missing_requirements(self, package_name, dirname='.', ignore_files=None):
+        """ Finding missing requirements
+
+        Args:
+            package_name (:obj:`str`): name of the package to analyze
+            dirname (:obj:`str`, optional): path to package
+            ignore_files (:obj:`list`, optional): files to ignore
+
+        Returns:
+            :obj:`list`: list of missing dependencies and their occurences in the code
+
+        :todo: support requirements.optional.txt
+        """
+
+        options = attrdict.AttrDict()
+        options.paths = [package_name]
+        options.ignore_files = pip_check_reqs.common.ignorer(ignore_files or [])
+        options.ignore_mods = pip_check_reqs.common.ignorer([])
+        options.verbose = False
+        options.debug = False
+        options.version = False
+        pip_check_reqs.find_missing_reqs.log.setLevel(logging.ERROR)
+
+        return pip_check_reqs.find_missing_reqs.find_missing_reqs(options)
+
+    def find_unused_requirements(self, package_name, dirname='.', ignore_files=None):
+        """ Finding unused_requirements
+
+        Args:
+            package_name (:obj:`str`): name of the package to analyze
+            dirname (:obj:`str`, optional): path to package
+            ignore_files (:obj:`list`, optional): files to ignore
+
+        Returns:
+            :obj:`list`: name of the unused dependencies
+
+        :todo: support requirements.optional.txt
+        """
+        options = attrdict.AttrDict()
+        options.paths = [package_name]
+        options.ignore_files = pip_check_reqs.common.ignorer(ignore_files or [])
+        options.ignore_mods = pip_check_reqs.common.ignorer([])
+        options.ignore_reqs = pip_check_reqs.common.ignorer([])
+        options.verbose = False
+        options.debug = False
+        options.version = False
+        pip_check_reqs.find_extra_reqs.log.setLevel(logging.ERROR)
+        unuseds = pip_check_reqs.find_extra_reqs.find_extra_reqs(options)
+        unuseds = [unused.replace('-', '_') for unused in unuseds]
+        return sorted(unuseds)
 
     def upload_package_to_pypi(self, dirname='.', repository='pypi', pypi_config_filename='~/.pypirc'):
         """ Upload a package to PyPI

@@ -12,9 +12,9 @@ from jinja2 import Template
 from karr_lab_build_utils import __main__
 from karr_lab_build_utils import core
 from pkg_resources import resource_filename
+from six.moves import configparser
 import abduct
 import capturer
-import configparser
 import imp
 import karr_lab_build_utils
 import karr_lab_build_utils.__init__
@@ -579,6 +579,68 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     app.run()
                     self.assertRegexpMatches(captured.stdout.get_text(), '\* Module karr_lab_build_utils.core')
                     self.assertEqual(captured.stderr.get_text().strip(), 'No config file found, using default configuration')
+
+    def test_find_missing_requirements(self):
+        # test api
+        build_helper = core.BuildHelper()
+        missing = build_helper.find_missing_requirements('karr_lab_build_utils', ignore_files=['karr_lab_build_utils/templates/*'])
+        self.assertEqual([m[0] for m in missing], ['pygit2'])
+
+        # test cli
+        with self.construct_environment():
+            with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                with __main__.App(argv=[
+                        'find-missing-requirements', 'karr_lab_build_utils',
+                        '--ignore-files', 'karr_lab_build_utils/templates/*']) as app:
+                    app.run()
+                    self.assertRegexpMatches(captured.stdout.get_text(), '^The following dependencies should likely be added to')
+                    self.assertEqual(captured.stderr.get_text(), '')
+
+        shutil.copy('requirements.txt', 'requirements.txt.save')
+        with open('requirements.txt', 'a') as file:
+            file.write('pygit2')
+        with self.construct_environment():
+            with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                with __main__.App(argv=[
+                        'find-missing-requirements', 'karr_lab_build_utils',
+                        '--ignore-files', 'karr_lab_build_utils/templates/*']) as app:
+                    app.run()
+                    self.assertEqual(captured.stdout.get_text(), 'requirements.txt appears to contain all of the dependencies')
+                    self.assertEqual(captured.stderr.get_text(), '')
+        os.remove('requirements.txt')
+        os.rename('requirements.txt.save', 'requirements.txt')
+
+    def test_find_unused_requirements(self):
+        # test api
+        build_helper = core.BuildHelper()
+        unused = build_helper.find_unused_requirements('karr_lab_build_utils', ignore_files=['karr_lab_build_utils/templates/*'])
+        self.assertEqual(unused, ['pkg_utils', 'sphinx_rtd_theme', 'sphinxcontrib_spelling', 'wheel'])
+
+        # test cli
+        with self.construct_environment():
+            with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                with __main__.App(argv=[
+                        'find-unused-requirements', 'karr_lab_build_utils',
+                        '--ignore-file', 'karr_lab_build_utils/templates/*']) as app:
+                    app.run()
+                    self.assertRegexpMatches(captured.stdout.get_text(),
+                                             '^The following requirements from requirements.txt may not be necessary:\n')
+                    self.assertEqual(captured.stderr.get_text(), '')
+
+        os.rename('requirements.txt', 'requirements.txt.save')
+        with open('requirements.txt', 'w') as file:
+            pass
+        with self.construct_environment():
+            with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                with __main__.App(argv=[
+                        'find-unused-requirements', 'karr_lab_build_utils',
+                        '--ignore-file', 'karr_lab_build_utils/templates/*',
+                ]) as app:
+                    app.run()
+                    self.assertEqual(captured.stdout.get_text(), 'All of the dependencies appear to be necessary')
+                    self.assertEqual(captured.stderr.get_text(), '')
+        os.remove('requirements.txt')
+        os.rename('requirements.txt.save', 'requirements.txt')
 
     def test_upload_package_to_pypi(self):
         dirname = 'tests/fixtures/karr_lab_build_utils_test_package'
