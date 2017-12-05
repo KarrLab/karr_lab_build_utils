@@ -7,7 +7,6 @@
 """
 
 from codeclimate_test_reporter.components.runner import Runner as CodeClimateRunner
-from coverage import coverage
 from datetime import datetime
 from jinja2 import Template
 from pylint import epylint
@@ -17,8 +16,11 @@ from mock import patch
 from six.moves import configparser
 import abduct
 import attrdict
+import coverage
 import coveralls
+import enum
 import glob
+# import instrumental.api
 import json
 import karr_lab_build_utils
 import logging
@@ -39,6 +41,14 @@ import tempfile
 import time
 import twine.commands.upload
 import yaml
+
+
+class CoverageType(enum.Enum):
+    """ Types of coverage """
+    statement = 0
+    branch = 1
+    multiple_condition = 2
+    decision = 2
 
 
 class BuildHelper(object):
@@ -348,8 +358,8 @@ class BuildHelper(object):
     ########################
     # Running tests
     ########################
-    def run_tests(self, test_path='tests', with_xunit=False, with_coverage=False, coverage_dirname='.',
-                  environment='local', exit_on_failure=True):
+    def run_tests(self, dirname='.', test_path='tests', with_xunit=False, with_coverage=False, coverage_dirname='.',
+                  coverage_type=CoverageType.statement, environment='local', exit_on_failure=True):
         """ Run unit tests located at `test_path`.
 
         Optionally, generate a coverage report.
@@ -360,10 +370,12 @@ class BuildHelper(object):
         configuration is in https://coverage.readthedocs.io/en/coverage-4.2/config.html
 
         Args:
+            dirname (:obj:`str`, optional): path to package that should be tested
             test_path (:obj:`str`, optional): path to tests that should be run            
             with_xunit (:obj:`bool`, optional): whether or not to save test results
             with_coverage (:obj:`bool`, optional): whether or not coverage should be assessed
             coverage_dirname (:obj:`str`, optional): directory to save coverage data
+            coverage_type (:obj:`CoverageType`, optional): type of coverage to run when :obj:`with_coverage` is :obj:`True`
             environment (:obj:`str`, optional): environment to run tests (local, docker, or circleci-local-executor)
             exit_on_failure (:obj:`bool`, optional): whether or not to exit on test failure
 
@@ -371,22 +383,22 @@ class BuildHelper(object):
             :obj:`BuildHelperError`: If the environment is not supported or the package directory not set
         """
         if environment == 'local':
-            self._run_tests_local(test_path=test_path, with_xunit=with_xunit,
+            self._run_tests_local(dirname=dirname, test_path=test_path, with_xunit=with_xunit,
                                   with_coverage=with_coverage, coverage_dirname=coverage_dirname,
-                                  exit_on_failure=exit_on_failure)
+                                  coverage_type=coverage_type, exit_on_failure=exit_on_failure)
         elif environment == 'docker':
-            self._run_tests_docker(test_path=test_path, with_xunit=with_xunit,
+            self._run_tests_docker(dirname=dirname, test_path=test_path, with_xunit=with_xunit,
                                    with_coverage=with_coverage, coverage_dirname=coverage_dirname,
-                                   exit_on_failure=exit_on_failure)
+                                   coverage_type=coverage_type, exit_on_failure=exit_on_failure)
         elif environment == 'circleci-local-executor':
-            self._run_tests_circleci(test_path=test_path, with_xunit=with_xunit,
+            self._run_tests_circleci(dirname=dirname, test_path=test_path, with_xunit=with_xunit,
                                      with_coverage=with_coverage, coverage_dirname=coverage_dirname,
-                                     exit_on_failure=exit_on_failure)
+                                     coverage_type=coverage_type, exit_on_failure=exit_on_failure)
         else:
             raise BuildHelperError('Unsupported environment: {}'.format(environment))
 
-    def _run_tests_local(self, test_path='tests', with_xunit=False, with_coverage=False, coverage_dirname='.',
-                         exit_on_failure=True):
+    def _run_tests_local(self, dirname='.', test_path='tests', with_xunit=False, with_coverage=False, coverage_dirname='.',
+                         coverage_type=CoverageType.statement, exit_on_failure=True):
         """ Run unit tests located at `test_path` locally
 
         Optionally, generate a coverage report.
@@ -397,10 +409,12 @@ class BuildHelper(object):
         configuration is in https://coverage.readthedocs.io/en/coverage-4.2/config.html
 
         Args:
-            test_path (:obj:`str`, optional): path to tests that should be run            
+            dirname (:obj:`str`, optional): path to package that should be tested
+            test_path (:obj:`str`, optional): path to tests that should be run
             with_xunit (:obj:`bool`, optional): whether or not to save test results
             with_coverage (:obj:`bool`, optional): whether or not coverage should be assessed
             coverage_dirname (:obj:`str`, optional): directory to save coverage data
+            coverage_type (:obj:`CoverageType`, optional): type of coverage to run when :obj:`with_coverage` is :obj:`True`
             exit_on_failure (:obj:`bool`, optional): whether or not to exit on test failure
 
         Raises:
@@ -412,8 +426,41 @@ class BuildHelper(object):
             self.proj_tests_xml_dir, '{0}.{1}.xml'.format(self.proj_tests_xml_latest_filename, py_v))
 
         if with_coverage:
-            cov = coverage(data_file=os.path.join(coverage_dirname, '.coverage'), data_suffix=py_v, config_file=True)
-            cov.start()
+            if coverage_type == CoverageType.statement:
+                cov = coverage.coverage(data_file=os.path.join(coverage_dirname, '.coverage'),
+                                        data_suffix=py_v, config_file=True)
+                cov.start()
+            elif coverage_type == CoverageType.branch:
+                cov = coverage.coverage(data_file=os.path.join(coverage_dirname, '.coverage'),
+                                        data_suffix=py_v, config_file=True, branch=True)
+                cov.start()
+            # elif coverage_type == CoverageType.multiple_condition:
+            #     # :todo: support instrumental once its dependency astkit is updated for Python 3
+            #     parser = configparser.ConfigParser()
+            #     parser.read(os.path.join(dirname, 'setup.cfg'))
+            #     targets = parser.get('coverage:run', 'source').strip().split('\n')
+            #     targets = [target.strip() for target in targets]
+            #
+            #     opts = attrdict.AttrDict({
+            #         'file': os.path.join(coverage_dirname, '.coverage.' + py_v),
+            #         'report': False,
+            #         'label': False,
+            #         'summary': False,
+            #         'statements': False,
+            #         'xml': False,
+            #         'html': False,
+            #         'all': False,
+            #         'targets': targets,
+            #         'ignores': [],
+            #         'report_conditions_with_literals': False,
+            #         'instrument_assertions': True,
+            #         'use_metadata_cache': False,
+            #         'instrument_comparisons': True,
+            #     })
+            #     cov = instrumental.api.Coverage(opts, os.getcwd())
+            #     cov.start(opts.targets, opts.ignores)
+            else:
+                raise BuildHelperError('Unsupported coverage type: {}'.format(coverage_type))
 
         if with_xunit and not os.path.isdir(self.proj_tests_xml_dir):
             os.makedirs(self.proj_tests_xml_dir)
@@ -446,8 +493,8 @@ class BuildHelper(object):
         if exit_on_failure and result != 0:
             sys.exit(1)
 
-    def _run_tests_docker(self, test_path='tests', with_xunit=False, with_coverage=False, coverage_dirname='.',
-                          exit_on_failure=True):
+    def _run_tests_docker(self, dirname='.', test_path='tests', with_xunit=False, with_coverage=False, coverage_dirname='.',
+                          coverage_type=CoverageType.statement, exit_on_failure=True):
         """ Run unit tests located at `test_path` using a Docker image
 
         Optionally, generate a coverage report.
@@ -458,10 +505,12 @@ class BuildHelper(object):
         configuration is in https://coverage.readthedocs.io/en/coverage-4.2/config.html
 
         Args:
+            dirname (:obj:`str`, optional): path to package that should be tested
             test_path (:obj:`str`, optional): path to tests that should be run            
             with_xunit (:obj:`bool`, optional): whether or not to save test results
             with_coverage (:obj:`bool`, optional): whether or not coverage should be assessed
             coverage_dirname (:obj:`str`, optional): directory to save coverage data
+            coverage_type (:obj:`CoverageType`, optional): type of coverage to run when :obj:`with_coverage` is :obj:`True`
             exit_on_failure (:obj:`bool`, optional): whether or not to exit on test failure
 
         Raises:
@@ -523,8 +572,8 @@ class BuildHelper(object):
 
         return valid
 
-    def _run_tests_circleci(self, test_path='tests', with_xunit=False, with_coverage=False, coverage_dirname='.',
-                            exit_on_failure=True):
+    def _run_tests_circleci(self, dirname='.', test_path='tests', with_xunit=False, with_coverage=False, coverage_dirname='.',
+                            coverage_type=CoverageType.statement, exit_on_failure=True):
         """ Run unit tests located at `test_path` using the CircleCI local executor
 
         Optionally, generate a coverage report.
@@ -535,10 +584,12 @@ class BuildHelper(object):
         configuration is in https://coverage.readthedocs.io/en/coverage-4.2/config.html
 
         Args:
+            dirname (:obj:`str`, optional): path to package that should be tested
             test_path (:obj:`str`, optional): path to tests that should be run            
             with_xunit (:obj:`bool`, optional): whether or not to save test results
             with_coverage (:obj:`bool`, optional): whether or not coverage should be assessed
             coverage_dirname (:obj:`str`, optional): directory to save coverage data
+            coverage_type (:obj:`CoverageType`, optional): type of coverage to run when :obj:`with_coverage` is :obj:`True`
             exit_on_failure (:obj:`bool`, optional): whether or not to exit on test failure
 
         Raises:
@@ -660,7 +711,7 @@ class BuildHelper(object):
             shutil.copyfile(name, data_path)
             data_paths.append(data_path)
 
-        coverage_doc = coverage(data_file=os.path.join(coverage_dirname, '.coverage'))
+        coverage_doc = coverage.coverage(data_file=os.path.join(coverage_dirname, '.coverage'))
         coverage_doc.combine(data_paths=data_paths)
         coverage_doc.save()
 
@@ -694,7 +745,7 @@ class BuildHelper(object):
                                          service_name='circle-ci', service_job_id=self.build_num)
 
             def get_coverage():
-                workman = coverage(data_file=os.path.join(coverage_dirname, '.coverage'))
+                workman = coverage.coverage(data_file=os.path.join(coverage_dirname, '.coverage'))
                 workman.load()
                 workman.get_data()
 

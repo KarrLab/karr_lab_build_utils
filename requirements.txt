@@ -4,6 +4,8 @@ cement
 codeclimate_test_reporter
 coverage < 4.4
 coveralls
+enum34
+# instrumental
 jinja2
 mock
 nose

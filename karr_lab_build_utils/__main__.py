@@ -125,24 +125,31 @@ class RunTestsController(CementBaseController):
         stacked_type = 'nested'
         arguments = [
             (['test_path'], dict(
-                default='tests', type=str, help='path to tests that should be run')),
+                type=str, default='tests', help='path to tests to run')),
+            (['--dirname'], dict(
+                type=str, default='.', help='path to package to test')),
             (['--with-xunit'], dict(
-                default=False, dest='with_xunit', action='store_true', help='True/False to save test results to XML file')),
+                default=False, action='store_true', help='True/False to save test results to XML file')),
             (['--with-coverage'], dict(
-                default=False, dest='with_coverage', action='store_true', help='True/False to assess code coverage')),
+                default=False, action='store_true', help='True/False to assess code coverage')),
             (['--coverage-dirname'], dict(
-                default='.', dest='coverage_dirname', help='Directory to store coverage data')),
+                type=str, default='.', help='Directory to store coverage data')),
+            (['--coverage-type'], dict(
+                type=str, default='statement',
+                help='Type of coverage analysis to run {statemment, branch, or multiple-decision}')),
             (['--environment'], dict(
-                type=str, default='local', help='Environment to run tests (local, docker, or circleci-local-executor)')),
+                type=str, default='local',
+                help='Environment to run tests (local, docker, or circleci-local-executor)')),
         ]
 
     @expose(hide=True)
     def default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
-        buildHelper.run_tests(test_path=args.test_path, with_xunit=args.with_xunit,
+        coverage_type = karr_lab_build_utils.core.CoverageType[args.coverage_type.lower().replace('-', '_')]
+        buildHelper.run_tests(dirname=args.dirname, test_path=args.test_path, with_xunit=args.with_xunit,
                               with_coverage=args.with_coverage, coverage_dirname=args.coverage_dirname,
-                              environment=args.environment)
+                              coverage_type=coverage_type, environment=args.environment)
 
 
 class MakeAndArchiveReportsController(CementBaseController):

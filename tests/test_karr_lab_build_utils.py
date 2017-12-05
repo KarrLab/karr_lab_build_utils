@@ -25,6 +25,7 @@ import pip
 import pytest
 import requests
 import shutil
+import six
 import sys
 import tempfile
 import unittest
@@ -259,10 +260,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         shutil.rmtree(tempdirname)
 
     def test_run_tests(self):
-        self.help_run('pytest')
-        self.help_run('nose')
+        self.help_run('pytest', coverage_type=core.CoverageType.statement)
+        self.help_run('nose', coverage_type=core.CoverageType.branch)
+        with self.assertRaisesRegexp(core.BuildHelperError, '^Unsupported coverage type: '):
+            self.help_run('pytest', coverage_type=core.CoverageType.multiple_condition)
 
-    def help_run(self, test_runner):
+    def help_run(self, test_runner, coverage_type=core.CoverageType.statement):
         build_helper = self.construct_build_helper()
         build_helper.test_runner = test_runner
         py_v = build_helper.get_python_version()
@@ -284,7 +287,8 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         build_helper.run_tests(test_path=self.DUMMY_TEST,
                                with_xunit=True,
-                               with_coverage=True, coverage_dirname=self.coverage_dirname)
+                               with_coverage=True, coverage_dirname=self.coverage_dirname,
+                               coverage_type=coverage_type)
 
         self.assertTrue(os.path.isfile(latest_results_filename))
         self.assertTrue(os.path.isfile(lastest_cov_filename))
@@ -614,7 +618,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         # test api
         build_helper = core.BuildHelper()
         unused = build_helper.find_unused_requirements('karr_lab_build_utils', ignore_files=['karr_lab_build_utils/templates/*'])
-        self.assertEqual(unused, ['pkg_utils', 'sphinx_rtd_theme', 'sphinxcontrib_spelling', 'wheel'])
+        if six.PY3:
+            self.assertEqual(unused, ['enum34', 'pkg_utils', 'sphinx_rtd_theme', 'sphinxcontrib_spelling', 'wheel'])
+        else:
+            self.assertEqual(unused, ['pkg_utils', 'sphinx_rtd_theme', 'sphinxcontrib_spelling', 'wheel'])
 
         # test cli
         with self.construct_environment():
