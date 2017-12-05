@@ -691,13 +691,14 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with open(downstream_dependencies_filename, 'w') as file:
             yaml.dump(['dep_1', 'dep_2'], file)
 
-        build_helper = core.BuildHelper()
-        with mock.patch('requests.post', return_value=attrdict.AttrDict({'raise_for_status': lambda: None})):
-            deps = build_helper.trigger_tests_of_downstream_dependencies(downstream_dependencies_filename=downstream_dependencies_filename)
-            self.assertEqual(deps, ['dep_1', 'dep_2'])
+        with self.construct_environment():
+            build_helper = core.BuildHelper()
+            with mock.patch('requests.post', return_value=attrdict.AttrDict({'raise_for_status': lambda: None})):
+                deps = build_helper.trigger_tests_of_downstream_dependencies(downstream_dependencies_filename=downstream_dependencies_filename)
+                self.assertEqual(deps, ['dep_1', 'dep_2'])
 
-            deps = build_helper.trigger_tests_of_downstream_dependencies(downstream_dependencies_filename='__junk__')
-            self.assertEqual(deps, [])
+                deps = build_helper.trigger_tests_of_downstream_dependencies(downstream_dependencies_filename='__junk__')
+                self.assertEqual(deps, [])
 
         # test cli
         with self.construct_environment():
