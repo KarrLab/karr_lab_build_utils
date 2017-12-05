@@ -108,7 +108,7 @@ Find unused requirements for a package
 
 Run this command to identify potentially unused requirements for a package::
 
-    find-unused-requirements
+    karr_lab_build_utils find-unused-requirements
     
 
 Create a CircleCI build for a package
