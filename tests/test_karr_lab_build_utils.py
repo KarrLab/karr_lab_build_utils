@@ -557,6 +557,29 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with __main__.App(argv=['make-documentation']) as app:
                 app.run()
 
+    def test_analyze_package(self):
+        # test api
+        build_helper = core.BuildHelper()
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            build_helper.analyze_package('karr_lab_build_utils')
+            self.assertRegexpMatches(captured.stdout.get_text(), '\* Module karr_lab_build_utils.core')
+            self.assertEqual(captured.stderr.get_text().strip(), 'No config file found, using default configuration')
+
+        # test cli
+        with self.construct_environment():
+            with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                with __main__.App(argv=['analyze-package', 'karr_lab_build_utils']) as app:
+                    app.run()
+                    self.assertRegexpMatches(captured.stdout.get_text(), '\* Module karr_lab_build_utils.core')
+                    self.assertEqual(captured.stderr.get_text().strip(), 'No config file found, using default configuration')
+
+        with self.construct_environment():
+            with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                with __main__.App(argv=['analyze-package', 'karr_lab_build_utils', '--messages', 'W0611']) as app:
+                    app.run()
+                    self.assertRegexpMatches(captured.stdout.get_text(), '\* Module karr_lab_build_utils.core')
+                    self.assertEqual(captured.stderr.get_text().strip(), 'No config file found, using default configuration')
+
     def test_upload_package_to_pypi(self):
         dirname = 'tests/fixtures/karr_lab_build_utils_test_package'
 

@@ -11,12 +11,14 @@ from configparser import ConfigParser
 from coverage import coverage
 from datetime import datetime
 from jinja2 import Template
+from pylint import epylint
 from sphinx import build_main as sphinx_build
 from sphinx.apidoc import main as sphinx_apidoc
 from mock import patch
 import abduct
 import coveralls
 import glob
+import json
 import karr_lab_build_utils
 import nose
 import os
@@ -853,6 +855,52 @@ class BuildHelper(object):
 
             sys.stderr.flush()
             sys.exit(1)
+
+    def analyze_package(self, package_name, messages=None):
+        """ Perform static analyses of a package using Pylint. 
+
+        The default options will identify the following issues:
+
+        * Unused imported modules, classes, functions, and variables
+        * Reimported modules, classes, functions, and variables
+        * Wild card imports outside of __init__.py
+        * Duplicate arguments and keys
+        * Missing requirements
+
+        Args:
+            package_name (:obj:`str`): name of the package to analyze
+            messages (:obj:`list` of :obj:`str`): list of Pylint checks
+
+        Raises:
+            :obj:`BuildHelperError`: if there any Pylint errors
+        """
+
+        if messages is None:
+            messages = [
+                # variables
+                'W0611',  # unused-import
+                'W0614',  # unused-wildcard-import
+                'W0613',  # unused-argument
+                'W0612',  # unused-variable
+
+                # imports
+                'W0404',  # reimported
+                'W0401',  # wildcard-import
+
+                # similarities
+                'E0108',  # duplicate-argument-name
+                'W0109',  # duplicate-key
+            ]
+        msg_opts = [
+            '--disable=all',
+            '--enable=' + ','.join(messages),
+        ]
+
+        report_opts = [
+            '--reports=n',
+            '--score=n',
+        ]
+        epylint.lint(package_name, msg_opts + report_opts)
 
     def upload_package_to_pypi(self, dirname='.', repository='pypi', pypi_config_filename='~/.pypirc'):
         """ Upload a package to PyPI

@@ -289,6 +289,32 @@ class MakeDocumentationController(CementBaseController):
         buildHelper.make_documentation(spell_check=args.spell_check)
 
 
+class AnalyzePackage(CementBaseController):
+    """ Perform static analyses of a package using Pylint """
+
+    class Meta:
+        label = 'analyze-package'
+        description = 'Perform static analyses of a package using Pylint'
+        stacked_on = 'base'
+        stacked_type = 'nested'
+        arguments = [
+            (['package_name'], dict(
+                type=str, help='Name of the package to analyze')),
+            (['--messages'], dict(
+                type=str, default='', help='comma-separted list of ids of Pylint checks to run')),
+        ]
+
+    @expose(hide=True)
+    def default(self):
+        args = self.app.pargs
+        buildHelper = BuildHelper()
+        if args.messages:
+            messages = [msg.strip() for msg in args.messages.split(',')]
+        else:
+            messages = None
+        buildHelper.analyze_package(args.package_name, messages=messages)
+
+
 class UploadPackageToPypiController(CementBaseController):
     """ Upload package to PyPI
     """
@@ -300,11 +326,11 @@ class UploadPackageToPypiController(CementBaseController):
         stacked_type = 'nested'
         arguments = [
             (['--dirname'], dict(
-                default='.', help='Path to package (e.g. parent directory of setup.py)')),
+                type=str, default='.', help='Path to package (e.g. parent directory of setup.py)')),
             (['--repository'], dict(
-                default='pypi', help='Repository upload package (e.g. pypi or testpypi)')),
+                type=str, default='pypi', help='Repository upload package (e.g. pypi or testpypi)')),
             (['--pypi-config-filename'], dict(
-                default='~/.pypirc', help='Path to .pypirc file')),
+                type=str, default='~/.pypirc', help='Path to .pypirc file')),
         ]
 
     @expose(hide=True)
@@ -334,6 +360,7 @@ class App(CementApp):
             UploadCoverageReportToCoverallsController,
             UploadCoverageReportToCodeClimateController,
             MakeDocumentationController,
+            AnalyzePackage,
             UploadPackageToPypiController,
         ]
 
