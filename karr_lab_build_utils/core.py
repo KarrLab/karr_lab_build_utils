@@ -1014,10 +1014,10 @@ class BuildHelper(object):
             packages = []
 
         upstream_repo_name = os.getenv('UPSTREAM_REPONAME', None)
-        upstream_build_num = os.getenv('UPSTREAM_BUILD_NUM', None)
+        upstream_build_num = os.getenv('UPSTREAM_BUILD_NUM', '0')
         if upstream_repo_name is None:
             upstream_repo_name = self.repo_name
-            upstream_build_num = self.build_num
+            upstream_build_num = str(self.build_num)
 
         triggered_packages = []
         for package in packages:
