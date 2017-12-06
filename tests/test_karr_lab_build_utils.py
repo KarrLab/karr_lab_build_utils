@@ -832,6 +832,45 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         shutil.rmtree(packages_parent_dir)
         os.remove(out_filename)
 
+    def test_trigger_tests_of_downstream_dependencies_no_upstream(self):
+        tmp_file, downstream_dependencies_filename = tempfile.mkstemp(suffix='.yml')
+        os.close(tmp_file)
+        with open(downstream_dependencies_filename, 'w') as file:
+            yaml.dump(['dep_1', 'dep_2'], file)
+
+        requests_get = attrdict.AttrDict({
+            'raise_for_status': lambda: None,
+            'json': lambda: [{'build_parameters': []}],
+        })
+        requests_post = attrdict.AttrDict({
+            'raise_for_status': lambda: None,
+        })
+
+        env = self.construct_environment()
+
+        with env:
+            with mock.patch('requests.get', return_value=requests_get):
+                with mock.patch('requests.post', return_value=requests_post):
+                    # test api
+                    build_helper = core.BuildHelper()
+                    deps = build_helper.trigger_tests_of_downstream_dependencies(
+                        downstream_dependencies_filename=downstream_dependencies_filename)
+                    self.assertEqual(deps, ['dep_1', 'dep_2'])
+
+                    deps = build_helper.trigger_tests_of_downstream_dependencies(downstream_dependencies_filename='__junk__')
+                    self.assertEqual(deps, [])
+
+                    # test cli
+                    with __main__.App(argv=['trigger-tests-of-downstream-dependencies',
+                                            '--downstream-dependencies-filename', downstream_dependencies_filename]) as app:
+                        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                            app.run()
+                    self.assertRegexpMatches(captured.stdout.get_text(), '^2 dependent builds were triggered')
+                    self.assertEqual(captured.stderr.get_text(), '')
+
+        # cleanup
+        os.remove(downstream_dependencies_filename)
+
     def test_trigger_tests_of_downstream_dependencies_with_upstream(self):
         tmp_file, downstream_dependencies_filename = tempfile.mkstemp(suffix='.yml')
         os.close(tmp_file)
@@ -878,21 +917,33 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         # cleanup
         os.remove(downstream_dependencies_filename)
 
-    def test_trigger_tests_of_downstream_dependencies_no_upstream(self):
+    def test_trigger_tests_of_downstream_dependencies_trigger_original_upstream(self):
         tmp_file, downstream_dependencies_filename = tempfile.mkstemp(suffix='.yml')
         os.close(tmp_file)
         with open(downstream_dependencies_filename, 'w') as file:
-            yaml.dump(['dep_1', 'dep_2'], file)
+            yaml.dump(['dep_1'], file)
 
         requests_get = attrdict.AttrDict({
             'raise_for_status': lambda: None,
-            'json': lambda: [{'build_parameters': []}],
+            'json': lambda: [
+                {
+                    'build_num': 0,
+                    'build_parameters': {}
+                },
+                {
+                    'build_num': 1,
+                    'build_parameters': {}
+                },
+            ],
         })
         requests_post = attrdict.AttrDict({
             'raise_for_status': lambda: None,
         })
 
         env = self.construct_environment()
+        env.set('CIRCLE_PROJECT_REPONAME', 'dep_3')
+        env.set('UPSTREAM_REPONAME', 'dep_1')
+        env.set('UPSTREAM_BUILD_NUM', '1')
 
         with env:
             with mock.patch('requests.get', return_value=requests_get):
@@ -901,18 +952,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     build_helper = core.BuildHelper()
                     deps = build_helper.trigger_tests_of_downstream_dependencies(
                         downstream_dependencies_filename=downstream_dependencies_filename)
-                    self.assertEqual(deps, ['dep_1', 'dep_2'])
-
-                    deps = build_helper.trigger_tests_of_downstream_dependencies(downstream_dependencies_filename='__junk__')
                     self.assertEqual(deps, [])
-
-                    # test cli
-                    with __main__.App(argv=['trigger-tests-of-downstream-dependencies',
-                                            '--downstream-dependencies-filename', downstream_dependencies_filename]) as app:
-                        with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                            app.run()
-                    self.assertRegexpMatches(captured.stdout.get_text(), '^2 dependent builds were triggered')
-                    self.assertEqual(captured.stderr.get_text(), '')
 
         # cleanup
         os.remove(downstream_dependencies_filename)

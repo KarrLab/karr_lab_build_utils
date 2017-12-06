@@ -1179,8 +1179,8 @@ class BuildHelper(object):
 
             for build in builds:
                 if package == upstream_repo_name and \
-                    build['build_num'] == upstream_build_num and \
-                    build['build_num'] != str(self.build_num):
+                    str(build['build_num']) == upstream_build_num and \
+                    build['build_num'] != self.build_num:
                     already_triggered = True
                     break
 
