@@ -1034,7 +1034,7 @@ class BuildHelper(object):
             # this prevents building the same project multiple times, including infinite looping
             if builds:
                 build_parameters = builds[0]['build_parameters']
-                if 'UPSTREAM_REPONAME' in build_parameters and \
+                if build_parameters and 'UPSTREAM_REPONAME' in build_parameters and \
                         build_parameters['UPSTREAM_REPONAME'] == upstream_repo_name and \
                         build_parameters['UPSTREAM_BUILD_NUM'] == upstream_build_num:
                     continue
