@@ -916,6 +916,7 @@ class BuildHelper(object):
         this_pkg_name = tmp[0]
 
         # collect the downstream dependencies by analyzing the requirements files of other packages
+        # :todo: support branches
         downstream_dependencies = []
         for dirname in glob.glob(os.path.join(packages_parent_dir, '*')):
             if os.path.isdir(dirname) and os.path.isfile(os.path.join(dirname, '.circleci/config.yml')):
@@ -1002,6 +1003,7 @@ class BuildHelper(object):
             downstream_dependencies_filename (:obj:`str`, optional): path to YAML file which contains a list of downstream dependencies
 
         :todo: prevent circular triggering
+        :todo: support branches
         """
         if os.path.isfile(downstream_dependencies_filename):
             with open(downstream_dependencies_filename, 'r') as file:
@@ -1009,7 +1011,7 @@ class BuildHelper(object):
         else:
             packages = []
 
-        for package in packages:
+        for package in packages:            
             branch = 'master'
             url = '{}/project/{}/{}/{}/tree/{}?circle-token={}'.format(
                 self.CIRCLE_API_ENDPOINT, self.repo_type, self.repo_owner, package, branch, self.circle_api_token)
