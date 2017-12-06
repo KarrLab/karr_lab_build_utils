@@ -25,9 +25,9 @@ This package performs several aspects of the Karr Lab's build system:
 
   * Installs and upgrades all of the requirements of a package
   * Identifies missing and unused dependencies
-  * Compiles downstream package dependencies    
+  * Compiles downstream package dependencies
   * Visualizes downstream packages dependencies
-  * Checks for cycles in package dependencies 
+  * Checks for cycles in package dependencies
 
 * Continous integration with `CircleCI <https://circleci.com>`_
 

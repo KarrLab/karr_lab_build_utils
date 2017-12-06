@@ -19,12 +19,6 @@ class BaseController(CementBaseController):
         buildHelper = BuildHelper()
         buildHelper.archive_test_report()
 
-    @expose(help='Create CodeClimate GitHub webook for the current repository')
-    def create_codeclimate_github_webhook(self):
-        """ Create CodeClimate GitHub webook for the current repository """
-        buildHelper = BuildHelper()
-        buildHelper.create_codeclimate_github_webhook()
-
     @expose(help='Install requirements')
     def install_requirements(self):
         """ Install requirements """
@@ -154,6 +148,10 @@ class CreateCircleciBuildController(CementBaseController):
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
+            (['--repo-type'], dict(
+                type=str, default=None, help='Repository type (e.g., github)')),
+            (['--repo-owner'], dict(
+                type=str, default=None, help='Repository owner')),
             (['--repo-name'], dict(
                 type=str, default=None, help='Name of the repository to build. This defaults to the name of the current repository.')),
             (['--circleci-api-token'], dict(
@@ -164,7 +162,9 @@ class CreateCircleciBuildController(CementBaseController):
     def default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
-        buildHelper.create_circleci_build(repo_name=args.repo_name, circleci_api_token=args.circleci_api_token)
+        buildHelper.create_circleci_build(
+            repo_type=args.repo_type, repo_owner=args.repo_owner,
+            repo_name=args.repo_name, circleci_api_token=args.circleci_api_token)
 
 
 class GetCircleciEnvironmentVariablesController(CementBaseController):
@@ -175,6 +175,10 @@ class GetCircleciEnvironmentVariablesController(CementBaseController):
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
+            (['--repo-type'], dict(
+                type=str, default=None, help='Repository type (e.g., github)')),
+            (['--repo-owner'], dict(
+                type=str, default=None, help='Repository owner')),
             (['--repo-name'], dict(
                 type=str, default=None, help='Name of the repository to build. This defaults to the name of the current repository.')),
             (['--circleci-api-token'], dict(
@@ -185,7 +189,9 @@ class GetCircleciEnvironmentVariablesController(CementBaseController):
     def default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
-        vars = buildHelper.get_circleci_environment_variables(repo_name=args.repo_name, circleci_api_token=args.circleci_api_token)
+        vars = buildHelper.get_circleci_environment_variables(
+            repo_type=args.repo_type, repo_owner=args.repo_owner,
+            repo_name=args.repo_name, circleci_api_token=args.circleci_api_token)
         for key, val in vars.items():
             print('{}={}'.format(key, val))
 
@@ -202,6 +208,10 @@ class SetCircleciEnvironmentVariableController(CementBaseController):
                 type=str, help='Name of the environment variable.')),
             (['value'], dict(
                 type=str, help='Value of the environment variable.')),
+            (['--repo-type'], dict(
+                type=str, default=None, help='Repository type (e.g., github)')),
+            (['--repo-owner'], dict(
+                type=str, default=None, help='Repository owner')),
             (['--repo-name'], dict(
                 type=str, default=None, help='Name of the repository to build. This defaults to the name of the current repository.')),
             (['--circleci-api-token'], dict(
@@ -213,7 +223,9 @@ class SetCircleciEnvironmentVariableController(CementBaseController):
         args = self.app.pargs
         buildHelper = BuildHelper()
         buildHelper.set_circleci_environment_variables(
-            {args.name: args.value}, repo_name=args.repo_name, circleci_api_token=args.circleci_api_token)
+            {args.name: args.value},
+            repo_type=args.repo_type, repo_owner=args.repo_owner,
+            repo_name=args.repo_name, circleci_api_token=args.circleci_api_token)
 
 
 class DeleteCircleciEnvironmentVariableController(CementBaseController):
@@ -226,6 +238,10 @@ class DeleteCircleciEnvironmentVariableController(CementBaseController):
         arguments = [
             (['name'], dict(
                 type=str, help='Name of the environment variable.')),
+            (['--repo-type'], dict(
+                type=str, default=None, help='Repository type (e.g., github)')),
+            (['--repo-owner'], dict(
+                type=str, default=None, help='Repository owner')),
             (['--repo-name'], dict(
                 type=str, default=None, help='Name of the repository to build. This defaults to the name of the current repository.')),
             (['--circleci-api-token'], dict(
@@ -236,7 +252,38 @@ class DeleteCircleciEnvironmentVariableController(CementBaseController):
     def default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
-        buildHelper.delete_circleci_environment_variable(args.name, repo_name=args.repo_name, circleci_api_token=args.circleci_api_token)
+        buildHelper.delete_circleci_environment_variable(args.name,
+                                                         repo_type=args.repo_type, repo_owner=args.repo_owner,
+                                                         repo_name=args.repo_name, circleci_api_token=args.circleci_api_token)
+
+
+class CreateCodeclimateGithubWebhookController(CementBaseController):
+    """ Create CodeClimate GitHub webook for the current repository """
+    class Meta:
+        label = 'create-codeclimate-github-webhook'
+        description = 'Create CodeClimate GitHub webook for the current repository'
+        stacked_on = 'base'
+        stacked_type = 'nested'
+        arguments = [
+            (['--repo-type'], dict(
+                type=str, default=None, help='Repository type (e.g., github)')),
+            (['--repo-owner'], dict(
+                type=str, default=None, help='Repository owner')),
+            (['--repo-name'], dict(
+                type=str, default=None, help='Name of the repository to build. This defaults to the name of the current repository.')),
+            (['--github-username'], dict(
+                type=str, default=None, help='GitHub username')),
+            (['--github-password'], dict(
+                type=str, default=None, help='GitHub password')),
+        ]
+
+    @expose(hide=True)
+    def default(self):
+        args = self.app.pargs
+        buildHelper = BuildHelper()
+        buildHelper.create_codeclimate_github_webhook(
+            repo_type=args.repo_type, repo_owner=args.repo_owner, repo_name=args.repo_name,
+            github_username=args.github_username, github_password=args.github_password)
 
 
 class MakeAndArchiveReportsController(CementBaseController):
@@ -627,6 +674,7 @@ class App(CementApp):
             GetCircleciEnvironmentVariablesController,
             SetCircleciEnvironmentVariableController,
             DeleteCircleciEnvironmentVariableController,
+            CreateCodeclimateGithubWebhookController,
             MakeAndArchiveReportsController,
             CombineCoverageReportsController,
             ArchiveCoverageReportController,

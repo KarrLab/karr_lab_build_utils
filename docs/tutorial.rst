@@ -159,12 +159,17 @@ Visualize all of the package dependencies
 Continuous integration with CircleCI
 ------------------------------------
 
+The commands described in this section require a CircleCI API token. Visit `https://circleci.com/account/api <https://circleci.com/account/api>`_ to create a token.
+
 Create a build for a package
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Run this command to create a CircleCI build for a package instead of usign the CirlceCI web interface::
 
-    karr_lab_build_utils create-circleci-build
+    karr_lab_build_utils create-circleci-build \
+        --repo-owner <repo_owner> \
+        --repo-name <repo_name> \
+        --circleci-api-token <token>
 
 
 Get the environment variables for a package
@@ -172,7 +177,10 @@ Get the environment variables for a package
 
 Run this command to get the CircleCI environment variables for a package::
 
-    karr_lab_build_utils get-circleci-environment-variables
+    karr_lab_build_utils get-circleci-environment-variables \
+        --repo-owner <repo_owner> \
+        --repo-name <repo_name> \
+        --circleci-api-token <token>
 
 
 Set a environment variable for a package
@@ -180,7 +188,10 @@ Set a environment variable for a package
 
 Run this command to set a CircleCI environment variable for a package::
 
-    karr_lab_build_utils set-circleci-environment-variable <name> <value>
+    karr_lab_build_utils set-circleci-environment-variable <name> <value> \
+        --repo-owner <repo_owner> \
+        --repo-name <repo_name> \
+        --circleci-api-token <token>
 
 
 Delete a environment variable for a package
@@ -188,7 +199,10 @@ Delete a environment variable for a package
 
 Run this command to delete a CircleCI environment variable for a package::
 
-    karr_lab_build_utils delete-circleci-environment-variable <name>
+    karr_lab_build_utils delete-circleci-environment-variable <name> \
+        --repo-owner <repo_owner> \
+        --repo-name <repo_name> \
+        --circleci-api-token <token>
 
 
 Trigger testing downstream dependencies of a package
@@ -212,7 +226,11 @@ Create Code Climate build for a package
 
 Run this command to create a Code Climate build for a package instead of usign the Code Climate web interface::
 
-    karr_lab_build_utils create-codeclimate-github-webhook
+    karr_lab_build_utils create-codeclimate-github-webhook \
+        --repo-owner <repo_owner> \
+        --repo-name <repo_name> \
+        --github-username <username> \
+        --github-password <password>
 
 Distribution with PyPI
 ----------------------

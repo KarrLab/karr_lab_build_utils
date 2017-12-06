@@ -275,7 +275,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.assertTrue('__TEST1__' in vars)
 
         build_helper.delete_circleci_environment_variable('__TEST1__')
-        
+
         vars = build_helper.get_circleci_environment_variables()
         self.assertTrue('__TEST1__' not in vars)
 
