@@ -1156,9 +1156,9 @@ class BuildHelper(object):
         else:
             packages = []
 
-        upstream_repo_name = os.getenv('UPSTREAM_REPONAME', None)
+        upstream_repo_name = os.getenv('UPSTREAM_REPONAME', '')
         upstream_build_num = os.getenv('UPSTREAM_BUILD_NUM', '0')
-        if upstream_repo_name is None:
+        if not upstream_repo_name:
             upstream_repo_name = self.repo_name
             upstream_build_num = str(self.build_num)
 
@@ -1175,12 +1175,24 @@ class BuildHelper(object):
 
             # don't trigger build if a build has already been triggered from the same upstream build
             # this prevents building the same project multiple times, including infinite looping
-            if builds:
-                build_parameters = builds[0]['build_parameters']
+            already_triggered = False
+
+            for build in builds:
+                if package == upstream_repo_name and \
+                    build['build_num'] == upstream_build_num and \
+                    build['build_num'] != str(self.build_num):
+                    already_triggered = True
+                    break
+
+                build_parameters = build['build_parameters']
                 if build_parameters and 'UPSTREAM_REPONAME' in build_parameters and \
                         build_parameters['UPSTREAM_REPONAME'] == upstream_repo_name and \
                         build_parameters['UPSTREAM_BUILD_NUM'] == upstream_build_num:
-                    continue
+                    already_triggered = True
+                    break
+
+            if already_triggered:
+                continue
 
             # trigger build
             url = '{}/project/{}/{}/{}/tree/{}?circle-token={}'.format(
