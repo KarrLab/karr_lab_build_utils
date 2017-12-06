@@ -81,9 +81,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with open('tests/fixtures/secret/GITHUB_PASSWORD', 'r') as file:
                 env.set('GITHUB_PASSWORD', file.read().rstrip())
 
-        if not os.getenv('CIRCLE_API_TOKEN'):
-            with open('tests/fixtures/secret/CIRCLE_API_TOKEN', 'r') as file:
-                env.set('CIRCLE_API_TOKEN', file.read().rstrip())
+        if not os.getenv('CIRCLECI_API_TOKEN'):
+            with open('tests/fixtures/secret/CIRCLECI_API_TOKEN', 'r') as file:
+                env.set('CIRCLECI_API_TOKEN', file.read().rstrip())
 
         if not os.getenv('TEST_SERVER_TOKEN'):
             with open('tests/fixtures/secret/TEST_SERVER_TOKEN', 'r') as file:
@@ -183,9 +183,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         shutil.rmtree(tempdirname)
 
     def test_create_circleci_build(self):
-        build_helper = self.construct_build_helper()
-
         """ test API """
+        with self.construct_environment():
+            build_helper = self.construct_build_helper()
         build_helper.create_circleci_build()
 
         """ test CLI """
@@ -194,7 +194,8 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 app.run()
 
     def test_create_circleci_build_error(self):
-        build_helper = self.construct_build_helper()
+        with self.construct_environment():
+            build_helper = self.construct_build_helper()
 
         class Result(object):
 
@@ -206,6 +207,94 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with mock.patch.object(requests, 'post', return_value=Result()):
             with self.assertRaisesRegexp(ValueError, '^Unable to create CircleCI build for repository'):
                 build_helper.create_circleci_build()
+
+    def test_get_circleci_environment_variables(self):
+        """ test API """
+        with self.construct_environment():
+            build_helper = self.construct_build_helper()
+
+        vars = build_helper.get_circleci_environment_variables()
+        self.assertTrue('TEST_SERVER_TOKEN' in vars)
+        self.assertTrue('COVERALLS_REPO_TOKEN' in vars)
+        self.assertTrue('CODECLIMATE_REPO_TOKEN' in vars)
+
+        """ test CLI """
+        with self.construct_environment():
+            with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                with __main__.App(argv=['get-circleci-environment-variables']) as app:
+                    app.run()
+                    self.assertRegexpMatches(captured.stdout.get_text(), 'COVERALLS_REPO_TOKEN=')
+                    self.assertEqual(captured.stderr.get_text(), '')
+
+    def test_set_circleci_environment_variables(self):
+        """ test API """
+        with self.construct_environment():
+            build_helper = self.construct_build_helper()
+
+        build_helper.set_circleci_environment_variables({
+            '__TEST1__': 'test value 1a',
+            '__TEST2__': 'test value 2a',
+        })
+        vars = build_helper.get_circleci_environment_variables()
+        self.assertEqual(vars['__TEST1__'], 'xxxxe 1a')
+        self.assertEqual(vars['__TEST2__'], 'xxxxe 2a')
+
+        build_helper.set_circleci_environment_variables({
+            '__TEST1__': 'test value 1b',
+        })
+        vars = build_helper.get_circleci_environment_variables()
+        self.assertEqual(vars['__TEST1__'], 'xxxxe 1b')
+
+        """ test CLI """
+        with self.construct_environment():
+            with __main__.App(argv=['set-circleci-environment-variable', '__TEST1__', 'test value 1c']) as app:
+                with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                    app.run()
+                    self.assertEqual(captured.stdout.get_text(), '')
+                    self.assertEqual(captured.stderr.get_text(), '')
+
+            with __main__.App(argv=['get-circleci-environment-variables']) as app:
+                with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                    app.run()
+                    self.assertRegexpMatches(captured.stdout.get_text(), '__TEST1__=xxxxe 1c')
+                    self.assertEqual(captured.stderr.get_text(), '')
+
+        # cleanup
+        build_helper.delete_circleci_environment_variable('__TEST1__')
+        build_helper.delete_circleci_environment_variable('__TEST2__')
+
+    def test_delete_circleci_environment_variables(self):
+        """ test API """
+        with self.construct_environment():
+            build_helper = self.construct_build_helper()
+
+        build_helper.set_circleci_environment_variables({
+            '__TEST1__': 'test value 1a',
+        })
+        vars = build_helper.get_circleci_environment_variables()
+        self.assertTrue('__TEST1__' in vars)
+
+        build_helper.delete_circleci_environment_variable('__TEST1__')
+        
+        vars = build_helper.get_circleci_environment_variables()
+        self.assertTrue('__TEST1__' not in vars)
+
+        """ test CLI """
+        build_helper.set_circleci_environment_variables({
+            '__TEST1__': 'test value 1a',
+        })
+        vars = build_helper.get_circleci_environment_variables()
+        self.assertTrue('__TEST1__' in vars)
+
+        with self.construct_environment():
+            with __main__.App(argv=['delete-circleci-environment-variable', '__TEST1__']) as app:
+                with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                    app.run()
+                    self.assertEqual(captured.stdout.get_text(), '')
+                    self.assertEqual(captured.stderr.get_text(), '')
+
+        vars = build_helper.get_circleci_environment_variables()
+        self.assertTrue('__TEST1__' not in vars)
 
     def test_create_codeclimate_github_webhook(self):
         build_helper = self.construct_build_helper()

@@ -27,8 +27,11 @@ Run the following commands to get help documentation about the command line util
     karr_lab_build_utils create-repository --help
 
 
+Versioning with Git and GitHub
+------------------------------
+
 Create a repository for a package
----------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Run this command to create a new repository with the proper directory sturcture and files for our build system. This should be run from the desired parent directory of the package, e.g. ``~/Documents``.::
 
@@ -36,51 +39,34 @@ Run this command to create a new repository with the proper directory sturcture 
     karr_lab_build_utils create-repository --dirname new_package --url https://github.com/KarrLab/new_package
 
 
-Install the requirements for a package
---------------------------------------
-
-Run the following command to install all of the requirements for the current package in the following files:
-
-* ``requirements.txt``,
-* ``requirements.optional.txt``,
-* ``tests/requirements.txt``, and
-* ``docs/requirements.txt``
-
-.. code-block:: bash
-
-    karr_lab_build_utils install-requirements
-
+Testing with pytest, coverage, instrumental, Docker, and CircleCI
+-----------------------------------------------------------------
 
 Run the tests for a package
----------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Run this command to test a package::
 
     karr_lab_build_utils run-tests tests
 
+Evaluating the coverage of the tests
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 Add the ``--coverage-type`` option to specify ``statement``, ``branch``, or ``multiple-condition`` coverage, e.g.::
 
-    karr_lab_build_utils run-tests --coverage-type branch tests
+    karr_lab_build_utils run-tests --with-coverage --coverage-type branch tests
 
+Running tests with Docker or the CircleCI local executor
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Add the ``--environment`` option to specify ``local``, ``docker``, or ``circleci``, e.g.::
 
-Build the documentation for a package
--------------------------------------
+    karr_lab_build_utils run-tests --environment docker tests
 
-Run this command to compile the documentation in HTML format for a package.::
+Static code analysis with Pylint
+--------------------------------
 
-    karr_lab_build_utils make-documentation
-
-Add the ``--spell-check`` option to spell check the documenation, e.g.::
-
-    karr_lab_build_utils -spell-check make-documentation
-
-The output will be saved to ``docs/_build/spelling/output.txt``.
-
-White-listed words can be saved (1 word per line) to ``docs/spelling_wordlist.txt``.
-
-
-Statically analyze a package
-----------------------------
+Statically analyze a package with Pylint
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Run this command to statistically analyze a package using Pylint::
 
@@ -95,8 +81,47 @@ This will identify potential errors such as
 * wild card imports
 
 
+Documentation with Sphinx
+-------------------------
+
+Build the documentation for a package
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Run this command to compile the documentation in HTML format for a package.::
+
+    karr_lab_build_utils make-documentation
+
+Spell checkling documentation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Add the ``--spell-check`` option to spell check the documenation, e.g.::
+
+    karr_lab_build_utils -spell-check make-documentation
+
+The output will be saved to ``docs/_build/spelling/output.txt``.
+
+White-listed words can be saved (1 word per line) to ``docs/spelling_wordlist.txt``.
+
+
+Dependency management
+---------------------
+
+Install the dependencies for a package
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Run the following command to install all of the requirements for the current package in the following files:
+
+* ``requirements.txt``,
+* ``requirements.optional.txt``,
+* ``tests/requirements.txt``, and
+* ``docs/requirements.txt``
+
+.. code-block:: bash
+
+    karr_lab_build_utils install-requirements
+
 Find missing requirements for a package
----------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Run this command to find potentially missing requirements for a package::
 
@@ -104,23 +129,14 @@ Run this command to find potentially missing requirements for a package::
 
 
 Find unused requirements for a package
---------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Run this command to identify potentially unused requirements for a package::
 
     karr_lab_build_utils find-unused-requirements
 
-
-Create a CircleCI build for a package
--------------------------------------
-
-Run this command to create a CircleCI build for a package instead of usign the CirlceCI web interface::
-
-    karr_lab_build_utils create-circleci-build
-
-
 Compile the downstream dependencies of a package
-------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #. Clone all of our packages
 #. Run this command to compile the downstream dependencies of your package::
@@ -132,17 +148,51 @@ Compile the downstream dependencies of a package
     karr_lab_build_utils compile-downstream-dependencies --packages-parent-dir ~/Documents --downstream-dependencies-filename .circleci/downstream_dependencies.yml
 
 
-Visualize the package dependencies
-----------------------------------
+Visualize all of the package dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #. Clone all of our packages
 #. Run this command to visualize the dependencies of your packages::
 
     karr_lab_build_utils visualize-package-dependencies --packages-parent-dir ~/Documents --out-filename ~/Documents/package-dependencies.pdf
 
+Continuous integration with CircleCI
+------------------------------------
 
-Trigger CircleCI to test downstream dependencies of a package
--------------------------------------------------------------
+Create a build for a package
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Run this command to create a CircleCI build for a package instead of usign the CirlceCI web interface::
+
+    karr_lab_build_utils create-circleci-build
+
+
+Get the environment variables for a package
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Run this command to get the CircleCI environment variables for a package::
+
+    karr_lab_build_utils get-circleci-environment-variables
+
+
+Set a environment variable for a package
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Run this command to set a CircleCI environment variable for a package::
+
+    karr_lab_build_utils set-circleci-environment-variable <name> <value>
+
+
+Delete a environment variable for a package
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Run this command to delete a CircleCI environment variable for a package::
+
+    karr_lab_build_utils delete-circleci-environment-variable <name>
+
+
+Trigger testing downstream dependencies of a package
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #. Save a list of your the downstream dependencies of the package in YAML format to ``.circleci/downstream_dependencies.yml``, e.g.::
 
@@ -154,16 +204,21 @@ Trigger CircleCI to test downstream dependencies of a package
     karr_lab_build_utils trigger-tests-of-downstream-dependencies
 
 
+Static analysis and coverage analysis with Code Climate
+-------------------------------------------------------
+
 Create Code Climate build for a package
------------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Run this command to create a Code Climate build for a package instead of usign the Code Climate web interface::
 
     karr_lab_build_utils create-codeclimate-github-webhook
 
+Distribution with PyPI
+----------------------
 
 Distribute a package by uploading it to PyPI
---------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #. `Create a PyPI account <https://pypi.python.org/pypi?%3Aaction=register_form>`_
 #. Save your credentials to ~/.pypirc::

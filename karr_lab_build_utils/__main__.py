@@ -19,12 +19,6 @@ class BaseController(CementBaseController):
         buildHelper = BuildHelper()
         buildHelper.archive_test_report()
 
-    @expose(help='Create CircleCI build for the current repository')
-    def create_circleci_build(self):
-        """ Create CircleCI build for the current repository """
-        buildHelper = BuildHelper()
-        buildHelper.create_circleci_build()
-
     @expose(help='Create CodeClimate GitHub webook for the current repository')
     def create_codeclimate_github_webhook(self):
         """ Create CodeClimate GitHub webook for the current repository """
@@ -150,6 +144,99 @@ class RunTestsController(CementBaseController):
         buildHelper.run_tests(dirname=args.dirname, test_path=args.test_path, with_xunit=args.with_xunit,
                               with_coverage=args.with_coverage, coverage_dirname=args.coverage_dirname,
                               coverage_type=coverage_type, environment=karr_lab_build_utils.core.Environment[args.environment])
+
+
+class CreateCircleciBuildController(CementBaseController):
+    """ Create a CircleCI build for a repository """
+    class Meta:
+        label = 'create-circleci-build'
+        description = 'Create a CircleCI build for a repository'
+        stacked_on = 'base'
+        stacked_type = 'nested'
+        arguments = [
+            (['--repo-name'], dict(
+                type=str, default=None, help='Name of the repository to build. This defaults to the name of the current repository.')),
+            (['--circleci-api-token'], dict(
+                type=str, default=None, help='CircleCI API token')),
+        ]
+
+    @expose(hide=True)
+    def default(self):
+        args = self.app.pargs
+        buildHelper = BuildHelper()
+        buildHelper.create_circleci_build(repo_name=args.repo_name, circleci_api_token=args.circleci_api_token)
+
+
+class GetCircleciEnvironmentVariablesController(CementBaseController):
+    """ Get the CircleCI environment variables for a repository and their partial values"""
+    class Meta:
+        label = 'get-circleci-environment-variables'
+        description = 'Get the CircleCI environment variables for a repository and their partial values'
+        stacked_on = 'base'
+        stacked_type = 'nested'
+        arguments = [
+            (['--repo-name'], dict(
+                type=str, default=None, help='Name of the repository to build. This defaults to the name of the current repository.')),
+            (['--circleci-api-token'], dict(
+                type=str, default=None, help='CircleCI API token')),
+        ]
+
+    @expose(hide=True)
+    def default(self):
+        args = self.app.pargs
+        buildHelper = BuildHelper()
+        vars = buildHelper.get_circleci_environment_variables(repo_name=args.repo_name, circleci_api_token=args.circleci_api_token)
+        for key, val in vars.items():
+            print('{}={}'.format(key, val))
+
+
+class SetCircleciEnvironmentVariableController(CementBaseController):
+    """ Set a CircleCI environment variable for a repository """
+    class Meta:
+        label = 'set-circleci-environment-variable'
+        description = 'Set a CircleCI environment variable for a repository'
+        stacked_on = 'base'
+        stacked_type = 'nested'
+        arguments = [
+            (['name'], dict(
+                type=str, help='Name of the environment variable.')),
+            (['value'], dict(
+                type=str, help='Value of the environment variable.')),
+            (['--repo-name'], dict(
+                type=str, default=None, help='Name of the repository to build. This defaults to the name of the current repository.')),
+            (['--circleci-api-token'], dict(
+                type=str, default=None, help='CircleCI API token')),
+        ]
+
+    @expose(hide=True)
+    def default(self):
+        args = self.app.pargs
+        buildHelper = BuildHelper()
+        buildHelper.set_circleci_environment_variables(
+            {args.name: args.value}, repo_name=args.repo_name, circleci_api_token=args.circleci_api_token)
+
+
+class DeleteCircleciEnvironmentVariableController(CementBaseController):
+    """ Delete a CircleCI environment variable for a repository """
+    class Meta:
+        label = 'delete-circleci-environment-variable'
+        description = 'Delete a CircleCI environment variable for a repository'
+        stacked_on = 'base'
+        stacked_type = 'nested'
+        arguments = [
+            (['name'], dict(
+                type=str, help='Name of the environment variable.')),
+            (['--repo-name'], dict(
+                type=str, default=None, help='Name of the repository to build. This defaults to the name of the current repository.')),
+            (['--circleci-api-token'], dict(
+                type=str, default=None, help='CircleCI API token')),
+        ]
+
+    @expose(hide=True)
+    def default(self):
+        args = self.app.pargs
+        buildHelper = BuildHelper()
+        buildHelper.delete_circleci_environment_variable(args.name, repo_name=args.repo_name, circleci_api_token=args.circleci_api_token)
 
 
 class MakeAndArchiveReportsController(CementBaseController):
@@ -536,6 +623,10 @@ class App(CementApp):
             SetupRepositoryController,
             CreateDocumentationTemplateController,
             RunTestsController,
+            CreateCircleciBuildController,
+            GetCircleciEnvironmentVariablesController,
+            SetCircleciEnvironmentVariableController,
+            DeleteCircleciEnvironmentVariableController,
             MakeAndArchiveReportsController,
             CombineCoverageReportsController,
             ArchiveCoverageReportController,

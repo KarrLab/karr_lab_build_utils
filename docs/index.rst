@@ -3,26 +3,55 @@
 
 This package performs several aspects of the Karr Lab's build system:
 
-* Creates new Git repositories with the proper directory structure and files for our build system
-* Installs and upgrades all of the requirements of a package
-* Tests code with Python 2 and 3
+* Versionning with `Git <https://git-scm.com>`_ and `GitHub <https://github.com>`_
+
+  * Creates new Git repositories with the proper directory structure and files for our build system
+
+* Testing code with Python 2 and 3
 
   * Uses `pytest <https://docs.pytest.org>`_ or `nose <http://nose.readthedocs.io>`_ test runners
   * Uses `coverage <https://coverage.readthedocs.io>`_ or `instrumental <http://instrumental.readthedocs.io>`_ for statement, branch, or multiple condition coverage analysis
   * Runs the tests locally or using a `Docker <https://www.docker.com>`_ image or the CircleCI `local executor <https://circleci.com/docs/2.0/local-jobs>`_
 
-* Uploads test reports to our `test history server <https://tests.karrlab.org>`_
-* Uploads coverage reports to `Coveralls <https://coveralls.io>`_ and `Code Climate <https://codeclimate.com>`_
-* Generates documentation using `Sphinx <http://www.sphinx-doc.org>`_
-* Creates CircleCI builds for packages
-* Create Code Climate builds for packages
-* Compiles downstream package dependencies
-* Visualizes downstream packages dependencies
-* Checks for cycles in package dependencies 
-* Triggers `CircleCI <https://circleci.com>`_ to test downstream dependencies
-* Uploads packages to `PyPI <https://pypi.python.org>`_
-* Statistically analyzes code using `Pylint <https://www.pylint.org>`_
-* Identifies missing and unused dependencies
+* Static code analysis with Pylint
+
+  * Statistically analyzes code using `Pylint <https://www.pylint.org>`_
+
+* Documentation with Sphinx
+
+  * Generates documentation using `Sphinx <http://www.sphinx-doc.org>`_
+
+* Dependency management
+
+  * Installs and upgrades all of the requirements of a package
+  * Identifies missing and unused dependencies
+  * Compiles downstream package dependencies    
+  * Visualizes downstream packages dependencies
+  * Checks for cycles in package dependencies 
+
+* Continous integration with `CircleCI <https://circleci.com>`_
+
+  * Creates CircleCI builds for packages
+  * Gets, sets, and deletes environment variables
+  * Triggers CircleCI to test downstream dependencies
+
+* Test analysis with our `test history server <https://tests.karrlab.org>`_
+
+  * Uploads test reports to our test history server
+
+* Coverage analysis with `Coveralls <https://coveralls.io>`_
+
+  * Uploads coverage reports to Coveralls
+
+* Coverage analysis and static code analysis with `Code Climate <https://codeclimate.com>`_
+
+  * Create Code Climate builds for packages
+  * Uploads coverage reports to Code Climate
+
+* Distribution with `PyPI <https://pypi.python.org>`_
+
+  * Uploads packages to PyPI
+
 
 The build system is primarily designed for:
 

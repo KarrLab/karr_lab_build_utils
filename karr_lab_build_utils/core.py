@@ -93,7 +93,7 @@ class BuildHelper(object):
         code_climate_token (:obj:`str`): Code Climate token
 
         github_api_token (obj:`str`): GitHub API token
-        circle_api_token (:obj:`str`): CircleCI API token
+        circleci_api_token (:obj:`str`): CircleCI API token
 
         INITIAL_PACKAGE_VERSION (:obj:`str`): initial package version
         DEFAULT_BUILD_IMAGE_VERSION (:obj:`str`): default build image version
@@ -172,7 +172,7 @@ class BuildHelper(object):
 
         self.github_username = os.getenv('GITHUB_USERNAME')
         self.github_password = os.getenv('GITHUB_PASSWORD')
-        self.circle_api_token = os.getenv('CIRCLE_API_TOKEN')
+        self.circleci_api_token = os.getenv('CIRCLECI_API_TOKEN')
 
     #####################
     # Create a repository
@@ -278,20 +278,104 @@ class BuildHelper(object):
     ###########################
     # Register repo on CircleCI
     ###########################
-    def create_circleci_build(self):
+    def create_circleci_build(self, repo_name=None, circleci_api_token=None):
         """ Create CircleCI build for a repository
+
+        Args:
+            repo_name (:obj:`str`, optional): repository name
+            circleci_api_token (:obj:`str`, optional): CircleCI API token
 
         Raises:
             :obj:`ValueError`: if a CircleCI build wasn't created and didn't already exist
         """
+        if repo_name is None:
+            repo_name = self.repo_name
+
+        if circleci_api_token is None:
+            circleci_api_token = self.circleci_api_token
+
         url = '{}/project/{}/{}/{}/follow?circle-token={}'.format(
-            self.CIRCLE_API_ENDPOINT, self.repo_type, self.repo_owner, self.repo_name, self.circle_api_token)
+            self.CIRCLE_API_ENDPOINT, self.repo_type, self.repo_owner, repo_name, circleci_api_token)
         response = requests.post(url)
         response.raise_for_status()
         response_json = response.json()
         if 'following' not in response_json or not response_json['following']:
             raise ValueError(
-                'Unable to create CircleCI build for repository {}/{}'.format(self.repo_owner, self.repo_name))
+                'Unable to create CircleCI build for repository {}/{}'.format(self.repo_owner, repo_name))
+
+    def get_circleci_environment_variables(self, repo_name=None, circleci_api_token=None):
+        """ Get the CircleCI environment variables for a repository and their partial values
+
+        Args:
+            repo_name (:obj:`str`, optional): repository name
+            circleci_api_token (:obj:`str`, optional): CircleCI API token
+
+        Returns:
+            :obj:`dict`: dictionary of environment variables and their partial values
+        """
+        if repo_name is None:
+            repo_name = self.repo_name
+
+        if circleci_api_token is None:
+            circleci_api_token = self.circleci_api_token
+
+        url = '{}/project/{}/{}/{}/envvar?circle-token={}'.format(
+            self.CIRCLE_API_ENDPOINT, self.repo_type, self.repo_owner, repo_name, circleci_api_token)
+        response = requests.get(url)
+        response.raise_for_status()
+        vars = response.json()
+        return {var['name']: var['value'] for var in vars}
+
+    def set_circleci_environment_variables(self, vars, repo_name=None, circleci_api_token=None):
+        """ Set the CircleCI environment variables for a repository
+
+        Args:
+            vars (:obj:`dict`): dictionary of environment variables to set
+            repo_name (:obj:`str`, optional): repository name
+            circleci_api_token (:obj:`str`, optional): CircleCI API token
+
+        Returns:
+            :obj:`dict`: dictionary of environment variables and their values
+        """
+        if repo_name is None:
+            repo_name = self.repo_name
+
+        if circleci_api_token is None:
+            circleci_api_token = self.circleci_api_token
+
+        # get current environment variables
+        old_vars = self.get_circleci_environment_variables(repo_name=repo_name, circleci_api_token=circleci_api_token)
+
+        # update environment variables
+        for name, value in vars.items():
+            # delete environment variables which we want to overwrite
+            if name in old_vars:
+                self.delete_circleci_environment_variable(name, repo_name=repo_name, circleci_api_token=circleci_api_token)
+
+            # add environment variable
+            url = '{}/project/{}/{}/{}/envvar?circle-token={}'.format(
+                self.CIRCLE_API_ENDPOINT, self.repo_type, self.repo_owner, repo_name, circleci_api_token)
+            response = requests.post(url, json={'name': name, 'value': value})
+            response.raise_for_status()
+
+    def delete_circleci_environment_variable(self, var, repo_name=None, circleci_api_token=None):
+        """ Delete a CircleCI environment variable for a repository
+
+        Args:
+            var (:obj:`str`): name of variable to delete
+            repo_name (:obj:`str`, optional): repository name
+            circleci_api_token (:obj:`str`, optional): CircleCI API token
+        """
+        if repo_name is None:
+            repo_name = self.repo_name
+
+        if circleci_api_token is None:
+            circleci_api_token = self.circleci_api_token
+
+        url = '{}/project/{}/{}/{}/envvar/{}?circle-token={}'.format(
+            self.CIRCLE_API_ENDPOINT, self.repo_type, self.repo_owner, repo_name, var, circleci_api_token)
+        response = requests.delete(url)
+        response.raise_for_status()
 
     def create_codeclimate_github_webhook(self):
         """ Create GitHub webhook for CodeClimate
@@ -1025,7 +1109,7 @@ class BuildHelper(object):
 
             # get summary of recent builds
             url = '{}/project/{}/{}/{}?circle-token={}'.format(
-                self.CIRCLE_API_ENDPOINT, self.repo_type, self.repo_owner, package, self.circle_api_token)
+                self.CIRCLE_API_ENDPOINT, self.repo_type, self.repo_owner, package, self.circleci_api_token)
             response = requests.get(url)
             response.raise_for_status()
             builds = response.json()
@@ -1041,7 +1125,7 @@ class BuildHelper(object):
 
             # trigger build
             url = '{}/project/{}/{}/{}/tree/{}?circle-token={}'.format(
-                self.CIRCLE_API_ENDPOINT, self.repo_type, self.repo_owner, package, branch, self.circle_api_token)
+                self.CIRCLE_API_ENDPOINT, self.repo_type, self.repo_owner, package, branch, self.circleci_api_token)
             response = requests.post(url, json={
                 'build_parameters': {
                     'UPSTREAM_REPONAME': upstream_repo_name,
