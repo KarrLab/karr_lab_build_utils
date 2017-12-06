@@ -395,7 +395,12 @@ class TriggerTestsOfDownstreamDependenciesController(CementBaseController):
         buildHelper = BuildHelper()
         packages = buildHelper.trigger_tests_of_downstream_dependencies(
             downstream_dependencies_filename=args.downstream_dependencies_filename)
-        print('{} dependent builds were triggered.'.format(len(packages)))
+        if packages:
+            print('{} dependent builds were triggered'.format(len(packages)))
+            for package in packages:
+                print('  {}'.format(package))
+        else:
+            print('No dependent builds were triggered.')
 
 
 class AnalyzePackageController(CementBaseController):

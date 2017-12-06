@@ -1002,7 +1002,9 @@ class BuildHelper(object):
         Args:
             downstream_dependencies_filename (:obj:`str`, optional): path to YAML file which contains a list of downstream dependencies
 
-        :todo: prevent circular triggering
+        Returns:
+            :obj:`list` of :obj:`str`: names of triggered packages
+
         :todo: support branches
         """
         if os.path.isfile(downstream_dependencies_filename):
@@ -1011,14 +1013,45 @@ class BuildHelper(object):
         else:
             packages = []
 
-        for package in packages:            
+        upstream_repo_name = os.getenv('UPSTREAM_REPONAME', None)
+        upstream_build_num = os.getenv('UPSTREAM_BUILD_NUM', None)
+        if upstream_repo_name is None:
+            upstream_repo_name = self.repo_name
+            upstream_build_num = self.build_num
+
+        triggered_packages = []
+        for package in packages:
             branch = 'master'
+
+            # get summary of recent builds
+            url = '{}/project/{}/{}/{}?circle-token={}'.format(
+                self.CIRCLE_API_ENDPOINT, self.repo_type, self.repo_owner, package, self.circle_api_token)
+            response = requests.get(url)
+            response.raise_for_status()
+            builds = response.json()
+
+            # don't trigger build if a build has already been triggered from the same upstream build
+            # this prevents building the same project multiple times, including infinite looping
+            if builds:
+                build_parameters = builds[0]['build_parameters']
+                if 'UPSTREAM_REPONAME' in build_parameters and \
+                        build_parameters['UPSTREAM_REPONAME'] == upstream_repo_name and \
+                        build_parameters['UPSTREAM_BUILD_NUM'] == upstream_build_num:
+                    continue
+
+            # trigger build
             url = '{}/project/{}/{}/{}/tree/{}?circle-token={}'.format(
                 self.CIRCLE_API_ENDPOINT, self.repo_type, self.repo_owner, package, branch, self.circle_api_token)
-            response = requests.post(url)
+            response = requests.post(url, data={
+                'build_parameters': {
+                    'UPSTREAM_REPONAME': upstream_repo_name,
+                    'UPSTREAM_BUILD_NUM': upstream_build_num,
+                }
+            })
             response.raise_for_status()
+            triggered_packages.append(package)
 
-        return packages
+        return triggered_packages
 
     def get_version(self):
         """ Get the version of this package

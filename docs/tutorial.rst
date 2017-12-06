@@ -141,15 +141,6 @@ Visualize the package dependencies
     karr_lab_build_utils visualize-package-dependencies --packages-parent-dir ~/Documents --out-filename ~/Documents/package-dependencies.pdf
 
 
-Check if the package dependencies are acyclic
----------------------------------------------
-
-#. Clone all of our packages
-#. Run this command to determine if there are any cyclcic dependencies among your packages. This must be eliminated from the ``.circleci/downstream_dependencies.yml`` files because CircleCI does not support cyclic dependencies::
-
-    karr_lab_build_utils are-package-dependencies-acyclic --packages-parent-dir ~/Documents
-
-
 Trigger CircleCI to test downstream dependencies of a package
 -------------------------------------------------------------
 
