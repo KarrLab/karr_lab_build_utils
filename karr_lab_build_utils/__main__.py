@@ -113,8 +113,8 @@ class CreateDocumentationTemplateController(CementBaseController):
 class RunTestsController(CementBaseController):
     """ Controller for run_tests.
 
-    Run unit tests located at `test-path`. 
-    Optionally, generate a coverage report. 
+    Run unit tests located at `test-path`.
+    Optionally, generate a coverage report.
     Optionally, save the results to an XML file.
     """
 
@@ -331,6 +331,29 @@ class CompileDownstreamDependenciesController(CementBaseController):
             print('No downstream packages were found.')
 
 
+class ArePackageDependenciesAcyclicController(CementBaseController):
+    """ Check if the package dependencies are acyclic so they are suported by CircleCI """
+
+    class Meta:
+        label = 'are-package-dependencies-acyclic'
+        description = 'Check if the package dependencies are acyclic so they are suported by CircleCI'
+        stacked_on = 'base'
+        stacked_type = 'nested'
+        arguments = [
+            (['--packages-parent-dir'], dict(
+                type=str, default='..', help='Path to the parent directory of the other packages')),
+        ]
+
+    @expose(hide=True)
+    def default(self):
+        args = self.app.pargs
+        buildHelper = BuildHelper()
+        if buildHelper.are_package_dependencies_acyclic(packages_parent_dir=args.packages_parent_dir):
+            print('The dependencies are acyclic.')
+        else:
+            print('The dependencies are cyclic. This must be corrected for CircleCI.')
+
+
 class VisualizePackageDependenciesController(CementBaseController):
     """ Visualize downstream package dependencies as a graph """
 
@@ -515,6 +538,7 @@ class App(CementApp):
             UploadCoverageReportToCodeClimateController,
             MakeDocumentationController,
             CompileDownstreamDependenciesController,
+            ArePackageDependenciesAcyclicController,
             VisualizePackageDependenciesController,
             TriggerTestsOfDownstreamDependenciesController,
             AnalyzePackageController,

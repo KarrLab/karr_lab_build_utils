@@ -26,6 +26,7 @@ import json
 import karr_lab_build_utils
 import logging
 import mock
+import networkx
 import nose
 import os
 import pip
@@ -278,7 +279,7 @@ class BuildHelper(object):
     # Register repo on CircleCI
     ###########################
     def create_circleci_build(self):
-        """ Create CircleCI build for a repository 
+        """ Create CircleCI build for a repository
 
         Raises:
             :obj:`ValueError`: if a CircleCI build wasn't created and didn't already exist
@@ -338,7 +339,7 @@ class BuildHelper(object):
 
         Args:
             filename (:obj:`str`): path to requirements file
-            ignore_options (:obj:`bool`, optional): if :obj:`True`, ignore option headings 
+            ignore_options (:obj:`bool`, optional): if :obj:`True`, ignore option headings
                 (e.g. for requirements.optional.txt)
         """
         if not os.path.isfile(filename):
@@ -381,7 +382,7 @@ class BuildHelper(object):
 
         Args:
             dirname (:obj:`str`, optional): path to package that should be tested
-            test_path (:obj:`str`, optional): path to tests that should be run            
+            test_path (:obj:`str`, optional): path to tests that should be run
             with_xunit (:obj:`bool`, optional): whether or not to save test results
             with_coverage (:obj:`bool`, optional): whether or not coverage should be assessed
             coverage_dirname (:obj:`str`, optional): directory to save coverage data
@@ -516,7 +517,7 @@ class BuildHelper(object):
 
         Args:
             dirname (:obj:`str`, optional): path to package that should be tested
-            test_path (:obj:`str`, optional): path to tests that should be run            
+            test_path (:obj:`str`, optional): path to tests that should be run
             with_xunit (:obj:`bool`, optional): whether or not to save test results
             with_coverage (:obj:`bool`, optional): whether or not coverage should be assessed
             coverage_dirname (:obj:`str`, optional): directory to save coverage data
@@ -595,7 +596,7 @@ class BuildHelper(object):
 
         Args:
             dirname (:obj:`str`, optional): path to package that should be tested
-            test_path (:obj:`str`, optional): path to tests that should be run            
+            test_path (:obj:`str`, optional): path to tests that should be run
             with_xunit (:obj:`bool`, optional): whether or not to save test results
             with_coverage (:obj:`bool`, optional): whether or not coverage should be assessed
             coverage_dirname (:obj:`str`, optional): directory to save coverage data
@@ -671,7 +672,7 @@ class BuildHelper(object):
     ########################
 
     def archive_test_report(self):
-        """ Upload test report to history server 
+        """ Upload test report to history server
 
         Raises:
             :obj:`BuildHelperError`: if there is an error uploading the report to the test history server
@@ -744,7 +745,7 @@ class BuildHelper(object):
             self.upload_coverage_report_to_code_climate(coverage_dirname=coverage_dirname, dry_run=dry_run)
 
     def upload_coverage_report_to_coveralls(self, coverage_dirname='.', dry_run=False):
-        """ Upload coverage report to Coveralls 
+        """ Upload coverage report to Coveralls
 
         Args:
             coverage_dirname (:obj:`str`, optional): directory to save coverage data
@@ -765,7 +766,7 @@ class BuildHelper(object):
                 runner.wear(dry_run=dry_run)
 
     def upload_coverage_report_to_code_climate(self, coverage_dirname='.', dry_run=False):
-        """ Upload coverage report to Code Climate 
+        """ Upload coverage report to Code Climate
 
         Args:
             coverage_dirname (:obj:`str`, optional): directory to save coverage data
@@ -863,7 +864,7 @@ class BuildHelper(object):
             template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'about.rst'))
 
     def make_documentation(self, spell_check=False):
-        """ Make HTML documentation using Sphinx for one or more packages. Save documentation to `proj_docs_build_html_dir` 
+        """ Make HTML documentation using Sphinx for one or more packages. Save documentation to `proj_docs_build_html_dir`
 
         Args:
             spell_check (:obj:`bool`): if :obj:`True`, run spell checking
@@ -932,6 +933,39 @@ class BuildHelper(object):
         # return the downstream dependencies
         return downstream_dependencies
 
+    def are_package_dependencies_acyclic(self, packages_parent_dir='..'):
+        """ Check if the package dependencies are acyclic so they are suported by CircleCI
+
+        Args:
+            packages_parent_dir (:obj:`str`, optional): path to the parent directory of the packages
+
+        Returns:
+            :obj:`bool`: :obj:`True` if the package dependencies are acyclic
+        """
+        graph = networkx.DiGraph()
+
+        for dirname in glob.glob(os.path.join(packages_parent_dir, '*')):
+            if os.path.isdir(dirname) and os.path.isfile(os.path.join(dirname, '.circleci/config.yml')):
+                # get package name
+                pkg = dirname[len(packages_parent_dir) + 1:]
+
+                # create node for package
+                graph.add_node(pkg)
+
+                # create edges for dependencies
+                dep_filename = os.path.join(dirname, '.circleci/downstream_dependencies.yml')
+                if os.path.isfile(dep_filename):
+                    with open(dep_filename, 'r') as file:
+                        deps = yaml.load(file)
+                    for other_pkg in deps:
+                        graph.add_edge(pkg, other_pkg)
+
+        try:
+            networkx.algorithms.cycles.find_cycle(graph)
+            return False
+        except networkx.NetworkXNoCycle:
+            return True
+
     def visualize_package_dependencies(self, packages_parent_dir='..', out_filename='../package_dependencies.pdf'):
         """ Visualize downstream package dependencies as a graph
 
@@ -959,7 +993,7 @@ class BuildHelper(object):
                     for other_pkg in deps:
                         dot.edge(pkg, other_pkg)
 
-        dot.render(filename=basename)
+        dot.render(filename=basename, cleanup=True)
 
     def trigger_tests_of_downstream_dependencies(self, downstream_dependencies_filename='.circleci/downstream_dependencies.yml'):
         """ Trigger CircleCI to test downstream dependencies listed in :obj:`downstream_dependencies_filename`
@@ -1016,7 +1050,7 @@ class BuildHelper(object):
             sys.exit(1)
 
     def analyze_package(self, package_name, messages=None):
-        """ Perform static analyses of a package using Pylint. 
+        """ Perform static analyses of a package using Pylint.
 
         The default options will identify the following issues:
 

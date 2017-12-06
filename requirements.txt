@@ -9,6 +9,7 @@ graphviz
 # instrumental
 jinja2
 mock
+networkx
 nose
 pip
 pip_check_reqs

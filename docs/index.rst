@@ -6,7 +6,7 @@ This package performs several aspects of the Karr Lab's build system:
 * Creates new Git repositories with the proper directory structure and files for our build system
 * Installs and upgrades all of the requirements of a package
 * Tests code with Python 2 and 3
-  
+
   * Uses `pytest <https://docs.pytest.org>`_ or `nose <http://nose.readthedocs.io>`_ test runners
   * Uses `coverage <https://coverage.readthedocs.io>`_ or `instrumental <http://instrumental.readthedocs.io>`_ for statement, branch, or multiple condition coverage analysis
   * Runs the tests locally or using a `Docker <https://www.docker.com>`_ image or the CircleCI `local executor <https://circleci.com/docs/2.0/local-jobs>`_

@@ -74,7 +74,7 @@ Add the ``--spell-check`` option to spell check the documenation, e.g.::
 
     karr_lab_build_utils -spell-check make-documentation
 
-The output will be saved to ``docs/_build/spelling/output.txt``. 
+The output will be saved to ``docs/_build/spelling/output.txt``.
 
 White-listed words can be saved (1 word per line) to ``docs/spelling_wordlist.txt``.
 
@@ -86,7 +86,7 @@ Run this command to statistically analyze a package using Pylint::
 
     karr_lab_build_utils analyze-package
 
-This will identify potential errors such as 
+This will identify potential errors such as
 
 * duplicate arguments
 * duplicate dictionary keys
@@ -101,7 +101,7 @@ Find missing requirements for a package
 Run this command to find potentially missing requirements for a package::
 
     karr_lab_build_utils find-missing-requirements
-    
+
 
 Find unused requirements for a package
 --------------------------------------
@@ -109,7 +109,7 @@ Find unused requirements for a package
 Run this command to identify potentially unused requirements for a package::
 
     karr_lab_build_utils find-unused-requirements
-    
+
 
 Create a CircleCI build for a package
 -------------------------------------
@@ -129,6 +129,22 @@ Run this command to compile the downstream dependencies of your package::
 Optionaly, add the ``--downstream-dependencies-filename`` option to save the dependencies to a YAML file::
 
     karr_lab_build_utils compile-downstream-dependencies --packages-parent-dir ~/Documents --downstream-dependencies-filename .circleci/downstream_dependencies.yml
+
+
+Visualize the package dependencies
+----------------------------------
+
+Run this command to visualize the dependencies of your packages::
+
+    karr_lab_build_utils visualize-package-dependencies --packages-parent-dir ~/Documents --out-filename ~/Documents/package-dependencies.pdf
+
+
+Check if the package dependencies are acyclic
+---------------------------------------------
+
+Run this command to determine if there are any cyclcic dependencies among your packages. This must be eliminated from the ``.circleci/downstream_dependencies.yml`` files because CircleCI does not support cyclic dependencies::
+
+    karr_lab_build_utils are-package-dependencies-acyclic --packages-parent-dir ~/Documents
 
 
 Trigger CircleCI to test downstream dependencies of a package

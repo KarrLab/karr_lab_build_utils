@@ -637,6 +637,65 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         shutil.rmtree(packages_parent_dir)
         os.remove(downstream_dependencies_filename)
 
+    def test_are_package_dependencies_acyclic(self):
+        packages_parent_dir = tempfile.mkdtemp()
+        os.mkdir(os.path.join(packages_parent_dir, 'pkg_1'))
+        os.mkdir(os.path.join(packages_parent_dir, 'pkg_2'))
+        os.mkdir(os.path.join(packages_parent_dir, 'pkg_3'))
+        os.mkdir(os.path.join(packages_parent_dir, 'pkg_1', '.circleci'))
+        os.mkdir(os.path.join(packages_parent_dir, 'pkg_2', '.circleci'))
+        os.mkdir(os.path.join(packages_parent_dir, 'pkg_3', '.circleci'))
+        with open(os.path.join(packages_parent_dir, 'pkg_1', '.circleci', 'config.yml'), 'w') as file:
+            pass
+        with open(os.path.join(packages_parent_dir, 'pkg_2', '.circleci', 'config.yml'), 'w') as file:
+            pass
+        with open(os.path.join(packages_parent_dir, 'pkg_3', '.circleci', 'config.yml'), 'w') as file:
+            pass
+        with open(os.path.join(packages_parent_dir, 'pkg_1', '.circleci', 'downstream_dependencies.yml'), 'w') as file:
+            file.write('- pkg_2\n')
+        with open(os.path.join(packages_parent_dir, 'pkg_2', '.circleci', 'downstream_dependencies.yml'), 'w') as file:
+            file.write('- pkg_3\n')
+        with open(os.path.join(packages_parent_dir, 'pkg_3', '.circleci', 'downstream_dependencies.yml'), 'w') as file:
+            file.write('[]\n')
+
+        """ Acyclic """
+
+        # test api
+        build_helper = core.BuildHelper()
+        result = build_helper.are_package_dependencies_acyclic(packages_parent_dir=packages_parent_dir)
+        self.assertTrue(result)
+
+        # test cli
+        with self.construct_environment():
+            with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                with __main__.App(argv=['are-package-dependencies-acyclic',
+                                        '--packages-parent-dir', packages_parent_dir]) as app:
+                    app.run()
+                    self.assertEqual(captured.stdout.get_text(), 'The dependencies are acyclic.')
+                    self.assertEqual(captured.stderr.get_text(), '')
+
+        """ cyclic """
+
+        with open(os.path.join(packages_parent_dir, 'pkg_3', '.circleci', 'downstream_dependencies.yml'), 'w') as file:
+            file.write('- pkg_1\n')
+
+        # test api
+        build_helper = core.BuildHelper()
+        result = build_helper.are_package_dependencies_acyclic(packages_parent_dir=packages_parent_dir)
+        self.assertFalse(result)
+
+        # test cli
+        with self.construct_environment():
+            with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                with __main__.App(argv=['are-package-dependencies-acyclic',
+                                        '--packages-parent-dir', packages_parent_dir]) as app:
+                    app.run()
+                    self.assertRegexpMatches(captured.stdout.get_text(), '^The dependencies are cyclic.')
+                    self.assertEqual(captured.stderr.get_text(), '')
+
+        """ Cleanup """
+        shutil.rmtree(packages_parent_dir)
+
     def test_visualize_package_dependencies(self):
         packages_parent_dir = tempfile.mkdtemp()
         os.mkdir(os.path.join(packages_parent_dir, 'pkg_1'))
@@ -694,7 +753,8 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with self.construct_environment():
             build_helper = core.BuildHelper()
             with mock.patch('requests.post', return_value=attrdict.AttrDict({'raise_for_status': lambda: None})):
-                deps = build_helper.trigger_tests_of_downstream_dependencies(downstream_dependencies_filename=downstream_dependencies_filename)
+                deps = build_helper.trigger_tests_of_downstream_dependencies(
+                    downstream_dependencies_filename=downstream_dependencies_filename)
                 self.assertEqual(deps, ['dep_1', 'dep_2'])
 
                 deps = build_helper.trigger_tests_of_downstream_dependencies(downstream_dependencies_filename='__junk__')
