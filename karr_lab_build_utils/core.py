@@ -1000,6 +1000,8 @@ class BuildHelper(object):
 
         Args:
             downstream_dependencies_filename (:obj:`str`, optional): path to YAML file which contains a list of downstream dependencies
+
+        :todo: prevent circular triggering
         """
         if os.path.isfile(downstream_dependencies_filename):
             with open(downstream_dependencies_filename, 'r') as file:
