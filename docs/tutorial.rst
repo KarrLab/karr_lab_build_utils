@@ -122,11 +122,12 @@ Run this command to create a CircleCI build for a package instead of usign the C
 Compile the downstream dependencies of a package
 ------------------------------------------------
 
-Run this command to compile the downstream dependencies of your package::
+#. Clone all of our packages
+#. Run this command to compile the downstream dependencies of your package::
 
     karr_lab_build_utils compile-downstream-dependencies --packages-parent-dir ~/Documents
 
-Optionaly, add the ``--downstream-dependencies-filename`` option to save the dependencies to a YAML file::
+#. Optionaly, add the ``--downstream-dependencies-filename`` option to save the dependencies to a YAML file::
 
     karr_lab_build_utils compile-downstream-dependencies --packages-parent-dir ~/Documents --downstream-dependencies-filename .circleci/downstream_dependencies.yml
 
@@ -134,7 +135,8 @@ Optionaly, add the ``--downstream-dependencies-filename`` option to save the dep
 Visualize the package dependencies
 ----------------------------------
 
-Run this command to visualize the dependencies of your packages::
+#. Clone all of our packages
+#. Run this command to visualize the dependencies of your packages::
 
     karr_lab_build_utils visualize-package-dependencies --packages-parent-dir ~/Documents --out-filename ~/Documents/package-dependencies.pdf
 
@@ -142,7 +144,8 @@ Run this command to visualize the dependencies of your packages::
 Check if the package dependencies are acyclic
 ---------------------------------------------
 
-Run this command to determine if there are any cyclcic dependencies among your packages. This must be eliminated from the ``.circleci/downstream_dependencies.yml`` files because CircleCI does not support cyclic dependencies::
+#. Clone all of our packages
+#. Run this command to determine if there are any cyclcic dependencies among your packages. This must be eliminated from the ``.circleci/downstream_dependencies.yml`` files because CircleCI does not support cyclic dependencies::
 
     karr_lab_build_utils are-package-dependencies-acyclic --packages-parent-dir ~/Documents
 

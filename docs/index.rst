@@ -16,6 +16,9 @@ This package performs several aspects of the Karr Lab's build system:
 * Generates documentation using `Sphinx <http://www.sphinx-doc.org>`_
 * Creates CircleCI builds for packages
 * Create Code Climate builds for packages
+* Compiles downstream package dependencies
+* Visualizes downstream packages dependencies
+* Checks for cycles in package dependencies 
 * Triggers `CircleCI <https://circleci.com>`_ to test downstream dependencies
 * Uploads packages to `PyPI <https://pypi.python.org>`_
 * Statistically analyzes code using `Pylint <https://www.pylint.org>`_
