@@ -1042,7 +1042,7 @@ class BuildHelper(object):
             # trigger build
             url = '{}/project/{}/{}/{}/tree/{}?circle-token={}'.format(
                 self.CIRCLE_API_ENDPOINT, self.repo_type, self.repo_owner, package, branch, self.circle_api_token)
-            response = requests.post(url, data={
+            response = requests.post(url, json={
                 'build_parameters': {
                     'UPSTREAM_REPONAME': upstream_repo_name,
                     'UPSTREAM_BUILD_NUM': upstream_build_num,
