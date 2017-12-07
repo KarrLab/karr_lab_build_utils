@@ -796,6 +796,19 @@ class BuildHelper(object):
         if process.returncode != 0 and process.communicate()[1] is not None:
             raise BuildHelperError(process.communicate()[1])
 
+    def do_post_test_tasks(self):
+        """ Do all post-test tasks for CircleCI
+
+        * Make test and coverage reports
+        * Compile documentation
+        * Archive test and coverage reports to the Karr Lab test history server, Coveralls, and Code Climate
+        * Trigger tests of downstream dependencies
+        * Notify authors of new failures in downstream packages
+        """
+        self.make_and_archive_reports()
+        self.trigger_tests_of_downstream_dependencies()
+        self.notify_author_of_downstream_failure()
+
     def notify_author_of_downstream_failure(self):
         """ Notify an author that a build may have broken a downstream dependency 
 

@@ -13,6 +13,12 @@ class BaseController(CementBaseController):
         label = 'base'
         description = "Karr Lab build utilities"
 
+    @expose(help='Do all post-test tasks for CircleCI')
+    def do_post_test_tasks(self):
+        """ Do all post-test tasks for CircleCI """
+        buildHelper = BuildHelper()
+        buildHelper.do_post_test_tasks()
+
     @expose(help='Archive test report')
     def archive_test_report(self):
         """ Upload test report to history server """

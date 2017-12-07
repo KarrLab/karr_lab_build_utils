@@ -453,6 +453,19 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with self.assertRaisesRegexp(core.BuildHelperError, '^Unsupported environment:'):
             build_helper.run_tests(test_path=self.DUMMY_TEST, environment=None)
 
+    def test_do_post_test_tasks(self):
+        with mock.patch.object(core.BuildHelper, 'make_and_archive_reports', return_value=lambda: None):
+            with mock.patch.object(core.BuildHelper, 'trigger_tests_of_downstream_dependencies', return_value=lambda: None):
+                with mock.patch.object(core.BuildHelper, 'notify_author_of_downstream_failure', return_value=lambda: None):
+                    # test api
+                    build_helper = self.construct_build_helper()
+                    build_helper.do_post_test_tasks()
+
+                    # test cli
+                    with self.construct_environment():
+                        with __main__.App(argv=['do-post-test-tasks']) as app:
+                            app.run()
+
     def test_notify_author_of_downstream_failure_no_failure(self):
         build_helper = self.construct_build_helper()
 
