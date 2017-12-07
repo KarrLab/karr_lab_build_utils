@@ -1167,6 +1167,14 @@ class BuildHelper(object):
             upstream_repo_name = self.repo_name
             upstream_build_num = str(self.build_num)
 
+        url = '{}/project/{}/{}/{}/{}?circle-token={}'.format(
+            self.CIRCLE_API_ENDPOINT, self.repo_type, self.repo_owner,
+            upstream_repo_name, upstream_build_num, self.circleci_api_token)
+        response = requests.get(url)
+        response.raise_for_status()
+        upstream_build_time = datetime.strptime(
+            response.json()['committer_date'][0:-5], '%Y-%m-%dT%H:%M:%S')
+
         triggered_packages = []
         for package in packages:
             branch = 'master'
@@ -1180,23 +1188,31 @@ class BuildHelper(object):
 
             # don't trigger build if a build has already been triggered from the same upstream build
             # this prevents building the same project multiple times, including infinite looping
-            already_triggered = False
+            already_queued = False
 
             for build in builds:
+                # don'trigger a build if this is the same package which triggered the cascade
                 if package == upstream_repo_name and \
                         str(build['build_num']) == upstream_build_num and \
                         build['build_num'] != self.build_num:
-                    already_triggered = True
+                    already_queued = True
                     break
 
+                # don't trigger a build if the package already been triggered from the same upstream commit
                 build_parameters = build['build_parameters']
                 if build_parameters and 'UPSTREAM_REPONAME' in build_parameters and \
                         build_parameters['UPSTREAM_REPONAME'] == upstream_repo_name and \
                         build_parameters['UPSTREAM_BUILD_NUM'] == upstream_build_num:
-                    already_triggered = True
+                    already_queued = True
                     break
 
-            if already_triggered:
+                # don't trigger a build if the package has already been more recently tested than the commit time
+                build_start_time = datetime.strptime(build['start_time'][0:-5], '%Y-%m-%dT%H:%M:%S')
+                if build_start_time > upstream_build_time:
+                    already_queued = True
+                    break
+
+            if already_queued:
                 continue
 
             # trigger build

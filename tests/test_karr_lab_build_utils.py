@@ -868,9 +868,13 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with open(downstream_dependencies_filename, 'w') as file:
             yaml.dump(['dep_1', 'dep_2'], file)
 
-        requests_get = attrdict.AttrDict({
+        requests_get_1 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
-            'json': lambda: [{'build_parameters': []}],
+            'json': lambda: {'committer_date': '2017-01-01T01:01:01.001Z'},
+        })
+        requests_get_2 = attrdict.AttrDict({
+            'raise_for_status': lambda: None,
+            'json': lambda: [{'build_parameters': [], 'start_time': '2016-01-01T01:01:01.001Z'}],
         })
         requests_post = attrdict.AttrDict({
             'raise_for_status': lambda: None,
@@ -879,18 +883,20 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         env = self.construct_environment()
 
         with env:
-            with mock.patch('requests.get', return_value=requests_get):
-                with mock.patch('requests.post', return_value=requests_post):
-                    # test api
+            with mock.patch('requests.post', return_value=requests_post):
+                # test api
+                with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_2]):
                     build_helper = core.BuildHelper()
                     deps = build_helper.trigger_tests_of_downstream_dependencies(
                         downstream_dependencies_filename=downstream_dependencies_filename)
                     self.assertEqual(deps, ['dep_1', 'dep_2'])
 
+                with mock.patch('requests.get', side_effect=[requests_get_1]):
                     deps = build_helper.trigger_tests_of_downstream_dependencies(downstream_dependencies_filename='__junk__')
                     self.assertEqual(deps, [])
 
-                    # test cli
+                # test cli
+                with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_2]):
                     with __main__.App(argv=['trigger-tests-of-downstream-dependencies',
                                             '--downstream-dependencies-filename', downstream_dependencies_filename]) as app:
                         with capturer.CaptureOutput(merged=False, relay=False) as captured:
@@ -907,7 +913,11 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with open(downstream_dependencies_filename, 'w') as file:
             yaml.dump(['dep_1', 'dep_2'], file)
 
-        requests_get = attrdict.AttrDict({
+        requests_get_1 = attrdict.AttrDict({
+            'raise_for_status': lambda: None,
+            'json': lambda: {'committer_date': '2017-01-01T01:01:01.001Z'},
+        })
+        requests_get_2 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
             'json': lambda: [
                 {
@@ -916,6 +926,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                         'UPSTREAM_REPONAME': 'dep_3',
                         'UPSTREAM_BUILD_NUM': '1',
                     },
+                    'start_time': '2016-01-01T01:01:01.001Z',
                 }
             ],
         })
@@ -927,16 +938,17 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         env.set('UPSTREAM_REPONAME', 'dep_3')
         env.set('UPSTREAM_BUILD_NUM', '1')
 
-        with env:
-            with mock.patch('requests.get', return_value=requests_get):
-                with mock.patch('requests.post', return_value=requests_post):
-                    # test api
+        with env:            
+            with mock.patch('requests.post', return_value=requests_post):
+                # test api
+                with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_2]):
                     build_helper = core.BuildHelper()
                     deps = build_helper.trigger_tests_of_downstream_dependencies(
                         downstream_dependencies_filename=downstream_dependencies_filename)
                     self.assertEqual(deps, [])
 
-                    # test cli
+                # test cli
+                with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_2]):
                     with __main__.App(argv=['trigger-tests-of-downstream-dependencies',
                                             '--downstream-dependencies-filename', downstream_dependencies_filename]) as app:
                         with capturer.CaptureOutput(merged=False, relay=False) as captured:
@@ -953,16 +965,22 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with open(downstream_dependencies_filename, 'w') as file:
             yaml.dump(['dep_1'], file)
 
-        requests_get = attrdict.AttrDict({
+        requests_get_1 = attrdict.AttrDict({
+            'raise_for_status': lambda: None,
+            'json': lambda: {'committer_date': '2017-01-01T01:01:01.001Z'},
+        })
+        requests_get_2 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
             'json': lambda: [
                 {
                     'build_num': 0,
-                    'build_parameters': {}
+                    'build_parameters': {},
+                    'start_time': '2016-01-01T01:01:01.001Z',
                 },
                 {
                     'build_num': 1,
-                    'build_parameters': {}
+                    'build_parameters': {},
+                    'start_time': '2016-01-01T01:01:01.001Z',
                 },
             ],
         })
@@ -976,13 +994,65 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         env.set('UPSTREAM_BUILD_NUM', '1')
 
         with env:
-            with mock.patch('requests.get', return_value=requests_get):
+            with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2]):
                 with mock.patch('requests.post', return_value=requests_post):
                     # test api
                     build_helper = core.BuildHelper()
                     deps = build_helper.trigger_tests_of_downstream_dependencies(
                         downstream_dependencies_filename=downstream_dependencies_filename)
                     self.assertEqual(deps, [])
+
+        # cleanup
+        os.remove(downstream_dependencies_filename)
+
+    def test_trigger_tests_of_downstream_dependencies_already_queued(self):
+        tmp_file, downstream_dependencies_filename = tempfile.mkstemp(suffix='.yml')
+        os.close(tmp_file)
+        with open(downstream_dependencies_filename, 'w') as file:
+            yaml.dump(['pkg_2'], file)
+
+        requests_get_1 = attrdict.AttrDict({
+            'raise_for_status': lambda: None,
+            'json': lambda: {'committer_date': '2017-01-01T01:01:01.001Z'},
+        })
+        requests_get_2 = attrdict.AttrDict({
+            'raise_for_status': lambda: None,
+            'json': lambda: [
+                {
+                    'build_num': 1,
+                    'build_parameters': {},
+                    'start_time': '2018-01-01T01:01:01.001Z',
+                },
+            ],
+        })
+        requests_post = attrdict.AttrDict({
+            'raise_for_status': lambda: None,
+        })
+
+        env = self.construct_environment()
+        env.set('CIRCLE_PROJECT_REPONAME', 'pkg_1')
+
+        with env:
+            with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2]):
+                with mock.patch('requests.post', return_value=requests_post):
+                    # test api
+                    build_helper = core.BuildHelper()
+                    deps = build_helper.trigger_tests_of_downstream_dependencies(
+                        downstream_dependencies_filename=downstream_dependencies_filename)
+                    self.assertEqual(deps, [])
+
+        requests_get_1 = attrdict.AttrDict({
+            'raise_for_status': lambda: None,
+            'json': lambda: {'committer_date': '2019-01-01T01:01:01.001Z'},
+        })
+        with env:
+            with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2]):
+                with mock.patch('requests.post', return_value=requests_post):
+                    # test api
+                    build_helper = core.BuildHelper()
+                    deps = build_helper.trigger_tests_of_downstream_dependencies(
+                        downstream_dependencies_filename=downstream_dependencies_filename)
+                    self.assertEqual(deps, ['pkg_2'])
 
         # cleanup
         os.remove(downstream_dependencies_filename)
