@@ -1,0 +1,43 @@
+<html>
+    <body>
+        <p>Hi {{ committer.name }},</p>
+        
+        <p>Uh-oh, a commit to {{ upstream.repo_name }} may have broken {{ downstream.repo_name }}.</p>
+        
+        <p>Upstream:
+            <ul>
+                <li>Repo: <a href="https://github.com/KarrLab/{{ upstream.repo_name }}">{{ upstream.repo_name }}</a></li>
+                <li>Commit: <a href="{{ upstream.commit_url }}">{{ upstream.commit|truncate(6) }}</a></li>
+                <li>Build: <a href="{{ upstream.build_url }}">{{ upstream.build_num }}</a></li>
+                <li>Subject: {{ upstream.commit_subject }}</li>
+            </ul>
+        </p>
+
+        <p>Downstream:
+            <ul>
+                <li>Repo: <a href="https://github.com/KarrLab/{{ downstream.repo_name }}">{{ downstream.repo_name }}</a></li>
+                <li>Commit: <a href="{{ downstream.commit_url }}">{{ downstream.commit|truncate(6) }}</a></li>
+                <li>Build: <a href="{{ downstream.build_url }}">{{ downstream.build_num }}</a></li>
+                <li>Subject: {{ downstream.commit_subject }}</li>
+            </ul>
+        </p>
+
+        <p>Test summary:
+            <ul>
+                <li>Tests: {{ test_stats.num_tests }}</li>
+                <li>Errors: {{ test_stats.num_errors }}</li>
+                <li>Failures: {{ test_stats.num_failures }}</li>
+                <li>Passes: {{ test_stats.num_passes }}</li>
+                <li>Skips: {{ test_stats.num_skips }}</li>
+            </ul>
+        </p>
+
+        <p>Errors and failures:
+            <ul>
+            {% for err in errors_and_failures %}
+                <li>{{ err.classname }}.{{ err.name }} :: {{ err.type }} :: {{ err.message }}</li>
+            {% endfor %}
+            </ul>
+        </p>
+    </body>
+</html>

@@ -27,6 +27,7 @@ import pytest
 import requests
 import shutil
 import six
+import smtplib
 import sys
 import tempfile
 import unittest
@@ -57,12 +58,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         shutil.rmtree(self.coverage_dirname)
 
     @staticmethod
-    def construct_environment():
+    def construct_environment(build_num=0):
         env = EnvironmentVarGuard()
         env.set('CIRCLE_TEST_REPORTS', tempfile.mkdtemp())
         env.set('COVERALLS_REPO_TOKEN', TestKarrLabBuildUtils.COVERALLS_REPO_TOKEN)
         env.set('CODECLIMATE_REPO_TOKEN', TestKarrLabBuildUtils.CODECLIMATE_REPO_TOKEN)
-        env.set('CIRCLE_BUILD_NUM', '0')
+        env.set('CIRCLE_BUILD_NUM', str(build_num))
         env.set('CIRCLE_BRANCH', 'master')
         env.set('CIRCLE_SHA1', '--test--')
 
@@ -90,11 +91,15 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with open('tests/fixtures/secret/TEST_SERVER_TOKEN', 'r') as file:
                 env.set('TEST_SERVER_TOKEN', file.read().rstrip())
 
+        if not os.getenv('KARR_LAB_DAEMON_GMAIL_PASSWORD'):
+            with open('tests/fixtures/secret/KARR_LAB_DAEMON_GMAIL_PASSWORD', 'r') as file:
+                env.set('KARR_LAB_DAEMON_GMAIL_PASSWORD', file.read().rstrip())
+
         return env
 
     @staticmethod
-    def construct_build_helper():
-        with TestKarrLabBuildUtils.construct_environment():
+    def construct_build_helper(build_num=0):
+        with TestKarrLabBuildUtils.construct_environment(build_num=build_num):
             build_helper = core.BuildHelper()
 
         return build_helper
@@ -447,6 +452,235 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         build_helper = self.construct_build_helper()
         with self.assertRaisesRegexp(core.BuildHelperError, '^Unsupported environment:'):
             build_helper.run_tests(test_path=self.DUMMY_TEST, environment=None)
+
+    def test_notify_author_of_downstream_failure_no_failure(self):
+        build_helper = self.construct_build_helper()
+
+        # mock test results
+        filename = os.path.join(build_helper.proj_tests_xml_dir,
+                                '{0}.2.7.12.xml'.format(build_helper.proj_tests_xml_latest_filename))
+        with open(filename, 'w') as file:
+            file.write('<?xml version="1.0" encoding="utf-8"?>')
+            file.write('<testsuite errors="0" failures="0" skips="0" tests="3">')
+            file.write('<testcase classname="tests.core.TestCase" name="test_pass_1"></testcase>')
+            file.write('<testcase classname="tests.core.TestCase" name="test_pass_2"></testcase>')
+            file.write('<testcase classname="tests.core.TestCase" name="test_pass_3"></testcase>')
+            file.write('</testsuite>')
+
+        # test API
+        self.assertFalse(build_helper.notify_author_of_downstream_failure())
+
+        # test CLI
+        with __main__.App(argv=['notify-author-of-downstream-failure']) as app:
+            with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                app.run()
+                self.assertEqual(captured.stdout.get_text(), 'No notifications were sent.')
+                self.assertEqual(captured.stderr.get_text(), '')
+
+    def test_notify_author_of_downstream_failure_no_upstream(self):
+        build_helper = self.construct_build_helper()
+
+        # mock test results
+        filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
+                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+        for filename in glob(filename_pattern):
+            os.remove(filename)
+
+        filename = os.path.join(build_helper.proj_tests_xml_dir,
+                                '{}.2.7.12.xml'.format(build_helper.proj_tests_xml_latest_filename))
+        with open(filename, 'w') as file:
+            file.write('<?xml version="1.0" encoding="utf-8"?>')
+            file.write('<testsuite errors="1" failures="1" skips="0" tests="3">')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_error_1" file="/script.py" line="1" time="0.01">')
+            file.write('    <system-out>stdout</system-out>')
+            file.write('    <system-err>stderr</system-err>')
+            file.write('    <error type="err" message="msg">details</error>')
+            file.write('  </testcase>')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_failure_1" file="/script.py" line="1" time="0.01">')
+            file.write('    <system-out>stdout</system-out>')
+            file.write('    <system-err>stderr</system-err>')
+            file.write('    <failure type="err" message="msg">details</failure>')
+            file.write('  </testcase>')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_pass_3" file="/script.py" line="1" time="0.01"></testcase>')
+            file.write('</testsuite>')
+
+        # test API
+        self.assertFalse(build_helper.notify_author_of_downstream_failure())
+
+    def test_notify_author_of_downstream_failure_no_previous_builds(self):
+        build_helper = self.construct_build_helper()
+
+        # mock test results
+        filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
+                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+        for filename in glob(filename_pattern):
+            os.remove(filename)
+
+        filename = os.path.join(build_helper.proj_tests_xml_dir,
+                                '{}.2.7.12.xml'.format(build_helper.proj_tests_xml_latest_filename))
+        with open(filename, 'w') as file:
+            file.write('<?xml version="1.0" encoding="utf-8"?>')
+            file.write('<testsuite errors="1" failures="1" skips="0" tests="3">')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_error_1" file="/script.py" line="1" time="0.01">')
+            file.write('    <system-out>stdout</system-out>')
+            file.write('    <system-err>stderr</system-err>')
+            file.write('    <error type="err" message="msg">details</error>')
+            file.write('  </testcase>')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_failure_1" file="/script.py" line="1" time="0.01">')
+            file.write('    <system-out>stdout</system-out>')
+            file.write('    <system-err>stderr</system-err>')
+            file.write('    <failure type="err" message="msg">details</failure>')
+            file.write('  </testcase>')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_pass_3" file="/script.py" line="1" time="0.01"></testcase>')
+            file.write('</testsuite>')
+
+        # mock environment
+        env = self.construct_environment(build_num=1)
+        env.set('CIRCLE_PROJECT_REPONAME', 'test_repo_2')
+        env.set('CIRCLE_SHA1', 'yyyyyyyyyyyyyyyyyyyy')
+        env.set('CIRCLE_BUILD_NUM', '1')
+        env.set('UPSTREAM_REPONAME', 'test_repo')
+        env.set('UPSTREAM_BUILD_NUM', '101')
+
+        # test API
+        with env:
+            build_helper = self.construct_build_helper(build_num=1)
+            self.assertFalse(build_helper.notify_author_of_downstream_failure())
+
+    def test_notify_author_of_downstream_failure_existing_error(self):
+        build_helper = self.construct_build_helper()
+
+        # mock test results
+        filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
+                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+        for filename in glob(filename_pattern):
+            os.remove(filename)
+
+        filename = os.path.join(build_helper.proj_tests_xml_dir,
+                                '{}.2.7.12.xml'.format(build_helper.proj_tests_xml_latest_filename))
+        with open(filename, 'w') as file:
+            file.write('<?xml version="1.0" encoding="utf-8"?>')
+            file.write('<testsuite errors="1" failures="1" skips="0" tests="3">')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_error_1" file="/script.py" line="1" time="0.01">')
+            file.write('    <system-out>stdout</system-out>')
+            file.write('    <system-err>stderr</system-err>')
+            file.write('    <error type="err" message="msg">details</error>')
+            file.write('  </testcase>')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_failure_1" file="/script.py" line="1" time="0.01">')
+            file.write('    <system-out>stdout</system-out>')
+            file.write('    <system-err>stderr</system-err>')
+            file.write('    <failure type="err" message="msg">details</failure>')
+            file.write('  </testcase>')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_pass_3" file="/script.py" line="1" time="0.01"></testcase>')
+            file.write('</testsuite>')
+
+        # mock environment
+        env = self.construct_environment(build_num=51)
+        env.set('CIRCLE_PROJECT_REPONAME', 'test_repo_2')
+        env.set('CIRCLE_SHA1', 'yyyyyyyyyyyyyyyyyyyy')
+        env.set('CIRCLE_BUILD_NUM', '51')
+        env.set('UPSTREAM_REPONAME', 'test_repo')
+        env.set('UPSTREAM_BUILD_NUM', '101')
+
+        # requests side effects
+        requests_get_1 = attrdict.AttrDict({
+            'raise_for_status': lambda: None,
+            'json': lambda: {'status': 'failure'},
+        })
+
+        # test API
+        with env:
+            build_helper = self.construct_build_helper(build_num=51)
+            with mock.patch('requests.get', side_effect=[requests_get_1]):
+                self.assertFalse(build_helper.notify_author_of_downstream_failure())
+
+    def test_notify_author_of_downstream_failure_send_email(self):
+        build_helper = self.construct_build_helper()
+
+        # mock test results
+        filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
+                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+        for filename in glob(filename_pattern):
+            os.remove(filename)
+
+        filename = os.path.join(build_helper.proj_tests_xml_dir,
+                                '{}.2.7.12.xml'.format(build_helper.proj_tests_xml_latest_filename))
+        with open(filename, 'w') as file:
+            file.write('<?xml version="1.0" encoding="utf-8"?>')
+            file.write('<testsuite errors="1" failures="1" skips="0" tests="3">')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_error_1" file="/script.py" line="1" time="0.01">')
+            file.write('    <system-out>stdout</system-out>')
+            file.write('    <system-err>stderr</system-err>')
+            file.write('    <error type="err" message="msg">details</error>')
+            file.write('  </testcase>')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_failure_1" file="/script.py" line="1" time="0.01">')
+            file.write('    <system-out>stdout</system-out>')
+            file.write('    <system-err>stderr</system-err>')
+            file.write('    <failure type="err" message="msg">details</failure>')
+            file.write('  </testcase>')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_pass_3" file="/script.py" line="1" time="0.01"></testcase>')
+            file.write('</testsuite>')
+
+        # mock environment
+        env = self.construct_environment(build_num=51)
+        env.set('CIRCLE_PROJECT_REPONAME', 'test_repo_2')
+        env.set('CIRCLE_SHA1', 'yyyyyyyyyyyyyyyyyyyy')
+        env.set('CIRCLE_BUILD_NUM', '51')
+        env.set('UPSTREAM_REPONAME', 'test_repo')
+        env.set('UPSTREAM_BUILD_NUM', '101')
+
+        # requests side effects
+        requests_get_1 = attrdict.AttrDict({
+            'raise_for_status': lambda: None,
+            'json': lambda: {'status': 'success'},
+        })
+        requests_get_2 = attrdict.AttrDict({
+            'raise_for_status': lambda: None,
+            'json': lambda: {
+                'committer_name': 'Test user',
+                'committer_email': 'test@test.com',
+                'commit': 'xxxxxxxxxxxxxxxxxxxx',
+                'subject': 'Test commit',
+                'commit_url': 'https://github.com/KarrLab/test_repo/commit/xxxxxxxxxxxxxxxxxxxx',
+                'build_url': 'https://circleci.com/gh/KarrLab/test_repo/101',
+            },
+        })
+        requests_get_3 = attrdict.AttrDict({
+            'raise_for_status': lambda: None,
+            'json': lambda: {
+                'committer_name': 'Test user 2',
+                'committer_email': 'test2@test.com',
+                'commit': 'yyyyyyyyyyyyyyyyyyyy',
+                'subject': 'Test commit 2',
+                'commit_url': 'https://github.com/KarrLab/test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
+                'build_url': 'https://circleci.com/gh/KarrLab/test_repo_2/51',
+            },
+        })
+
+        smtp = attrdict.AttrDict({
+            'ehlo': lambda: None,
+            'starttls': lambda: None,
+            'login': lambda user, pwd: None,
+            'sendmail': lambda from_addr, to_addrs, msg: None,
+            'quit': lambda: None,
+        })
+
+        with env:
+            """ test API """
+            build_helper = self.construct_build_helper(build_num=51)
+            with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_3]):
+                with mock.patch('smtplib.SMTP', return_value=smtp):
+                    self.assertTrue(build_helper.notify_author_of_downstream_failure())
+
+            """ test CLI """
+            with __main__.App(argv=['notify-author-of-downstream-failure']) as app:
+                with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_3]):
+                    with mock.patch('smtplib.SMTP', return_value=smtp):
+                        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                            app.run()
+                            self.assertEqual(captured.stdout.get_text(),
+                                             'The upstream author was notified that they may have broken this package.')
+                            self.assertEqual(captured.stderr.get_text(), '')
 
     def test_make_and_archive_reports(self):
         build_helper = self.construct_build_helper()
@@ -938,7 +1172,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         env.set('UPSTREAM_REPONAME', 'dep_3')
         env.set('UPSTREAM_BUILD_NUM', '1')
 
-        with env:            
+        with env:
             with mock.patch('requests.post', return_value=requests_post):
                 # test api
                 with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_2]):

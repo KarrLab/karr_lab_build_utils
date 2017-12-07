@@ -14,10 +14,15 @@ from sphinx import build_main as sphinx_build
 from sphinx.apidoc import main as sphinx_apidoc
 from mock import patch
 from six.moves import configparser
+from xml.dom import minidom
 import abduct
 import attrdict
 import coverage
 import coveralls
+import email
+import email.header
+import email.message
+import email.utils
 import enum
 import fnmatch
 import glob
@@ -40,6 +45,7 @@ import pytest
 import re
 import requests
 import shutil
+import smtplib
 import subprocess
 import sys
 import tempfile
@@ -789,6 +795,156 @@ class BuildHelper(object):
         # raise error if tests didn't pass
         if process.returncode != 0 and process.communicate()[1] is not None:
             raise BuildHelperError(process.communicate()[1])
+
+    def notify_author_of_downstream_failure(self):
+        """ Notify an author that a build may have broken a downstream dependency 
+
+        Returns:
+            :obj:`bool`: obj:`True` if an email is sent
+        """
+
+        # detect if tests failed
+        num_errors = 0
+        num_failures = 0
+        num_skips = 0
+        num_tests = 0
+        errors_and_failures = []
+
+        filename_pattern = os.path.join(self.proj_tests_xml_dir,
+                                        '{0}.*.xml'.format(self.proj_tests_xml_latest_filename))
+        for filename in glob.glob(filename_pattern):
+            doc = minidom.parse(filename)
+            suite = doc.getElementsByTagName("testsuite")[0]
+            num_errors += int(suite.getAttribute('errors'))
+            num_failures += int(suite.getAttribute('failures'))
+            num_skips += int(suite.getAttribute('skips'))
+            num_tests += int(suite.getAttribute('tests'))
+            for case in suite.getElementsByTagName('testcase'):
+                error_or_failure = case.getElementsByTagName('error') or case.getElementsByTagName('failure')
+                if error_or_failure:
+                    tmp = {
+                        'classname': case.getAttribute('classname'),
+                        'name': case.getAttribute('name'),
+                        'time': float(case.getAttribute('time')),
+                        'type': error_or_failure[0].getAttribute('type'),
+                        'message': error_or_failure[0].getAttribute('message'),
+                        'details': "".join([child.nodeValue for child in error_or_failure[0].childNodes]),
+                    }
+
+                    if case.hasAttribute('file'):
+                        tmp['file'] = case.getAttribute('file')
+
+                    if case.hasAttribute('line'):
+                        tmp['line'] = int(float(case.getAttribute('line')))
+
+                    stdout = case.getElementsByTagName('system-out')
+                    if stdout:
+                        tmp['stdout'] = "".join([child.nodeValue for child in stdout[0].childNodes])
+
+                    stderr = case.getElementsByTagName('system-err')
+                    if stderr:
+                        tmp['stderr'] = "".join([child.nodeValue for child in stderr[0].childNodes])
+
+                    errors_and_failures.append(tmp)
+
+        if not errors_and_failures:
+            return False
+
+        # determine if build was triggered by an upstream package
+        upstream_repo_name = os.getenv('UPSTREAM_REPONAME', '')
+        upstream_build_num = int(os.getenv('UPSTREAM_BUILD_NUM', '0'))
+
+        if not upstream_repo_name:
+            return False
+
+        # determine if the error is new
+        if self.build_num <= 1:
+            return False
+
+        url = '{}/project/{}/{}/{}/{}?circle-token={}'.format(
+            self.CIRCLE_API_ENDPOINT, self.repo_type, self.repo_owner,
+            self.repo_name, self.build_num - 1, self.circleci_api_token)
+        response = requests.get(url)
+        response.raise_for_status()
+        if response.json()['status'] != 'success':
+            return
+
+        # send notification
+        url = '{}/project/{}/{}/{}/{}?circle-token={}'.format(
+            self.CIRCLE_API_ENDPOINT, self.repo_type, self.repo_owner,
+            upstream_repo_name, upstream_build_num, self.circleci_api_token)
+        response = requests.get(url)
+        response.raise_for_status()
+        json = response.json()
+        committer_name = json['committer_name']
+        committer_email = json['committer_email']
+        upstream_commit = json['commit']
+        upstream_commit_subject = json['subject']
+        upstream_commit_url = json['commit_url']
+        upstream_build_url = json['build_url']
+
+        url = '{}/project/{}/{}/{}/{}?circle-token={}'.format(
+            self.CIRCLE_API_ENDPOINT, self.repo_type, self.repo_owner,
+            self.repo_name, self.build_num, self.circleci_api_token)
+        response = requests.get(url)
+        response.raise_for_status()
+        json = response.json()
+        commit = json['commit']
+        commit_subject = json['subject']
+        commit_url = json['commit_url']
+        build_url = json['build_url']
+
+        context = {
+            'committer': {
+                'name': committer_name,
+                'email': committer_email,
+            },
+            'downstream': {
+                'repo_name': self.repo_name,
+                'commit': commit,
+                'commit_subject': commit_subject,
+                'commit_url': commit_url,
+                'build_num': self.build_num,
+                'build_url': build_url,
+            },
+            'upstream': {
+                'repo_name': upstream_repo_name,
+                'commit': upstream_commit,
+                'commit_subject': upstream_commit_subject,
+                'commit_url': upstream_commit_url,
+                'build_num': upstream_build_num,
+                'build_url': upstream_build_url,
+            },
+            'errors_and_failures': errors_and_failures,
+            'test_stats': {
+                'num_tests': num_tests,
+                'num_errors': num_errors,
+                'num_failures': num_failures,
+                'num_passes': num_tests - num_errors - num_failures - num_skips,
+                'num_skips': num_skips,
+            },
+        }
+        with open(pkg_resources.resource_filename('karr_lab_build_utils', 'templates/failure_notification_email.html'), 'r') as file:
+            template = Template(file.read())
+            body = template.render(**context)
+
+        msg = email.message.Message()
+        msg['From'] = email.utils.formataddr((str(email.header.Header('Karr Lab Build System', 'utf-8')), 'noreply@karrlab.org'))
+        msg['To'] = email.utils.formataddr((str(email.header.Header(committer_name, 'utf-8')), committer_email))
+        msg['Subject'] = '[Downstream failure] {} ({}, #{}) may have broken {} ({}, #{})'.format(
+            upstream_repo_name, upstream_commit, upstream_build_num,
+            self.repo_name, commit, self.build_num)
+        msg.add_header('Content-Type', 'text/html')
+        msg.set_payload(body)
+
+        smtp = smtplib.SMTP('smtp.gmail.com:587')
+        smtp.ehlo()
+        smtp.starttls()
+        smtp.login('karr.lab.daemon', os.getenv('KARR_LAB_DAEMON_GMAIL_PASSWORD'))
+        smtp.sendmail('noreply@karrlab.org', [committer_email], msg.as_string())
+        smtp.quit()
+
+        return True
 
     def make_and_archive_reports(self, coverage_dirname='.', dry_run=False):
         """ Make and archive reports:
