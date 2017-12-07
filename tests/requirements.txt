@@ -4,3 +4,4 @@ coveralls
 mock
 nose
 robpol86_sphinxcontrib_googleanalytics
+whichcraft

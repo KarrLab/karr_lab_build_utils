@@ -19,6 +19,7 @@ import attrdict
 import coverage
 import coveralls
 import enum
+import fnmatch
 import glob
 import graphviz
 # import instrumental.api
@@ -513,7 +514,8 @@ class BuildHelper(object):
     # Running tests
     ########################
     def run_tests(self, dirname='.', test_path='tests', with_xunit=False, with_coverage=False, coverage_dirname='.',
-                  coverage_type=CoverageType.statement, environment=Environment.local, exit_on_failure=True):
+                  coverage_type=CoverageType.statement, environment=Environment.local, exit_on_failure=True,
+                  ssh_key_filename='~/.ssh/id_rsa'):
         """ Run unit tests located at `test_path`.
 
         Optionally, generate a coverage report.
@@ -532,6 +534,7 @@ class BuildHelper(object):
             coverage_type (:obj:`CoverageType`, optional): type of coverage to run when :obj:`with_coverage` is :obj:`True`
             environment (:obj:`str`, optional): environment to run tests (local, docker, or circleci-local-executor)
             exit_on_failure (:obj:`bool`, optional): whether or not to exit on test failure
+            ssh_key_filename (:obj:`str`, optional): path to GitHub SSH key; needed for Docker environment
 
         Raises:
             :obj:`BuildHelperError`: If the environment is not supported or the package directory not set
@@ -541,13 +544,9 @@ class BuildHelper(object):
                                   with_coverage=with_coverage, coverage_dirname=coverage_dirname,
                                   coverage_type=coverage_type, exit_on_failure=exit_on_failure)
         elif environment == Environment.docker:
-            self._run_tests_docker(dirname=dirname, test_path=test_path, with_xunit=with_xunit,
-                                   with_coverage=with_coverage, coverage_dirname=coverage_dirname,
-                                   coverage_type=coverage_type, exit_on_failure=exit_on_failure)
+            self._run_tests_docker(dirname=dirname, test_path=test_path, ssh_key_filename=ssh_key_filename)
         elif environment == Environment.circleci:
-            self._run_tests_circleci(dirname=dirname, test_path=test_path, with_xunit=with_xunit,
-                                     with_coverage=with_coverage, coverage_dirname=coverage_dirname,
-                                     coverage_type=coverage_type, exit_on_failure=exit_on_failure)
+            self._run_tests_circleci(dirname=dirname, ssh_key_filename=ssh_key_filename)
         else:
             raise BuildHelperError('Unsupported environment: {}'.format(environment))
 
@@ -647,143 +646,149 @@ class BuildHelper(object):
         if exit_on_failure and result != 0:
             sys.exit(1)
 
-    def _run_tests_docker(self, dirname='.', test_path='tests', with_xunit=False, with_coverage=False, coverage_dirname='.',
-                          coverage_type=CoverageType.statement, exit_on_failure=True):
-        """ Run unit tests located at `test_path` using a Docker image
+    def _run_tests_docker(self, dirname='.', test_path='tests', ssh_key_filename='~/.ssh/id_rsa'):
+        """ Run unit tests located at `test_path` using a Docker image:
 
-        Optionally, generate a coverage report.
-        Optionally, save the results to a file
-
-        To configure coverage, place a .coveragerc configuration file in the root directory
-        of the repository - the same directory that holds .coverage. Documentation of coverage
-        configuration is in https://coverage.readthedocs.io/en/coverage-4.2/config.html
+        #. Create a container based on the build image (e.g, karrlab/build:latest)
+        #. Copy your GitHub SSH key to the container
+        #. Remove Python cache directories (``__pycache__``) from the package
+        #. Copy the package to the container at ``/root/projects``        
+        #. Install the Karr Lab build utilities into the container
+        #. Install the requirements for the package in the container
+        #. Run the tests inside the container using the same version of Python that called this method
+        #. Delete the container
 
         Args:
             dirname (:obj:`str`, optional): path to package that should be tested
             test_path (:obj:`str`, optional): path to tests that should be run
-            with_xunit (:obj:`bool`, optional): whether or not to save test results
-            with_coverage (:obj:`bool`, optional): whether or not coverage should be assessed
-            coverage_dirname (:obj:`str`, optional): directory to save coverage data
-            coverage_type (:obj:`CoverageType`, optional): type of coverage to run when :obj:`with_coverage` is :obj:`True`
-            exit_on_failure (:obj:`bool`, optional): whether or not to exit on test failure
-
-        Raises:
-            :obj:`BuildHelperError`: If the package directory not set
+            ssh_key_filename (:obj:`str`, optional): path to GitHub SSH key
         """
+
+        ssh_key_filename = os.path.expanduser(ssh_key_filename)
+
+        # pick container name
+        basename = os.path.basename(os.path.abspath(dirname))
+        now = datetime.now()
+        container = 'build-{0}-{1.year}-{1.month}-{1.day}-{1.hour}-{1.minute}-{1.second}'.format(basename, now)
+
+        # get Python version
+        py_v = '{}.{}'.format(sys.version_info[0], sys.version_info[1])
+
         # create container
-        process = subprocess.Popen(['docker', 'run', '-it', '-d', '--name', 'build', self.build_image, 'bash'],
-                                   stdout=subprocess.PIPE)
-        while process.poll() is None:
-            time.sleep(0.5)
-        if process.returncode and process.returncode != 0:
-            raise Exception(process.communicate()[1])
+        self._run_docker_command(['run', '-it', '-d', '--name', container, self.build_image, 'bash'])
 
-        # copy GitHub ssh key to container
-        process = subprocess.Popen(['docker', 'cp', os.path.expanduser(os.path.join('~', '.ssh', 'id_rsa')), 'build:/root/.ssh/'],
-                                   stdout=subprocess.PIPE)
-        while process.poll() is None:
-            time.sleep(0.5)
-        if process.returncode and process.returncode != 0:
-            raise Exception(process.communicate()[1])
+        # copy GitHub SSH key to container
+        self._run_docker_command(['cp', ssh_key_filename, container + ':/root/.ssh/'])
 
-        # copy scripts to container
-        process = subprocess.Popen(['docker', 'cp', os.path.join(os.path.dirname(__file__), 'test_package.sh'), 'build:/root/'],
-                                   stdout=subprocess.PIPE)
-        while process.poll() is None:
-            time.sleep(0.5)
-        if process.returncode and process.returncode != 0:
-            raise Exception(process.communicate()[1])
+        # delete __pycache__ directories
+        for root, rel_dirnames, rel_filenames in os.walk(dirname):
+            for rel_dirname in fnmatch.filter(rel_dirnames, '__pycache__'):
+                shutil.rmtree(os.path.join(root, rel_dirname))
 
         # copy package to container
-        process = subprocess.Popen(['docker', 'cp', os.path.join(os.path.dirname(__file__), '..', '..', package), 'build:/root/'],
-                                   stdout=subprocess.PIPE)
-        while process.poll() is None:
-            time.sleep(0.5)
-        if process.returncode and process.returncode != 0:
-            raise Exception(process.communicate()[1])
+        self._run_docker_command(['cp', os.path.abspath(dirname), container + ':/root/project'])
+
+        # install Karr Lab build utils
+        build_utils_uri = 'git+https://github.com/KarrLab/karr_lab_build_utils.git#egg=karr_lab_build_utils'
+        self._run_docker_command(['exec', container, 'bash', '-c',
+                                  'pip{} install -U {}'.format(py_v, build_utils_uri)])
+
+        # install requirements
+        self._run_docker_command(['exec', container, 'bash', '-c',
+                                  'cd /root/project && karr_lab_build_utils{} install-requirements'.format(py_v)])
 
         # test package in container
-        process = subprocess.Popen(['docker', 'exec',
-                                    '-e', 'CIRCLE_PROJECT_REPONAME=' + package,
-                                    '-e', 'CIRCLE_PROJECT_USERNAME=KarrLab',
-                                    'build',
-                                    'bash', '-c', '/root/test_package.sh',
-                                    ])
+        try:
+            self._run_docker_command(['exec', container, 'bash', '-c',
+                                      'cd /root/project && karr_lab_build_utils{} run-tests {}'.format(py_v, test_path)])
+        finally:
+            # stop and remove container
+            self._run_docker_command(['rm', '-f', container])
+
+    def _run_docker_command(self, cmd, cwd=None):
+        """ Run a docker command
+
+        Args:
+            cmd (:obj:`list`): docker command to run
+
+        Raises:
+            :obj:`BuildHelperError`: if the docker command fails
+        """
+        process = subprocess.Popen(['docker'] + cmd, cwd=cwd)
         while process.poll() is None:
             time.sleep(0.5)
         if process.returncode and process.returncode != 0:
-            valid = False
-        else:
-            valid = True
+            raise BuildHelperError(process.communicate()[1])
 
-        # stop and remove container
-        process = subprocess.Popen(['docker', 'rm', '-f', 'build'],
-                                   stdout=subprocess.PIPE)
-        while process.poll() is None:
-            time.sleep(0.5)
-        if process.returncode and process.returncode != 0:
-            raise Exception(process.communicate()[1])
-
-        return valid
-
-    def _run_tests_circleci(self, dirname='.', test_path='tests', with_xunit=False, with_coverage=False, coverage_dirname='.',
-                            coverage_type=CoverageType.statement, exit_on_failure=True):
-        """ Run unit tests located at `test_path` using the CircleCI local executor
-
-        Optionally, generate a coverage report.
-        Optionally, save the results to a file
-
-        To configure coverage, place a .coveragerc configuration file in the root directory
-        of the repository - the same directory that holds .coverage. Documentation of coverage
-        configuration is in https://coverage.readthedocs.io/en/coverage-4.2/config.html
+    def _run_tests_circleci(self, dirname='.', ssh_key_filename='~/.ssh/id_rsa'):
+        """ Run unit tests located at `test_path` using the CircleCI local executor. This will run the same commands defined in 
+        ``.circle/config.yml`` as the cloud version of CircleCI.
 
         Args:
             dirname (:obj:`str`, optional): path to package that should be tested
-            test_path (:obj:`str`, optional): path to tests that should be run
-            with_xunit (:obj:`bool`, optional): whether or not to save test results
-            with_coverage (:obj:`bool`, optional): whether or not coverage should be assessed
-            coverage_dirname (:obj:`str`, optional): directory to save coverage data
-            coverage_type (:obj:`CoverageType`, optional): type of coverage to run when :obj:`with_coverage` is :obj:`True`
-            exit_on_failure (:obj:`bool`, optional): whether or not to exit on test failure
+            ssh_key_filename (:obj:`str`, optional): path to GitHub SSH key
 
         Raises:
-            :obj:`BuildHelperError`: If the package directory not set
+            :obj:`BuildHelperError`: if the tests fail
         """
-        package_dir = os.path.join(os.path.dirname(__file__), '..', '..', package)
+        ssh_key_filename = os.path.expanduser(ssh_key_filename)
+        karr_lab_build_utils_dirname = os.path.expanduser('~/Documents/karr_lab_build_utils')
 
-        # remove __pycache__ files
-        for path in glob.glob(os.path.join(package_dir, '**', '__pycache__'), recursive=True):
-            shutil.rmtree(path)
+        # delete __pycache__ directories
+        for root, rel_dirnames, rel_filenames in os.walk(dirname):
+            for rel_dirname in fnmatch.filter(rel_dirnames, '__pycache__'):
+                shutil.rmtree(os.path.join(root, rel_dirname))
 
         # update CircleCI to use build image with SSH key
-        with open(os.path.join(package_dir, '.circleci', 'config.yml'), 'r') as file:
+        circleci_config_filename = os.path.join(dirname, '.circleci', 'config.yml')
+        backup_circleci_config_filename = os.path.join(dirname, '.circleci', 'config.yml.save')
+
+        with open(circleci_config_filename, 'r') as file:
             config = yaml.load(file)
 
-        if len(config['jobs']['build']['docker']) != 1:
-            raise Exception('Only one docker build is supported at this time')
-
         image_name = config['jobs']['build']['docker'][0]['image']
-        image_with_ssh_key_name = image_name + '.with_ssh_key'
+        if image_name.endswith('.with_ssh_key'):
+            image_with_ssh_key_name = image_name
+            image_name = image_name[:-13]
+        else:
+            image_with_ssh_key_name = image_name + '.with_ssh_key'
 
-        shutil.copyfile(os.path.join(package_dir, '.circleci', 'config.yml'), os.path.join(package_dir, '.circleci', 'config.yml.user'))
+        shutil.copyfile(circleci_config_filename, backup_circleci_config_filename)
         config['jobs']['build']['docker'][0]['image'] = image_with_ssh_key_name
-        with open(os.path.join(package_dir, '.circleci', 'config.yml'), 'w') as file:
-            yaml.dump(config, file)
+        with open(circleci_config_filename, 'w') as file:
+            yaml.dump(config, file, default_flow_style=False)
+
+        # Build docker image with SSH key
+        secret_dirname = os.path.join(karr_lab_build_utils_dirname, 'tests', 'fixtures', 'secret')
+        if not os.path.isdir(secret_dirname):
+            os.makedirs(secret_dirname)
+        shutil.copy(ssh_key_filename, os.path.join(secret_dirname, 'GITHUB_SSH_KEY'))
+
+        dockerfile_filename = os.path.join(karr_lab_build_utils_dirname, 'tests', 'fixtures', 'secret', 'Dockerfile_Circleci')
+        with open(dockerfile_filename, 'w') as file:
+            file.write('FROM {}\n'.format(image_name))
+            file.write('COPY tests/fixtures/secret/GITHUB_SSH_KEY /root/.ssh/id_rsa\n')
+            file.write('ENV TEST_SERVER_TOKEN={}\n'.format(self.test_server_token or ''))
+            file.write('RUN eval `ssh-agent` && ssh-add /root/.ssh/id_rsa\n')
+            file.write('CMD bash\n')
+
+        self._run_docker_command(['build', '--tag', image_with_ssh_key_name, '-f', 'tests/fixtures/secret/Dockerfile_Circleci', '.'],
+                                 cwd=karr_lab_build_utils_dirname)
 
         # test package
-        process = subprocess.Popen(['circleci', 'build',
-                                    '-e', 'TEST_SERVER_TOKEN=' + TEST_SERVER_TOKEN,
-                                    ], cwd=package_dir)
+        process = subprocess.Popen(['circleci', 'build'], cwd=dirname)
         while process.poll() is None:
             time.sleep(0.5)
 
-        # undo changes to CircleCI config
-        shutil.move(os.path.join(package_dir, '.circleci', 'config.yml.user'), os.path.join(package_dir, '.circleci', 'config.yml'))
+        # revert CircleCI config file
+        shutil.move(backup_circleci_config_filename, circleci_config_filename)
 
-        # return
+        # delete docker image
+        self._run_docker_command(['rmi', image_with_ssh_key_name])
+
+        # raise error if tests didn't pass
         if process.returncode != 0 and process.communicate()[1] is not None:
-            return False
-        return True
+            raise BuildHelperError(process.communicate()[1])
 
     def make_and_archive_reports(self, coverage_dirname='.', dry_run=False):
         """ Make and archive reports:
@@ -821,7 +826,7 @@ class BuildHelper(object):
             :obj:`BuildHelperError`: if there is an error uploading the report to the test history server
         """
 
-        if self.test_server_token is None or \
+        if not self.test_server_token or \
                 self.repo_name is None or \
                 self.repo_owner is None or \
                 self.repo_branch is None or \
@@ -1179,8 +1184,8 @@ class BuildHelper(object):
 
             for build in builds:
                 if package == upstream_repo_name and \
-                    str(build['build_num']) == upstream_build_num and \
-                    build['build_num'] != self.build_num:
+                        str(build['build_num']) == upstream_build_num and \
+                        build['build_num'] != self.build_num:
                     already_triggered = True
                     break
 

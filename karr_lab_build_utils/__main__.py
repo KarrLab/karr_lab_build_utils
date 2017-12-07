@@ -128,6 +128,8 @@ class RunTestsController(CementBaseController):
             (['--environment'], dict(
                 type=str, default='local',
                 help='Environment to run tests (local, docker, or circleci)')),
+            (['--ssh-key-filename'], dict(
+                type=str, default='~/.ssh/id_rsa', help='Path to GitHub SSH key')),
         ]
 
     @expose(hide=True)
@@ -137,7 +139,8 @@ class RunTestsController(CementBaseController):
         coverage_type = karr_lab_build_utils.core.CoverageType[args.coverage_type.lower().replace('-', '_')]
         buildHelper.run_tests(dirname=args.dirname, test_path=args.test_path, with_xunit=args.with_xunit,
                               with_coverage=args.with_coverage, coverage_dirname=args.coverage_dirname,
-                              coverage_type=coverage_type, environment=karr_lab_build_utils.core.Environment[args.environment])
+                              coverage_type=coverage_type, environment=karr_lab_build_utils.core.Environment[args.environment],
+                              ssh_key_filename=args.ssh_key_filename)
 
 
 class CreateCircleciBuildController(CementBaseController):

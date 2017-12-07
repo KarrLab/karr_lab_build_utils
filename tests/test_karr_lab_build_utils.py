@@ -30,6 +30,7 @@ import six
 import sys
 import tempfile
 import unittest
+import whichcraft
 import yaml
 
 # reload modules to get coverage correct
@@ -417,6 +418,35 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 build_helper.run_tests(test_path=self.DUMMY_TEST, with_xunit=True)
 
         shutil.rmtree(tempdirname)
+
+    @unittest.skipIf(whichcraft.which('docker') is None, (
+        'Test requires Docker and Docker isn''t installed. '
+        'See installation instructions at `https://intro-to-wc-modeling.readthedocs.io/en/latest/installation.html`'
+    ))
+    def test_run_tests_docker(self):
+        build_helper = self.construct_build_helper()
+
+        # test success
+        build_helper.run_tests(test_path=self.DUMMY_TEST, environment=core.Environment.docker)
+
+        # :todo: test failure
+
+    @unittest.skipIf(whichcraft.which('docker') is None or whichcraft.which('circleci') is None, (
+        'Test requires the CircleCI command line utility (local executor) and this isn''t installed. See '
+        'installation instructions at `http://intro-to-wc-modeling.readthedocs.io/en/latest/installation.html`.'
+    ))
+    def test_run_tests_circleci(self):
+        build_helper = self.construct_build_helper()
+
+        # test success
+        build_helper.run_tests(test_path=self.DUMMY_TEST, environment=core.Environment.circleci)
+
+        # :todo: test failure
+
+    def test_run_tests_unsupported_env(self):
+        build_helper = self.construct_build_helper()
+        with self.assertRaisesRegexp(core.BuildHelperError, '^Unsupported environment:'):
+            build_helper.run_tests(test_path=self.DUMMY_TEST, environment=None)
 
     def test_make_and_archive_reports(self):
         build_helper = self.construct_build_helper()
