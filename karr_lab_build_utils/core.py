@@ -850,6 +850,60 @@ class BuildHelper(object):
 
         return test_results
 
+    def get_test_results_status(self, test_results):
+        """ Get the status of a set of results
+
+        * Passed
+        * New error
+        * Fixed error
+        * New downstream error
+
+        Args:
+            test_results (:obj:`TestResults`): test results
+
+        Returns:
+            :obj:`dict`: status of a set of results
+        """
+        # determine if there is an error
+        passed = test_results.get_num_errors() == 0 and test_results.get_num_failures() == 0
+
+        # determine if error is new
+        if self.build_num <= 1:
+            if passed:
+                is_old_error = False
+                is_new_error = False
+                is_fixed = True
+            else:
+                is_old_error = False
+                is_new_error = True
+                is_fixed = False
+        else:
+            prev_result = self.run_circleci_api(str(self.build_num - 1))
+            if passed:
+                is_old_error = False
+                is_new_error = False
+                is_fixed = prev_result['status'] != 'success'
+            else:
+                is_old_error = prev_result['status'] != 'success'
+                is_new_error = prev_result['status'] == 'success'
+                is_fixed = False
+
+        # determine if build was triggered by an upstream package
+        upstream_repo_name = os.getenv('UPSTREAM_REPONAME', '')
+        upstream_build_num = int(os.getenv('UPSTREAM_BUILD_NUM', '0'))
+
+        if upstream_repo_name and is_new_error and self.build_num > 1:
+            is_new_downstream_error = True
+        else:
+            is_new_downstream_error = False
+
+        return {
+            'passed': passed,
+            'is_new_error': is_new_error,
+            'is_new_downstream_error': is_new_downstream_error,
+            'is_fixed': is_fixed,
+        }
+
     def do_post_test_tasks(self):
         """ Do all post-test tasks for CircleCI
 
@@ -867,89 +921,67 @@ class BuildHelper(object):
         """ Send email notifications of failures, fixes, and downstream failures
 
         Returns:
-            :obj:`bool`: obj:`True` if an email is sent
+            :obj:`dict`: 
         """
         test_results = self.get_test_results()
-
-        # determine if there is an error
-        has_error = test_results.get_num_errors() or test_results.get_num_failures()
-        if not has_error:
-            return False
-
-        # determine if error is new
-        if self.build_num <= 1:
-            return False
-
-        result = self.run_circleci_api(str(self.build_num - 1))
-        if result['status'] != 'success':
-            return
-
-        # determine if build was triggered by an upstream package
-        upstream_repo_name = os.getenv('UPSTREAM_REPONAME', '')
-        upstream_build_num = int(os.getenv('UPSTREAM_BUILD_NUM', '0'))
-
-        if not upstream_repo_name:
-            return False
+        status = self.get_test_results_status(test_results)
 
         # send notification
-        result = self.run_circleci_api(str(upstream_build_num), repo_name=upstream_repo_name)
-        committer_name = result['committer_name']
-        committer_email = result['committer_email']
-        upstream_commit = result['commit']
-        upstream_commit_subject = result['subject']
-        upstream_commit_url = result['commit_url']
-        upstream_build_url = result['build_url']
+        if status['is_new_downstream_error']:
+            context = {
+                'test_results': test_results,
+            }
 
-        result = self.run_circleci_api(str(self.build_num))
-        commit = result['commit']
-        commit_subject = result['subject']
-        commit_url = result['commit_url']
-        build_url = result['build_url']
-
-        context = {
-            'committer': {
+            upstream_repo_name = os.getenv('UPSTREAM_REPONAME', '')
+            upstream_build_num = int(os.getenv('UPSTREAM_BUILD_NUM', '0'))
+            result = self.run_circleci_api(str(upstream_build_num), repo_name=upstream_repo_name)
+            committer_name = result['committer_name']
+            committer_email = result['committer_email']
+            context['committer'] = {
                 'name': committer_name,
                 'email': committer_email,
-            },
-            'downstream': {
-                'repo_name': self.repo_name,
-                'commit': commit,
-                'commit_subject': commit_subject,
-                'commit_url': commit_url,
-                'build_num': self.build_num,
-                'build_url': build_url,
-            },
-            'upstream': {
+            }
+            context['upstream'] = {
                 'repo_name': upstream_repo_name,
-                'commit': upstream_commit,
-                'commit_subject': upstream_commit_subject,
-                'commit_url': upstream_commit_url,
+                'commit': result['commit'],
+                'commit_subject': result['subject'],
+                'commit_url': result['commit_url'],
                 'build_num': upstream_build_num,
-                'build_url': upstream_build_url,
-            },
-            'test_results': test_results,
-        }
-        with open(pkg_resources.resource_filename('karr_lab_build_utils', 'templates/failure_notification_email.html'), 'r') as file:
-            template = Template(file.read())
-            body = template.render(**context)
+                'build_url': result['build_url'],
+            }
 
-        msg = email.message.Message()
-        msg['From'] = email.utils.formataddr((str(email.header.Header('Karr Lab Build System', 'utf-8')), 'noreply@karrlab.org'))
-        msg['To'] = email.utils.formataddr((str(email.header.Header(committer_name, 'utf-8')), committer_email))
-        msg['Subject'] = '[Downstream failure] {} ({}, #{}) may have broken {} ({}, #{})'.format(
-            upstream_repo_name, upstream_commit, upstream_build_num,
-            self.repo_name, commit, self.build_num)
-        msg.add_header('Content-Type', 'text/html')
-        msg.set_payload(body)
+            result = self.run_circleci_api(str(self.build_num))
+            context['downstream'] = {
+                'repo_name': self.repo_name,
+                'commit': result['commit'],
+                'commit_subject': result['subject'],
+                'commit_url': result['commit_url'],
+                'build_num': self.build_num,
+                'build_url': result['build_url'],
+            }
 
-        smtp = smtplib.SMTP('smtp.gmail.com:587')
-        smtp.ehlo()
-        smtp.starttls()
-        smtp.login('karr.lab.daemon', os.getenv('KARR_LAB_DAEMON_GMAIL_PASSWORD'))
-        smtp.sendmail('noreply@karrlab.org', [committer_email], msg.as_string())
-        smtp.quit()
+            with open(pkg_resources.resource_filename('karr_lab_build_utils', 'templates/failure_notification_email.html'), 'r') as file:
+                template = Template(file.read())
+                body = template.render(**context)
 
-        return True
+            msg = email.message.Message()
+            msg['From'] = email.utils.formataddr((str(email.header.Header('Karr Lab Build System', 'utf-8')), 'noreply@karrlab.org'))
+            msg['To'] = email.utils.formataddr((str(email.header.Header(committer_name, 'utf-8')), committer_email))
+            msg['Subject'] = '[Downstream failure] {} ({}, #{}) may have broken {} ({}, #{})'.format(
+                context['upstream']['repo_name'], context['upstream']['commit'], context['upstream']['build_num'],
+                context['downstream']['repo_name'], context['downstream']['commit'], context['downstream']['build_num'])
+            msg.add_header('Content-Type', 'text/html')
+            msg.set_payload(body)
+
+            smtp = smtplib.SMTP('smtp.gmail.com:587')
+            smtp.ehlo()
+            smtp.starttls()
+            smtp.login('karr.lab.daemon', os.getenv('KARR_LAB_DAEMON_GMAIL_PASSWORD'))
+            smtp.sendmail('noreply@karrlab.org', [committer_email], msg.as_string())
+            smtp.quit()
+
+            return True
+        return False
 
     def make_and_archive_reports(self, coverage_dirname='.', dry_run=False):
         """ Make and archive reports:
