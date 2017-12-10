@@ -926,62 +926,78 @@ class BuildHelper(object):
         test_results = self.get_test_results()
         status = self.get_test_results_status(test_results)
 
-        # send notification
-        if status['is_new_downstream_error']:
-            context = {
-                'test_results': test_results,
-            }
+        # build context for email
+        result = self.run_circleci_api(str(self.build_num))
+        context = {
+            'repo_name': self.repo_name,
+            'commit': result['commit'],
+            'committer_name': result['committer_name'],
+            'committer_email': result['committer_email'],
+            'commit_subject': result['subject'],
+            'commit_url': result['commit_url'],
+            'build_num': self.build_num,
+            'build_url': result['build_url'],
+            'test_results': test_results,
+        }
 
+        if status['is_new_downstream_error']:
             upstream_repo_name = os.getenv('UPSTREAM_REPONAME', '')
             upstream_build_num = int(os.getenv('UPSTREAM_BUILD_NUM', '0'))
             result = self.run_circleci_api(str(upstream_build_num), repo_name=upstream_repo_name)
-            committer_name = result['committer_name']
-            committer_email = result['committer_email']
-            context['committer'] = {
-                'name': committer_name,
-                'email': committer_email,
-            }
             context['upstream'] = {
                 'repo_name': upstream_repo_name,
                 'commit': result['commit'],
+                'committer_name': result['committer_name'],
+                'committer_email': result['committer_email'],
                 'commit_subject': result['subject'],
                 'commit_url': result['commit_url'],
                 'build_num': upstream_build_num,
                 'build_url': result['build_url'],
             }
 
-            result = self.run_circleci_api(str(self.build_num))
-            context['downstream'] = {
-                'repo_name': self.repo_name,
-                'commit': result['commit'],
-                'commit_subject': result['subject'],
-                'commit_url': result['commit_url'],
-                'build_num': self.build_num,
-                'build_url': result['build_url'],
-            }
-
-            with open(pkg_resources.resource_filename('karr_lab_build_utils', 'templates/failure_notification_email.html'), 'r') as file:
-                template = Template(file.read())
-                body = template.render(**context)
-
-            msg = email.message.Message()
-            msg['From'] = email.utils.formataddr((str(email.header.Header('Karr Lab Build System', 'utf-8')), 'noreply@karrlab.org'))
-            msg['To'] = email.utils.formataddr((str(email.header.Header(committer_name, 'utf-8')), committer_email))
-            msg['Subject'] = '[Downstream failure] {} ({}, #{}) may have broken {} ({}, #{})'.format(
-                context['upstream']['repo_name'], context['upstream']['commit'], context['upstream']['build_num'],
-                context['downstream']['repo_name'], context['downstream']['commit'], context['downstream']['build_num'])
-            msg.add_header('Content-Type', 'text/html')
-            msg.set_payload(body)
-
-            smtp = smtplib.SMTP('smtp.gmail.com:587')
-            smtp.ehlo()
-            smtp.starttls()
-            smtp.login('karr.lab.daemon', os.getenv('KARR_LAB_DAEMON_GMAIL_PASSWORD'))
-            smtp.sendmail('noreply@karrlab.org', [committer_email], msg.as_string())
-            smtp.quit()
+        # send notification
+        if status['is_new_downstream_error']:
+            recipients = [{
+                'name': context['upstream']['committer_name'],
+                'email': context['upstream']['committer_email'],
+            }]
+            self._send_notification_email(recipients, 'failure_notification_email.html', context)
 
             return True
         return False
+
+    def _send_notification_email(self, recipients, template_filename, context):
+        """ Send an email notification of test results
+
+        Args:
+            recipients (:obj:`list` of :obj:`dict`): recipient names and email addresses
+            template_filename (obj:`str`): path to template
+            context (obj:`dict`): context for template
+        """
+        full_template_filename = pkg_resources.resource_filename('karr_lab_build_utils',
+                                                                 os.path.join('templates', template_filename))
+        with open(full_template_filename, 'r') as file:
+            template = Template(file.read())
+            body = template.render(**context)
+
+        msg = email.message.Message()
+        msg['From'] = email.utils.formataddr((str(email.header.Header('Karr Lab Build System', 'utf-8')), 'noreply@karrlab.org'))
+        msg['To'] = email.utils.formataddr((
+            str(email.header.Header(recipients[0]['name'], 'utf-8')),
+            recipients[0]['email'],
+        ))
+        msg['Subject'] = '[Downstream failure] {} ({}, #{}) may have broken {} ({}, #{})'.format(
+            context['upstream']['repo_name'], context['upstream']['commit'], context['upstream']['build_num'],
+            context['repo_name'], context['commit'], context['build_num'])
+        msg.add_header('Content-Type', 'text/html')
+        msg.set_payload(body)
+
+        smtp = smtplib.SMTP('smtp.gmail.com:587')
+        smtp.ehlo()
+        smtp.starttls()
+        smtp.login('karr.lab.daemon', os.getenv('KARR_LAB_DAEMON_GMAIL_PASSWORD'))
+        smtp.sendmail('noreply@karrlab.org', [recipient['email'] for recipient in recipients], msg.as_string())
+        smtp.quit()
 
     def make_and_archive_reports(self, coverage_dirname='.', dry_run=False):
         """ Make and archive reports:

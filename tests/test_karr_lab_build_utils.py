@@ -480,8 +480,22 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             file.write('<testcase classname="tests.core.TestCase" name="test_pass_3" time="0.01"></testcase>')
             file.write('</testsuite>')
 
+        # requests side effects
+        requests_get_1 = attrdict.AttrDict({
+            'raise_for_status': lambda: None,
+            'json': lambda: {
+                'commit': 'yyyyyyyyyyyyyyyyyyyy',
+                'committer_name': 'Test user 2',
+                'committer_email': 'test2@test.com',
+                'subject': 'Test commit 2',
+                'commit_url': 'https://github.com/KarrLab/test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
+                'build_url': 'https://circleci.com/gh/KarrLab/test_repo_2/51',
+            },
+        })
+
         # test API
-        self.assertFalse(build_helper.send_email_notifications())
+        with mock.patch('requests.get', side_effect=[requests_get_1]):
+            self.assertFalse(build_helper.send_email_notifications())
 
     def test_send_email_notifications_no_upstream(self):
         build_helper = self.construct_build_helper()
@@ -510,8 +524,22 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             file.write('  <testcase classname="tests.core.TestCase" name="test_pass_3" file="/script.py" line="1" time="0.01"></testcase>')
             file.write('</testsuite>')
 
+        # requests side effects
+        requests_get_1 = attrdict.AttrDict({
+            'raise_for_status': lambda: None,
+            'json': lambda: {
+                'commit': 'yyyyyyyyyyyyyyyyyyyy',
+                'committer_name': 'Test user 2',
+                'committer_email': 'test2@test.com',
+                'subject': 'Test commit 2',
+                'commit_url': 'https://github.com/KarrLab/test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
+                'build_url': 'https://circleci.com/gh/KarrLab/test_repo_2/51',
+            },
+        })
+
         # test API
-        self.assertFalse(build_helper.send_email_notifications())
+        with mock.patch('requests.get', side_effect=[requests_get_1]):
+            self.assertFalse(build_helper.send_email_notifications())
 
     def test_send_email_notifications_no_previous_builds(self):
         build_helper = self.construct_build_helper()
@@ -540,6 +568,19 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             file.write('  <testcase classname="tests.core.TestCase" name="test_pass_3" file="/script.py" line="1" time="0.01"></testcase>')
             file.write('</testsuite>')
 
+        # requests side effects
+        requests_get_1 = attrdict.AttrDict({
+            'raise_for_status': lambda: None,
+            'json': lambda: {
+                'commit': 'yyyyyyyyyyyyyyyyyyyy',
+                'committer_name': 'Test user 2',
+                'committer_email': 'test2@test.com',
+                'subject': 'Test commit 2',
+                'commit_url': 'https://github.com/KarrLab/test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
+                'build_url': 'https://circleci.com/gh/KarrLab/test_repo_2/51',
+            },
+        })
+
         # mock environment
         env = self.construct_environment(build_num=1)
         env.set('CIRCLE_PROJECT_REPONAME', 'test_repo_2')
@@ -549,9 +590,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         env.set('UPSTREAM_BUILD_NUM', '101')
 
         # test API
-        with env:
-            build_helper = self.construct_build_helper(build_num=1)
-            self.assertFalse(build_helper.send_email_notifications())
+        with mock.patch('requests.get', side_effect=[requests_get_1]):
+            with env:
+                build_helper = self.construct_build_helper(build_num=1)
+                self.assertFalse(build_helper.send_email_notifications())
 
     def test_send_email_notifications_existing_error(self):
         build_helper = self.construct_build_helper()
@@ -580,6 +622,23 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             file.write('  <testcase classname="tests.core.TestCase" name="test_pass_3" file="/script.py" line="1" time="0.01"></testcase>')
             file.write('</testsuite>')
 
+        # requests side effects
+        requests_get_1 = attrdict.AttrDict({
+            'raise_for_status': lambda: None,
+            'json': lambda: {'status': 'failure'},
+        })
+        requests_get_2 = attrdict.AttrDict({
+            'raise_for_status': lambda: None,
+            'json': lambda: {
+                'commit': 'yyyyyyyyyyyyyyyyyyyy',
+                'committer_name': 'Test user 2',
+                'committer_email': 'test2@test.com',
+                'subject': 'Test commit 2',
+                'commit_url': 'https://github.com/KarrLab/test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
+                'build_url': 'https://circleci.com/gh/KarrLab/test_repo_2/51',
+            },
+        })
+
         # mock environment
         env = self.construct_environment(build_num=51)
         env.set('CIRCLE_PROJECT_REPONAME', 'test_repo_2')
@@ -588,16 +647,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         env.set('UPSTREAM_REPONAME', 'test_repo')
         env.set('UPSTREAM_BUILD_NUM', '101')
 
-        # requests side effects
-        requests_get_1 = attrdict.AttrDict({
-            'raise_for_status': lambda: None,
-            'json': lambda: {'status': 'failure'},
-        })
-
         # test API
         with env:
             build_helper = self.construct_build_helper(build_num=51)
-            with mock.patch('requests.get', side_effect=[requests_get_1]):
+            with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2]):
                 self.assertFalse(build_helper.send_email_notifications())
 
     def test_send_email_notifications_send_email(self):
@@ -643,23 +696,23 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         requests_get_2 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
             'json': lambda: {
-                'committer_name': 'Test user',
-                'committer_email': 'test@test.com',
-                'commit': 'xxxxxxxxxxxxxxxxxxxx',
-                'subject': 'Test commit',
-                'commit_url': 'https://github.com/KarrLab/test_repo/commit/xxxxxxxxxxxxxxxxxxxx',
-                'build_url': 'https://circleci.com/gh/KarrLab/test_repo/101',
-            },
-        })
-        requests_get_3 = attrdict.AttrDict({
-            'raise_for_status': lambda: None,
-            'json': lambda: {
                 'committer_name': 'Test user 2',
                 'committer_email': 'test2@test.com',
                 'commit': 'yyyyyyyyyyyyyyyyyyyy',
                 'subject': 'Test commit 2',
                 'commit_url': 'https://github.com/KarrLab/test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
                 'build_url': 'https://circleci.com/gh/KarrLab/test_repo_2/51',
+            },
+        })
+        requests_get_3 = attrdict.AttrDict({
+            'raise_for_status': lambda: None,
+            'json': lambda: {
+                'committer_name': 'Test user',
+                'committer_email': 'test@test.com',
+                'commit': 'xxxxxxxxxxxxxxxxxxxx',
+                'subject': 'Test commit',
+                'commit_url': 'https://github.com/KarrLab/test_repo/commit/xxxxxxxxxxxxxxxxxxxx',
+                'build_url': 'https://circleci.com/gh/KarrLab/test_repo/101',
             },
         })
 

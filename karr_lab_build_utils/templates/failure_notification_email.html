@@ -1,24 +1,24 @@
 <html>
     <body>
-        <p>Hi {{ committer.name }},</p>
+        <p>Hi {{ committer_name }},</p>
         
-        <p>Uh-oh, a commit to {{ upstream.repo_name }} may have broken {{ downstream.repo_name }}.</p>
+        <p>Uh-oh, a commit to {{ upstream.repo_name }} may have broken {{ repo_name }}.</p>
         
+        <p>Downstream:
+            <ul>
+                <li>Repo: <a href="https://github.com/KarrLab/{{ repo_name }}">{{ repo_name }}</a></li>
+                <li>Commit: <a href="{{ commit_url }}">{{ commit|truncate(6) }}</a></li>
+                <li>Build: <a href="{{ build_url }}">{{ build_num }}</a></li>
+                <li>Subject: {{ commit_subject }}</li>
+            </ul>
+        </p>
+
         <p>Upstream:
             <ul>
                 <li>Repo: <a href="https://github.com/KarrLab/{{ upstream.repo_name }}">{{ upstream.repo_name }}</a></li>
                 <li>Commit: <a href="{{ upstream.commit_url }}">{{ upstream.commit|truncate(6) }}</a></li>
                 <li>Build: <a href="{{ upstream.build_url }}">{{ upstream.build_num }}</a></li>
                 <li>Subject: {{ upstream.commit_subject }}</li>
-            </ul>
-        </p>
-
-        <p>Downstream:
-            <ul>
-                <li>Repo: <a href="https://github.com/KarrLab/{{ downstream.repo_name }}">{{ downstream.repo_name }}</a></li>
-                <li>Commit: <a href="{{ downstream.commit_url }}">{{ downstream.commit|truncate(6) }}</a></li>
-                <li>Build: <a href="{{ downstream.build_url }}">{{ downstream.build_num }}</a></li>
-                <li>Subject: {{ downstream.commit_subject }}</li>
             </ul>
         </p>
 
