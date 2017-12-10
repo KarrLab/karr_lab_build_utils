@@ -853,7 +853,7 @@ class BuildHelper(object):
     def get_test_results_status(self, test_results):
         """ Get the status of a set of results
 
-        * Passed
+        * Old err
         * New error
         * Fixed error
         * New downstream error
@@ -898,10 +898,10 @@ class BuildHelper(object):
             is_new_downstream_error = False
 
         return {
-            'passed': passed,
+            'is_fixed': is_fixed,
+            'is_old_error': is_old_error,
             'is_new_error': is_new_error,
             'is_new_downstream_error': is_new_downstream_error,
-            'is_fixed': is_fixed,
         }
 
     def do_post_test_tasks(self):
@@ -956,15 +956,14 @@ class BuildHelper(object):
             }
 
         # send notifications
-
         if status['is_new_downstream_error']:
-            recipients = [{
-                'name': context['upstream']['committer_name'],
-                'email': context['upstream']['committer_email'],
-            }]
+            recipients = [
+                {'name': 'Whole-Cell Modeling Developers', 'email': 'wholecell-developers@googlegroups.com'},
+                {'name': context['upstream']['committer_name'], 'email': context['upstream']['committer_email']},
+            ]
             subject = '[Builds] [{1}] commit {0} to {1} may have broken {2}'.format(
                 context['upstream']['commit'], context['upstream']['repo_name'], context['repo_name'])
-            self._send_notification_email(recipients, subject, 'failure_notification_email.html', context)
+            self._send_notification_email(recipients, subject, 'new_downstream_failure_notification_email.html', context)
 
         return status
 
@@ -985,10 +984,10 @@ class BuildHelper(object):
 
         msg = email.message.Message()
         msg['From'] = email.utils.formataddr((str(email.header.Header('Karr Lab Build System', 'utf-8')), 'noreply@karrlab.org'))
-        msg['To'] = email.utils.formataddr((
-            str(email.header.Header(recipients[0]['name'], 'utf-8')),
-            recipients[0]['email'],
-        ))
+        tos = []
+        for recipient in recipients:
+            tos.append(email.utils.formataddr((str(email.header.Header(recipient['name'], 'utf-8')), recipient['email'])))
+        msg['To'] = ', '.join(tos)
         msg['Subject'] = subject
         msg.add_header('Content-Type', 'text/html')
         msg.set_payload(body)
