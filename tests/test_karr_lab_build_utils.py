@@ -495,7 +495,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         # test API
         with mock.patch('requests.get', side_effect=[requests_get_1]):
-            self.assertFalse(build_helper.send_email_notifications())
+            self.assertFalse(build_helper.send_email_notifications()['is_new_downstream_error'])
 
     def test_send_email_notifications_no_upstream(self):
         build_helper = self.construct_build_helper()
@@ -539,7 +539,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         # test API
         with mock.patch('requests.get', side_effect=[requests_get_1]):
-            self.assertFalse(build_helper.send_email_notifications())
+            self.assertFalse(build_helper.send_email_notifications()['is_new_downstream_error'])
 
     def test_send_email_notifications_no_previous_builds(self):
         build_helper = self.construct_build_helper()
@@ -593,7 +593,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with mock.patch('requests.get', side_effect=[requests_get_1]):
             with env:
                 build_helper = self.construct_build_helper(build_num=1)
-                self.assertFalse(build_helper.send_email_notifications())
+                self.assertFalse(build_helper.send_email_notifications()['is_new_downstream_error'])
 
     def test_send_email_notifications_existing_error(self):
         build_helper = self.construct_build_helper()
@@ -651,7 +651,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with env:
             build_helper = self.construct_build_helper(build_num=51)
             with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2]):
-                self.assertFalse(build_helper.send_email_notifications())
+                self.assertFalse(build_helper.send_email_notifications()['is_new_downstream_error'])
 
     def test_send_email_notifications_send_email(self):
         build_helper = self.construct_build_helper()
@@ -729,7 +729,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             build_helper = self.construct_build_helper(build_num=51)
             with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_3]):
                 with mock.patch('smtplib.SMTP', return_value=smtp):
-                    self.assertTrue(build_helper.send_email_notifications())
+                    self.assertTrue(build_helper.send_email_notifications()['is_new_downstream_error'])
 
     def test_make_and_archive_reports(self):
         build_helper = self.construct_build_helper()

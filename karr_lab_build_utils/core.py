@@ -956,6 +956,7 @@ class BuildHelper(object):
             }
 
         # send notifications
+
         if status['is_new_downstream_error']:
             recipients = [{
                 'name': context['upstream']['committer_name'],
@@ -965,8 +966,7 @@ class BuildHelper(object):
                 context['upstream']['commit'], context['upstream']['repo_name'], context['repo_name'])
             self._send_notification_email(recipients, subject, 'failure_notification_email.html', context)
 
-            return True
-        return False
+        return status
 
     def _send_notification_email(self, recipients, subject, template_filename, context):
         """ Send an email notification of test results
