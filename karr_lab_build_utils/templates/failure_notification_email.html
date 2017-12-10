@@ -24,18 +24,20 @@
 
         <p>Test summary:
             <ul>
-                <li>Tests: {{ test_stats.num_tests }}</li>
-                <li>Errors: {{ test_stats.num_errors }}</li>
-                <li>Failures: {{ test_stats.num_failures }}</li>
-                <li>Passes: {{ test_stats.num_passes }}</li>
-                <li>Skips: {{ test_stats.num_skips }}</li>
+                <li>Tests: {{ test_results.get_num_tests }}</li>
+                <li>Passed: {{ test_results.get_num_passed }}</li>
+                <li>Skipped: {{ test_results.get_num_skipped }}</li>
+                <li>Errors: {{ test_results.get_num_errors }}</li>
+                <li>Failures: {{ test_results.get_num_failures }}</li>               
             </ul>
         </p>
 
         <p>Errors and failures:
             <ul>
-            {% for err in errors_and_failures %}
-                <li>{{ err.classname }}.{{ err.name }} :: {{ err.type }} :: {{ err.message }}</li>
+            {% for case in test_results.cases %}
+                {% if case.type.name == 'error' or case.type.name == 'failure' %}
+                <li>{{ case.classname }}.{{ case.name }} :: {{ case.subtype }} :: {{ case.message }}</li>
+                {% endif %}
             {% endfor %}
             </ul>
         </p>

@@ -796,6 +796,66 @@ class BuildHelper(object):
         if process.returncode != 0 and process.communicate()[1] is not None:
             raise BuildHelperError(process.communicate()[1])
 
+    def get_test_results(self):
+        """ Load test results from a set of XML files 
+
+        Results:
+            :obj:`TestResults`: test results
+        """
+        test_results = TestResults()
+
+        filename_pattern = os.path.join(self.proj_tests_xml_dir,
+                                        '{0}.*.xml'.format(self.proj_tests_xml_latest_filename))
+        for filename in glob.glob(filename_pattern):
+            match = re.match('^{}\.(.*?)\.xml$'.format(self.proj_tests_xml_latest_filename), os.path.basename(filename))
+            python_version = match.group(1)
+
+            doc = minidom.parse(filename)
+            suite = doc.getElementsByTagName('testsuite')[0]
+            for case in suite.getElementsByTagName('testcase'):
+                case_result = TestCaseResult()
+                case_result.classname = case.getAttribute('classname')
+                case_result.name = case.getAttribute('name')
+                case_result.python_version = python_version
+                case_result.time = float(case.getAttribute('time'))
+
+                if case.hasAttribute('file'):
+                    case_result.file = case.getAttribute('file')
+
+                if case.hasAttribute('line'):
+                    case_result.line = int(float(case.getAttribute('line')))
+
+                stdout = case.getElementsByTagName('system-out')
+                if stdout:
+                    case_result.stdout = ''.join([child.nodeValue for child in stdout[0].childNodes])
+
+                stderr = case.getElementsByTagName('system-err')
+                if stderr:
+                    case_result.stderr = ''.join([child.nodeValue for child in stderr[0].childNodes])
+
+                skip = case.getElementsByTagName('skipped')
+                error = case.getElementsByTagName('error')
+                failure = case.getElementsByTagName('failure')
+
+                if skip:
+                    case_result.type = TestCaseResultType.skipped
+                elif error:
+                    case_result.type = TestCaseResultType.error
+                elif failure:
+                    case_result.type = TestCaseResultType.failure
+                else:
+                    case_result.type = TestCaseResultType.passed
+
+                not_pass = skip or error or failure
+                if not_pass:
+                    case_result.subtype = not_pass[0].getAttribute('type')
+                    case_result.message = not_pass[0].getAttribute('message')
+                    case_result.details = ''.join([child.nodeValue for child in not_pass[0].childNodes])
+
+                test_results.cases.append(case_result)
+
+        return test_results
+
     def do_post_test_tasks(self):
         """ Do all post-test tasks for CircleCI
 
@@ -807,60 +867,16 @@ class BuildHelper(object):
         """
         self.make_and_archive_reports()
         self.trigger_tests_of_downstream_dependencies()
-        self.notify_author_of_downstream_failure()
+        self.send_email_notifications()
 
-    def notify_author_of_downstream_failure(self):
+    def send_email_notifications(self):
         """ Notify an author that a build may have broken a downstream dependency 
 
         Returns:
             :obj:`bool`: obj:`True` if an email is sent
         """
-
-        # detect if tests failed
-        num_errors = 0
-        num_failures = 0
-        num_skips = 0
-        num_tests = 0
-        errors_and_failures = []
-
-        filename_pattern = os.path.join(self.proj_tests_xml_dir,
-                                        '{0}.*.xml'.format(self.proj_tests_xml_latest_filename))
-        for filename in glob.glob(filename_pattern):
-            doc = minidom.parse(filename)
-            suite = doc.getElementsByTagName("testsuite")[0]
-            num_errors += int(suite.getAttribute('errors'))
-            num_failures += int(suite.getAttribute('failures'))
-            num_skips += int(suite.getAttribute('skips'))
-            num_tests += int(suite.getAttribute('tests'))
-            for case in suite.getElementsByTagName('testcase'):
-                error_or_failure = case.getElementsByTagName('error') or case.getElementsByTagName('failure')
-                if error_or_failure:
-                    tmp = {
-                        'classname': case.getAttribute('classname'),
-                        'name': case.getAttribute('name'),
-                        'time': float(case.getAttribute('time')),
-                        'type': error_or_failure[0].getAttribute('type'),
-                        'message': error_or_failure[0].getAttribute('message'),
-                        'details': "".join([child.nodeValue for child in error_or_failure[0].childNodes]),
-                    }
-
-                    if case.hasAttribute('file'):
-                        tmp['file'] = case.getAttribute('file')
-
-                    if case.hasAttribute('line'):
-                        tmp['line'] = int(float(case.getAttribute('line')))
-
-                    stdout = case.getElementsByTagName('system-out')
-                    if stdout:
-                        tmp['stdout'] = "".join([child.nodeValue for child in stdout[0].childNodes])
-
-                    stderr = case.getElementsByTagName('system-err')
-                    if stderr:
-                        tmp['stderr'] = "".join([child.nodeValue for child in stderr[0].childNodes])
-
-                    errors_and_failures.append(tmp)
-
-        if not errors_and_failures:
+        test_results = self.get_test_results()
+        if not test_results.get_num_errors() and not test_results.get_num_failures():
             return False
 
         # determine if build was triggered by an upstream package
@@ -928,14 +944,7 @@ class BuildHelper(object):
                 'build_num': upstream_build_num,
                 'build_url': upstream_build_url,
             },
-            'errors_and_failures': errors_and_failures,
-            'test_stats': {
-                'num_tests': num_tests,
-                'num_errors': num_errors,
-                'num_failures': num_failures,
-                'num_passes': num_tests - num_errors - num_failures - num_skips,
-                'num_skips': num_skips,
-            },
+            'test_results': test_results,
         }
         with open(pkg_resources.resource_filename('karr_lab_build_utils', 'templates/failure_notification_email.html'), 'r') as file:
             template = Template(file.read())
@@ -1587,6 +1596,98 @@ class BuildHelper(object):
         # cleanup
         shutil.rmtree(os.path.join(dirname, 'build'))
         shutil.rmtree(os.path.join(dirname, 'dist'))
+
+
+class TestResults(object):
+    """ Unit test results
+
+    Attributes:
+        cases (:obj:`list` of :obj:`TestCase`): test case results
+    """
+
+    def __init__(self):
+        self.cases = []
+
+    def get_num_tests(self):
+        """ Get the number of tests
+
+        Returns:
+            :obj:`int`: number of tests
+        """
+        return len(self.cases)
+
+    def get_num_passed(self):
+        """ Get the number of tests that passed
+
+        Returns:
+            :obj:`int`: number of tests that passed
+        """
+        return len(list(filter(lambda case: case.type == TestCaseResultType.passed, self.cases)))
+
+    def get_num_skipped(self):
+        """ Get the number of skipped tests
+
+        Returns:
+            :obj:`int`: number of skipped tests
+        """
+        return len(list(filter(lambda case: case.type == TestCaseResultType.skipped, self.cases)))
+
+    def get_num_errors(self):
+        """ Get the number of tests with errors
+
+        Returns:
+            :obj:`int`: number of tests with errors
+        """
+        return len(list(filter(lambda case: case.type == TestCaseResultType.error, self.cases)))
+
+    def get_num_failures(self):
+        """ Get the number of tests with failures
+
+        Returns:
+            :obj:`int`: number of tests with failures
+        """
+        return len(list(filter(lambda case: case.type == TestCaseResultType.failure, self.cases)))
+
+
+class TestCaseResult(object):
+    """ The result of a test case
+
+    Attributes:
+        classname (obj:`str`): name of the class of the test case
+        name (obj:`str`): name of the test case
+        filename (obj:`str`): file where the test was defined
+        line (obj:`int`): line where the test was defined
+        python_version (obj:`str`): python version which ran the test
+        type (obj:`TestCaseResultType`): type of the result (pass, skip, error, failure)
+        subtype (obj:`str`): detailed type of the result 
+        message (obj:`str`): message from the result
+        details (obj:`str`): detailed message from the result
+        time (obj:`float`): duration of the time in seconds
+        stdout (obj:`str`): standard output
+        stderr (obj:`str`): standard error        
+    """
+
+    def __init__(self):
+        self.classname = None
+        self.name = None
+        self.filename = None
+        self.line = None
+        self.python_version = None
+        self.time = None
+        self.stdout = None
+        self.stderr = None
+        self.type = None
+        self.subtype = None
+        self.message = None
+        self.details = None
+
+
+class TestCaseResultType(enum.Enum):
+    """ Type of test case result """
+    passed = 0
+    skipped = 1
+    error = 2
+    failure = 3
 
 
 class BuildHelperError(Exception):

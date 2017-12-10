@@ -149,25 +149,6 @@ class RunTestsController(CementBaseController):
                               ssh_key_filename=args.ssh_key_filename)
 
 
-class NotifyAuthorOfDownstreamFailureController(CementBaseController):
-    """ Notify an author that a build may have broken a downstream dependency """
-    class Meta:
-        label = 'notify-author-of-downstream-failure'
-        description = 'Notify an author that a build may have broken a downstream dependency'
-        stacked_on = 'base'
-        stacked_type = 'nested'
-        arguments = []
-
-    @expose(hide=True)
-    def default(self):
-        buildHelper = BuildHelper()
-        result = buildHelper.notify_author_of_downstream_failure()
-        if result:
-            print('The upstream author was notified that they may have broken this package.')
-        else:
-            print('No notifications were sent.')
-
-
 class CreateCircleciBuildController(CementBaseController):
     """ Create a CircleCI build for a repository """
     class Meta:
@@ -698,7 +679,6 @@ class App(CementApp):
             SetupRepositoryController,
             CreateDocumentationTemplateController,
             RunTestsController,
-            NotifyAuthorOfDownstreamFailureController,
             CreateCircleciBuildController,
             GetCircleciEnvironmentVariablesController,
             SetCircleciEnvironmentVariableController,

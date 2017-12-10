@@ -456,7 +456,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     def test_do_post_test_tasks(self):
         with mock.patch.object(core.BuildHelper, 'make_and_archive_reports', return_value=lambda: None):
             with mock.patch.object(core.BuildHelper, 'trigger_tests_of_downstream_dependencies', return_value=lambda: None):
-                with mock.patch.object(core.BuildHelper, 'notify_author_of_downstream_failure', return_value=lambda: None):
+                with mock.patch.object(core.BuildHelper, 'send_email_notifications', return_value=lambda: None):
                     # test api
                     build_helper = self.construct_build_helper()
                     build_helper.do_post_test_tasks()
@@ -466,7 +466,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                         with __main__.App(argv=['do-post-test-tasks']) as app:
                             app.run()
 
-    def test_notify_author_of_downstream_failure_no_failure(self):
+    def test_send_email_notifications_no_failure(self):
         build_helper = self.construct_build_helper()
 
         # mock test results
@@ -475,22 +475,15 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with open(filename, 'w') as file:
             file.write('<?xml version="1.0" encoding="utf-8"?>')
             file.write('<testsuite errors="0" failures="0" skips="0" tests="3">')
-            file.write('<testcase classname="tests.core.TestCase" name="test_pass_1"></testcase>')
-            file.write('<testcase classname="tests.core.TestCase" name="test_pass_2"></testcase>')
-            file.write('<testcase classname="tests.core.TestCase" name="test_pass_3"></testcase>')
+            file.write('<testcase classname="tests.core.TestCase" name="test_pass_1" time="0.01"></testcase>')
+            file.write('<testcase classname="tests.core.TestCase" name="test_pass_2" time="0.01"></testcase>')
+            file.write('<testcase classname="tests.core.TestCase" name="test_pass_3" time="0.01"></testcase>')
             file.write('</testsuite>')
 
         # test API
-        self.assertFalse(build_helper.notify_author_of_downstream_failure())
+        self.assertFalse(build_helper.send_email_notifications())
 
-        # test CLI
-        with __main__.App(argv=['notify-author-of-downstream-failure']) as app:
-            with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                app.run()
-                self.assertEqual(captured.stdout.get_text(), 'No notifications were sent.')
-                self.assertEqual(captured.stderr.get_text(), '')
-
-    def test_notify_author_of_downstream_failure_no_upstream(self):
+    def test_send_email_notifications_no_upstream(self):
         build_helper = self.construct_build_helper()
 
         # mock test results
@@ -518,9 +511,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             file.write('</testsuite>')
 
         # test API
-        self.assertFalse(build_helper.notify_author_of_downstream_failure())
+        self.assertFalse(build_helper.send_email_notifications())
 
-    def test_notify_author_of_downstream_failure_no_previous_builds(self):
+    def test_send_email_notifications_no_previous_builds(self):
         build_helper = self.construct_build_helper()
 
         # mock test results
@@ -558,9 +551,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         # test API
         with env:
             build_helper = self.construct_build_helper(build_num=1)
-            self.assertFalse(build_helper.notify_author_of_downstream_failure())
+            self.assertFalse(build_helper.send_email_notifications())
 
-    def test_notify_author_of_downstream_failure_existing_error(self):
+    def test_send_email_notifications_existing_error(self):
         build_helper = self.construct_build_helper()
 
         # mock test results
@@ -605,9 +598,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with env:
             build_helper = self.construct_build_helper(build_num=51)
             with mock.patch('requests.get', side_effect=[requests_get_1]):
-                self.assertFalse(build_helper.notify_author_of_downstream_failure())
+                self.assertFalse(build_helper.send_email_notifications())
 
-    def test_notify_author_of_downstream_failure_send_email(self):
+    def test_send_email_notifications_send_email(self):
         build_helper = self.construct_build_helper()
 
         # mock test results
@@ -683,17 +676,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             build_helper = self.construct_build_helper(build_num=51)
             with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_3]):
                 with mock.patch('smtplib.SMTP', return_value=smtp):
-                    self.assertTrue(build_helper.notify_author_of_downstream_failure())
-
-            """ test CLI """
-            with __main__.App(argv=['notify-author-of-downstream-failure']) as app:
-                with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_3]):
-                    with mock.patch('smtplib.SMTP', return_value=smtp):
-                        with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                            app.run()
-                            self.assertEqual(captured.stdout.get_text(),
-                                             'The upstream author was notified that they may have broken this package.')
-                            self.assertEqual(captured.stderr.get_text(), '')
+                    self.assertTrue(build_helper.send_email_notifications())
 
     def test_make_and_archive_reports(self):
         build_helper = self.construct_build_helper()
