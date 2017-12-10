@@ -309,12 +309,10 @@ class BuildHelper(object):
         if circleci_api_token is None:
             circleci_api_token = self.circleci_api_token
 
-        url = '{}/project/{}/{}/{}/follow?circle-token={}'.format(
-            self.CIRCLE_API_ENDPOINT, repo_type, repo_owner, repo_name, circleci_api_token)
-        response = requests.post(url)
-        response.raise_for_status()
-        response_json = response.json()
-        if 'following' not in response_json or not response_json['following']:
+        result = self.run_circleci_api('follow',
+                                       method='post', repo_type=repo_type, repo_owner=repo_owner, repo_name=repo_name,
+                                       circleci_api_token=circleci_api_token)
+        if 'following' not in result or not result['following']:
             raise ValueError(
                 'Unable to create CircleCI build for repository {}/{}'.format(repo_owner, repo_name))
 
@@ -342,11 +340,9 @@ class BuildHelper(object):
         if circleci_api_token is None:
             circleci_api_token = self.circleci_api_token
 
-        url = '{}/project/{}/{}/{}/envvar?circle-token={}'.format(
-            self.CIRCLE_API_ENDPOINT, repo_type, repo_owner, repo_name, circleci_api_token)
-        response = requests.get(url)
-        response.raise_for_status()
-        vars = response.json()
+        vars = self.run_circleci_api('envvar',
+                                     repo_type=repo_type, repo_owner=repo_owner, repo_name=repo_name,
+                                     circleci_api_token=circleci_api_token)
         return {var['name']: var['value'] for var in vars}
 
     def set_circleci_environment_variables(self, vars, repo_type=None, repo_owner=None, repo_name=None, circleci_api_token=None):
@@ -388,10 +384,9 @@ class BuildHelper(object):
                                                           circleci_api_token=circleci_api_token)
 
             # add environment variable
-            url = '{}/project/{}/{}/{}/envvar?circle-token={}'.format(
-                self.CIRCLE_API_ENDPOINT, repo_type, repo_owner, repo_name, circleci_api_token)
-            response = requests.post(url, json={'name': name, 'value': value})
-            response.raise_for_status()
+            self.run_circleci_api('envvar',
+                                  method='post', repo_type=repo_type, repo_owner=repo_owner, repo_name=repo_name,
+                                  circleci_api_token=circleci_api_token, data={'name': name, 'value': value})
 
     def delete_circleci_environment_variable(self, var, repo_type=None, repo_owner=None, repo_name=None, circleci_api_token=None):
         """ Delete a CircleCI environment variable for a repository
@@ -415,10 +410,9 @@ class BuildHelper(object):
         if circleci_api_token is None:
             circleci_api_token = self.circleci_api_token
 
-        url = '{}/project/{}/{}/{}/envvar/{}?circle-token={}'.format(
-            self.CIRCLE_API_ENDPOINT, repo_type, repo_owner, repo_name, var, circleci_api_token)
-        response = requests.delete(url)
-        response.raise_for_status()
+        self.run_circleci_api('envvar/{}'.format(var),
+                              method='delete', repo_type=repo_type, repo_owner=repo_owner, repo_name=repo_name,
+                              circleci_api_token=circleci_api_token)
 
     def create_codeclimate_github_webhook(self, repo_type=None, repo_owner=None, repo_name=None,
                                           github_username=None, github_password=None):
@@ -870,14 +864,25 @@ class BuildHelper(object):
         self.send_email_notifications()
 
     def send_email_notifications(self):
-        """ Notify an author that a build may have broken a downstream dependency 
+        """ Send email notifications of failures, fixes, and downstream failures
 
         Returns:
             :obj:`bool`: obj:`True` if an email is sent
         """
         test_results = self.get_test_results()
-        if not test_results.get_num_errors() and not test_results.get_num_failures():
+
+        # determine if there is an error
+        has_error = test_results.get_num_errors() or test_results.get_num_failures()
+        if not has_error:
             return False
+
+        # determine if error is new
+        if self.build_num <= 1:
+            return False
+
+        result = self.run_circleci_api(str(self.build_num - 1))
+        if result['status'] != 'success':
+            return
 
         # determine if build was triggered by an upstream package
         upstream_repo_name = os.getenv('UPSTREAM_REPONAME', '')
@@ -886,42 +891,20 @@ class BuildHelper(object):
         if not upstream_repo_name:
             return False
 
-        # determine if the error is new
-        if self.build_num <= 1:
-            return False
-
-        url = '{}/project/{}/{}/{}/{}?circle-token={}'.format(
-            self.CIRCLE_API_ENDPOINT, self.repo_type, self.repo_owner,
-            self.repo_name, self.build_num - 1, self.circleci_api_token)
-        response = requests.get(url)
-        response.raise_for_status()
-        if response.json()['status'] != 'success':
-            return
-
         # send notification
-        url = '{}/project/{}/{}/{}/{}?circle-token={}'.format(
-            self.CIRCLE_API_ENDPOINT, self.repo_type, self.repo_owner,
-            upstream_repo_name, upstream_build_num, self.circleci_api_token)
-        response = requests.get(url)
-        response.raise_for_status()
-        json = response.json()
-        committer_name = json['committer_name']
-        committer_email = json['committer_email']
-        upstream_commit = json['commit']
-        upstream_commit_subject = json['subject']
-        upstream_commit_url = json['commit_url']
-        upstream_build_url = json['build_url']
+        result = self.run_circleci_api(str(upstream_build_num), repo_name=upstream_repo_name)
+        committer_name = result['committer_name']
+        committer_email = result['committer_email']
+        upstream_commit = result['commit']
+        upstream_commit_subject = result['subject']
+        upstream_commit_url = result['commit_url']
+        upstream_build_url = result['build_url']
 
-        url = '{}/project/{}/{}/{}/{}?circle-token={}'.format(
-            self.CIRCLE_API_ENDPOINT, self.repo_type, self.repo_owner,
-            self.repo_name, self.build_num, self.circleci_api_token)
-        response = requests.get(url)
-        response.raise_for_status()
-        json = response.json()
-        commit = json['commit']
-        commit_subject = json['subject']
-        commit_url = json['commit_url']
-        build_url = json['build_url']
+        result = self.run_circleci_api(str(self.build_num))
+        commit = result['commit']
+        commit_subject = result['subject']
+        commit_url = result['commit_url']
+        build_url = result['build_url']
 
         context = {
             'committer': {
@@ -1345,24 +1328,15 @@ class BuildHelper(object):
             upstream_repo_name = self.repo_name
             upstream_build_num = str(self.build_num)
 
-        url = '{}/project/{}/{}/{}/{}?circle-token={}'.format(
-            self.CIRCLE_API_ENDPOINT, self.repo_type, self.repo_owner,
-            upstream_repo_name, upstream_build_num, self.circleci_api_token)
-        response = requests.get(url)
-        response.raise_for_status()
-        upstream_build_time = datetime.strptime(
-            response.json()['committer_date'][0:-5], '%Y-%m-%dT%H:%M:%S')
+        result = self.run_circleci_api(str(upstream_build_num), repo_name=upstream_repo_name)
+        upstream_build_time = datetime.strptime(result['committer_date'][0:-5], '%Y-%m-%dT%H:%M:%S')
 
         triggered_packages = []
         for package in packages:
             branch = 'master'
 
             # get summary of recent builds
-            url = '{}/project/{}/{}/{}?circle-token={}'.format(
-                self.CIRCLE_API_ENDPOINT, self.repo_type, self.repo_owner, package, self.circleci_api_token)
-            response = requests.get(url)
-            response.raise_for_status()
-            builds = response.json()
+            builds = self.run_circleci_api(repo_name=package)
 
             # don't trigger build if a build has already been triggered from the same upstream build
             # this prevents building the same project multiple times, including infinite looping
@@ -1394,15 +1368,12 @@ class BuildHelper(object):
                 continue
 
             # trigger build
-            url = '{}/project/{}/{}/{}/tree/{}?circle-token={}'.format(
-                self.CIRCLE_API_ENDPOINT, self.repo_type, self.repo_owner, package, branch, self.circleci_api_token)
-            response = requests.post(url, json={
+            self.run_circleci_api('tree/{}'.format(branch), method='post', repo_name=package, data={
                 'build_parameters': {
                     'UPSTREAM_REPONAME': upstream_repo_name,
                     'UPSTREAM_BUILD_NUM': upstream_build_num,
                 }
             })
-            response.raise_for_status()
             triggered_packages.append(package)
 
         return triggered_packages
@@ -1596,6 +1567,37 @@ class BuildHelper(object):
         # cleanup
         shutil.rmtree(os.path.join(dirname, 'build'))
         shutil.rmtree(os.path.join(dirname, 'dist'))
+
+    def run_circleci_api(self, command, method='get', repo_type=None, repo_owner=None, repo_name=None,
+                         data=None, circleci_api_token=None):
+        """ Run the CircleCI API
+
+        Args:
+            command (:obj:`str`): API command
+            method (:obj:`str`): type of HTTP request (get, post, delete)
+            repo_type (:obj:`str`, optional): repository type (e.g., github)
+            repo_owner (:obj:`str`, optional): repository owner
+            repo_name (:obj:`str`, optional): repository name
+            data (:obj:`str`, optional): data
+            circleci_api_token (:obj:`str`, optional): CircleCI API token
+
+        Returns:
+            :obj:`dict`: CircleCI result
+        """
+        if not repo_type:
+            repo_type = self.repo_type
+        if not repo_owner:
+            repo_owner = self.repo_owner
+        if not repo_name:
+            repo_name = self.repo_name
+        if not circleci_api_token:
+            circleci_api_token = self.circleci_api_token
+
+        url = '{}/project/{}/{}/{}/{}?circle-token={}'.format(
+            self.CIRCLE_API_ENDPOINT, repo_type, repo_owner, repo_name, command, circleci_api_token)
+        response = getattr(requests, method)(url, json=data)
+        response.raise_for_status()
+        return response.json()
 
 
 class TestResults(object):
