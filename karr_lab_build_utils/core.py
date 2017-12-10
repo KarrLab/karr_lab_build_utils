@@ -955,22 +955,25 @@ class BuildHelper(object):
                 'build_url': result['build_url'],
             }
 
-        # send notification
+        # send notifications
         if status['is_new_downstream_error']:
             recipients = [{
                 'name': context['upstream']['committer_name'],
                 'email': context['upstream']['committer_email'],
             }]
-            self._send_notification_email(recipients, 'failure_notification_email.html', context)
+            subject = '[Builds] [{1}] commit {0} to {1} may have broken {2}'.format(
+                context['upstream']['commit'], context['upstream']['repo_name'], context['repo_name'])
+            self._send_notification_email(recipients, subject, 'failure_notification_email.html', context)
 
             return True
         return False
 
-    def _send_notification_email(self, recipients, template_filename, context):
+    def _send_notification_email(self, recipients, subject, template_filename, context):
         """ Send an email notification of test results
 
         Args:
             recipients (:obj:`list` of :obj:`dict`): recipient names and email addresses
+            subject (:obj:`str`): subject
             template_filename (obj:`str`): path to template
             context (obj:`dict`): context for template
         """
@@ -986,9 +989,7 @@ class BuildHelper(object):
             str(email.header.Header(recipients[0]['name'], 'utf-8')),
             recipients[0]['email'],
         ))
-        msg['Subject'] = '[Downstream failure] {} ({}, #{}) may have broken {} ({}, #{})'.format(
-            context['upstream']['repo_name'], context['upstream']['commit'], context['upstream']['build_num'],
-            context['repo_name'], context['commit'], context['build_num'])
+        msg['Subject'] = subject
         msg.add_header('Content-Type', 'text/html')
         msg.set_payload(body)
 
