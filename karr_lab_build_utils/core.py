@@ -935,11 +935,11 @@ class BuildHelper(object):
         result = self.run_circleci_api('/' + str(self.build_num))
         context = {
             'repo_name': self.repo_name,
-            'commit': result['all_commit_details']['commit'],
-            'committer_name': result['all_commit_details']['committer_name'],
-            'committer_email': result['all_commit_details']['committer_email'],
-            'commit_subject': result['all_commit_details']['subject'],
-            'commit_url': result['all_commit_details']['commit_url'],
+            'commit': result['all_commit_details'][0]['commit'],
+            'committer_name': result['all_commit_details'][0]['committer_name'],
+            'committer_email': result['all_commit_details'][0]['committer_email'],
+            'commit_subject': result['all_commit_details'][0]['subject'],
+            'commit_url': result['all_commit_details'][0]['commit_url'],
             'build_num': self.build_num,
             'build_url': result['build_url'],
             'test_results': test_results,
@@ -951,11 +951,11 @@ class BuildHelper(object):
             result = self.run_circleci_api('/' + str(upstream_build_num), repo_name=upstream_repo_name)
             context['upstream'] = {
                 'repo_name': upstream_repo_name,
-                'commit': result['all_commit_details']['commit'],
-                'committer_name': result['all_commit_details']['committer_name'],
-                'committer_email': result['all_commit_details']['committer_email'],
-                'commit_subject': result['all_commit_details']['subject'],
-                'commit_url': result['all_commit_details']['commit_url'],
+                'commit': result['all_commit_details'][0]['commit'],
+                'committer_name': result['all_commit_details'][0]['committer_name'],
+                'committer_email': result['all_commit_details'][0]['committer_email'],
+                'commit_subject': result['all_commit_details'][0]['subject'],
+                'commit_url': result['all_commit_details'][0]['commit_url'],
                 'build_num': upstream_build_num,
                 'build_url': result['build_url'],
             }
@@ -1393,7 +1393,7 @@ class BuildHelper(object):
             upstream_build_num = str(self.build_num)
 
         result = self.run_circleci_api('/' + str(upstream_build_num), repo_name=upstream_repo_name)
-        upstream_build_time = dateutil.parser.parse(result['all_commit_details']['committer_date'])
+        upstream_build_time = dateutil.parser.parse(result['all_commit_details'][0]['committer_date'])
 
         triggered_packages = []
         for package in packages:
