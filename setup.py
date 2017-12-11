@@ -17,6 +17,15 @@ md = pkg_utils.get_package_metadata(dirname, name)
 # read old console scripts
 console_scripts = pkg_utils.get_console_scripts(dirname, name)
 
+package_data = {
+    name: [
+        'VERSION',
+    ],
+}
+for root, rel_dirnames, rel_filenames in os.walk('karr_lab_build_utils/templates'):
+    for rel_filename in rel_filenames:
+        package_data[name].append(os.path.join(root, rel_filename))
+
 # install package
 setuptools.setup(
     name=name,
@@ -30,12 +39,7 @@ setuptools.setup(
     license="MIT",
     keywords='unit test coverage API documentation nose xunit junit unitth HTML Coveralls Sphinx',
     packages=setuptools.find_packages(exclude=['tests', 'tests.*']),
-    package_data={
-        name: [
-            'VERSION',
-            'templates',
-        ],
-    },
+    package_data=package_data,
     install_requires=md.install_requires,
     extras_require=md.extras_require,
     tests_require=md.tests_require,
