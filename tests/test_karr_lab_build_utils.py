@@ -533,11 +533,13 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         requests_get_1 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
             'json': lambda: {
-                'commit': 'yyyyyyyyyyyyyyyyyyyy',
-                'committer_name': 'Test user 2',
-                'committer_email': 'test2@test.com',
-                'subject': 'Test commit 2',
-                'commit_url': 'https://github.com/KarrLab/test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
+                'all_commit_details': {
+                    'commit': 'yyyyyyyyyyyyyyyyyyyy',
+                    'committer_name': 'Test user 2',
+                    'committer_email': 'test2@test.com',
+                    'subject': 'Test commit 2',
+                    'commit_url': 'https://github.com/KarrLab/test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
+                },
                 'build_url': 'https://circleci.com/gh/KarrLab/test_repo_2/51',
             },
         })
@@ -599,11 +601,13 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         requests_get_1 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
             'json': lambda: {
-                'commit': 'yyyyyyyyyyyyyyyyyyy1',
-                'committer_name': 'Test user 1',
-                'committer_email': 'test1@test.com',
-                'subject': 'Test commit 1',
-                'commit_url': 'https://github.com/KarrLab/test_repo/commit/yyyyyyyyyyyyyyyyyyy1',
+                'all_commit_details': {
+                    'commit': 'yyyyyyyyyyyyyyyyyyy1',
+                    'committer_name': 'Test user 1',
+                    'committer_email': 'test1@test.com',
+                    'subject': 'Test commit 1',
+                    'commit_url': 'https://github.com/KarrLab/test_repo/commit/yyyyyyyyyyyyyyyyyyy1',
+                },
                 'build_url': 'https://circleci.com/gh/KarrLab/test_repo/51',
                 'status': 'failure',
             },
@@ -611,11 +615,13 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         requests_get_2 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
             'json': lambda: {
-                'commit': 'yyyyyyyyyyyyyyyyyyy2',
-                'committer_name': 'Test user 2',
-                'committer_email': 'test2@test.com',
-                'subject': 'Test commit 2',
-                'commit_url': 'https://github.com/KarrLab/test_repo/commit/yyyyyyyyyyyyyyyyyyy2',
+                'all_commit_details': {
+                    'commit': 'yyyyyyyyyyyyyyyyyyy2',
+                    'committer_name': 'Test user 2',
+                    'committer_email': 'test2@test.com',
+                    'subject': 'Test commit 2',
+                    'commit_url': 'https://github.com/KarrLab/test_repo/commit/yyyyyyyyyyyyyyyyyyy2',
+                },
                 'build_url': 'https://circleci.com/gh/KarrLab/test_repo/52',
             },
         })
@@ -678,11 +684,13 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         requests_get_1 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
             'json': lambda: {
-                'commit': 'yyyyyyyyyyyyyyyyyyyy',
-                'committer_name': 'Test user 2',
-                'committer_email': 'test2@test.com',
-                'subject': 'Test commit 2',
-                'commit_url': 'https://github.com/KarrLab/test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
+                'all_commit_details': {
+                    'commit': 'yyyyyyyyyyyyyyyyyyyy',
+                    'committer_name': 'Test user 2',
+                    'committer_email': 'test2@test.com',
+                    'subject': 'Test commit 2',
+                    'commit_url': 'https://github.com/KarrLab/test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
+                },
                 'build_url': 'https://circleci.com/gh/KarrLab/test_repo_2/51',
             },
         })
@@ -745,11 +753,13 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         requests_get_1 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
             'json': lambda: {
-                'commit': 'yyyyyyyyyyyyyyyyyyyy',
-                'committer_name': 'Test user 2',
-                'committer_email': 'test2@test.com',
-                'subject': 'Test commit 2',
-                'commit_url': 'https://github.com/KarrLab/test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
+                'all_commit_details': {
+                    'commit': 'yyyyyyyyyyyyyyyyyyyy',
+                    'committer_name': 'Test user 2',
+                    'committer_email': 'test2@test.com',
+                    'subject': 'Test commit 2',
+                    'commit_url': 'https://github.com/KarrLab/test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
+                },
                 'build_url': 'https://circleci.com/gh/KarrLab/test_repo_2/51',
             },
         })
@@ -826,11 +836,13 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         requests_get_2 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
             'json': lambda: {
-                'commit': 'yyyyyyyyyyyyyyyyyyyy',
-                'committer_name': 'Test user 2',
-                'committer_email': 'test2@test.com',
-                'subject': 'Test commit 2',
-                'commit_url': 'https://github.com/KarrLab/test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
+                'all_commit_details': {
+                    'commit': 'yyyyyyyyyyyyyyyyyyyy',
+                    'committer_name': 'Test user 2',
+                    'committer_email': 'test2@test.com',
+                    'subject': 'Test commit 2',
+                    'commit_url': 'https://github.com/KarrLab/test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
+                },
                 'build_url': 'https://circleci.com/gh/KarrLab/test_repo_2/51',
             },
         })
@@ -915,22 +927,26 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         requests_get_2 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
             'json': lambda: {
-                'committer_name': 'Test user 2',
-                'committer_email': 'test2@test.com',
-                'commit': 'yyyyyyyyyyyyyyyyyyyy',
-                'subject': 'Test commit 2',
-                'commit_url': 'https://github.com/KarrLab/test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
+                'all_commit_details': {
+                    'committer_name': 'Test user 2',
+                    'committer_email': 'test2@test.com',
+                    'commit': 'yyyyyyyyyyyyyyyyyyyy',
+                    'subject': 'Test commit 2',
+                    'commit_url': 'https://github.com/KarrLab/test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
+                },
                 'build_url': 'https://circleci.com/gh/KarrLab/test_repo_2/51',
             },
         })
         requests_get_3 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
             'json': lambda: {
-                'committer_name': 'Test user',
-                'committer_email': 'test@test.com',
-                'commit': 'xxxxxxxxxxxxxxxxxxxx',
-                'subject': 'Test commit',
-                'commit_url': 'https://github.com/KarrLab/test_repo/commit/xxxxxxxxxxxxxxxxxxxx',
+                'all_commit_details': {
+                    'committer_name': 'Test user',
+                    'committer_email': 'test@test.com',
+                    'commit': 'xxxxxxxxxxxxxxxxxxxx',
+                    'subject': 'Test commit',
+                    'commit_url': 'https://github.com/KarrLab/test_repo/commit/xxxxxxxxxxxxxxxxxxxx',
+                },
                 'build_url': 'https://circleci.com/gh/KarrLab/test_repo/101',
             },
         })
@@ -1378,7 +1394,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         requests_get_1 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
-            'json': lambda: {'committer_date': '2017-01-01T01:01:01-05:00'},
+            'json': lambda: {'all_commit_details': {'committer_date': '2017-01-01T01:01:01-05:00'}},
         })
         requests_get_2 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
@@ -1424,7 +1440,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         requests_get_1 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
-            'json': lambda: {'committer_date': '2017-01-01T01:01:01-05:00'},
+            'json': lambda: {'all_commit_details': {'committer_date': '2017-01-01T01:01:01-05:00'}},
         })
         requests_get_2 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
@@ -1477,7 +1493,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         requests_get_1 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
-            'json': lambda: {'committer_date': '2017-01-01T01:01:01-05:00'},
+            'json': lambda: {'all_commit_details': {'committer_date': '2017-01-01T01:01:01-05:00'}},
         })
         requests_get_2 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
@@ -1524,7 +1540,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         requests_get_1 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
-            'json': lambda: {'committer_date': '2017-01-01T01:01:01-05:00'},
+            'json': lambda: {'all_commit_details': {'committer_date': '2017-01-01T01:01:01-05:00'}},
         })
         requests_get_2 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
@@ -1555,7 +1571,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         requests_get_1 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
-            'json': lambda: {'committer_date': '2019-01-01T01:01:01-05:00'},
+            'json': lambda: {'all_commit_details': {'committer_date': '2019-01-01T01:01:01-05:00'}},
         })
         with env:
             with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2]):
