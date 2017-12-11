@@ -20,6 +20,7 @@ import attrdict
 import capturer
 import coverage
 import coveralls
+import dateutil.parser
 import email
 import email.header
 import email.message
@@ -1392,7 +1393,7 @@ class BuildHelper(object):
             upstream_build_num = str(self.build_num)
 
         result = self.run_circleci_api('/' + str(upstream_build_num), repo_name=upstream_repo_name)
-        upstream_build_time = datetime.strptime(result['committer_date'][0:-5], '%Y-%m-%dT%H:%M:%S')
+        upstream_build_time = dateutil.parser.parse(result['committer_date'])
 
         triggered_packages = []
         for package in packages:
@@ -1422,7 +1423,7 @@ class BuildHelper(object):
                     break
 
                 # don't trigger a build if the package has already been more recently tested than the commit time
-                build_start_time = datetime.strptime(build['start_time'][0:-5], '%Y-%m-%dT%H:%M:%S')
+                build_start_time = dateutil.parser.parse(build['start_time'])
                 if build_start_time > upstream_build_time:
                     already_queued = True
                     break

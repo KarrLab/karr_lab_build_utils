@@ -17,6 +17,7 @@ pip_check_reqs
 pylint
 pyyaml
 pytest
+python_dateutil
 requests
 git+https://github.com/KarrLab/pkg_utils.git#egg=pkg_utils[all]
 setuptools
