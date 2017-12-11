@@ -917,16 +917,21 @@ class BuildHelper(object):
         * Archive test and coverage reports to the Karr Lab test history server, Coveralls, and Code Climate
         * Trigger tests of downstream dependencies
         * Notify authors of new failures in downstream packages
+
+        Returns:
+            :obj:`list` of :obj:`str`: names of triggered packages
+            :obj:`dict`: status of a set of results
         """
         self.make_and_archive_reports()
-        self.trigger_tests_of_downstream_dependencies()
-        self.send_email_notifications()
+        triggered_packages = self.trigger_tests_of_downstream_dependencies()
+        status = self.send_email_notifications()
+        return (triggered_packages, status)
 
     def send_email_notifications(self):
         """ Send email notifications of failures, fixes, and downstream failures
 
         Returns:
-            :obj:`dict`:
+            :obj:`dict`: status of a set of results
         """
         test_results = self.get_test_results()
         status = self.get_test_results_status(test_results)

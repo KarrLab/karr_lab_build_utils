@@ -17,7 +17,34 @@ class BaseController(CementBaseController):
     def do_post_test_tasks(self):
         """ Do all post-test tasks for CircleCI """
         buildHelper = BuildHelper()
-        buildHelper.do_post_test_tasks()
+        triggered_packages, status = buildHelper.do_post_test_tasks()
+
+        # downstream triggered tests
+        if triggered_packages:
+            print('{} downstream builds were triggered'.format(len(triggered_packages)))
+            for triggered_package in triggered_packages:
+                print('  {}'.format(triggered_package))
+        else:
+            print("No downstream builds were triggered.")
+
+        # email notifications
+        num_notifications = status['is_fixed'] + status['is_old_error'] + status['is_new_error'] + status['is_new_downstream_error']
+        if num_notifications > 0:
+            print('{} notifications were sent'.format(num_notifications))
+
+            if status['is_fixed']:
+                print('  Build fixed notification')
+
+            if status['is_old_error']:
+                print('  Recurring error notification')
+
+            if status['is_new_error']:
+                print('  New error notification')
+
+            if status['is_new_downstream_error']:
+                print('  Downstream error notification')
+        else:
+            print('No notifications were sent.')
 
     @expose(help='Archive test report')
     def archive_test_report(self):

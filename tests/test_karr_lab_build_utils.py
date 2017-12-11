@@ -455,17 +455,57 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             build_helper.run_tests(test_path=self.DUMMY_TEST, environment=None)
 
     def test_do_post_test_tasks(self):
-        with mock.patch.object(core.BuildHelper, 'make_and_archive_reports', return_value=lambda: None):
-            with mock.patch.object(core.BuildHelper, 'trigger_tests_of_downstream_dependencies', return_value=lambda: None):
-                with mock.patch.object(core.BuildHelper, 'send_email_notifications', return_value=lambda: None):
+        down_pkgs_return = []
+        notify_return = {
+            'is_fixed': False,
+            'is_old_error': False,
+            'is_new_error': False,
+            'is_new_downstream_error': False,
+        }
+        with mock.patch.object(core.BuildHelper, 'make_and_archive_reports', return_value=None):
+            with mock.patch.object(core.BuildHelper, 'trigger_tests_of_downstream_dependencies', return_value=down_pkgs_return):
+                with mock.patch.object(core.BuildHelper, 'send_email_notifications', return_value=notify_return):
                     # test api
                     build_helper = self.construct_build_helper()
                     build_helper.do_post_test_tasks()
 
                     # test cli
                     with self.construct_environment():
-                        with __main__.App(argv=['do-post-test-tasks']) as app:
-                            app.run()
+                        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                            with __main__.App(argv=['do-post-test-tasks']) as app:
+                                app.run()
+                                self.assertRegexpMatches(captured.stdout.get_text(), 'No downstream builds were triggered.')
+                                self.assertRegexpMatches(captured.stdout.get_text(), 'No notifications were sent.')
+                                self.assertEqual(captured.stderr.get_text(), '')
+
+        down_pkgs_return = ['pkg_1', 'pkg_2']
+        notify_return = {
+            'is_fixed': True,
+            'is_old_error': True,
+            'is_new_error': True,
+            'is_new_downstream_error': True,
+        }
+        with mock.patch.object(core.BuildHelper, 'make_and_archive_reports', return_value=None):
+            with mock.patch.object(core.BuildHelper, 'trigger_tests_of_downstream_dependencies', return_value=down_pkgs_return):
+                with mock.patch.object(core.BuildHelper, 'send_email_notifications', return_value=notify_return):
+                    # test api
+                    build_helper = self.construct_build_helper()
+                    build_helper.do_post_test_tasks()
+
+                    # test cli
+                    with self.construct_environment():
+                        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                            with __main__.App(argv=['do-post-test-tasks']) as app:
+                                app.run()
+                                self.assertRegexpMatches(captured.stdout.get_text(), '2 downstream builds were triggered')
+                                self.assertRegexpMatches(captured.stdout.get_text(), '  pkg_1')
+                                self.assertRegexpMatches(captured.stdout.get_text(), '  pkg_2')
+                                self.assertRegexpMatches(captured.stdout.get_text(), '4 notifications were sent')
+                                self.assertRegexpMatches(captured.stdout.get_text(), '  Build fixed notification')
+                                self.assertRegexpMatches(captured.stdout.get_text(), '  Recurring error notification')
+                                self.assertRegexpMatches(captured.stdout.get_text(), '  New error notification')
+                                self.assertRegexpMatches(captured.stdout.get_text(), '  Downstream error notification')
+                                self.assertEqual(captured.stderr.get_text(), '')
 
     def test_get_test_results(self):
         build_helper = self.construct_build_helper(build_num=1)
