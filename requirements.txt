@@ -1,5 +1,6 @@
 abduct
 attrdict
+capturer
 cement
 codeclimate_test_reporter
 coverage < 4.4

@@ -391,7 +391,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.assertTrue(os.path.isfile(lastest_cov_filename))
 
         """ test CLI """
-        argv = ['run-tests', TestKarrLabBuildUtils.DUMMY_TEST, '--with-xunit', '--with-coverage']
+        argv = ['run-tests', '--test-path', TestKarrLabBuildUtils.DUMMY_TEST, '--with-xunit', '--with-coverage']
         with self.construct_environment():
             with __main__.App(argv=argv) as app:
                 app.run()
@@ -444,7 +444,8 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         build_helper = self.construct_build_helper()
 
         # test success
-        build_helper.run_tests(test_path=self.DUMMY_TEST, environment=core.Environment.circleci)
+        with self.assertRaisesRegexp(core.BuildHelperError, '404 Client Error'):
+            build_helper.run_tests(test_path=self.DUMMY_TEST, environment=core.Environment.circleci)
 
         # :todo: test failure
 
@@ -466,19 +467,67 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                         with __main__.App(argv=['do-post-test-tasks']) as app:
                             app.run()
 
-    def test_send_email_notifications_no_failure(self):
-        build_helper = self.construct_build_helper()
+    def test_get_test_results(self):
+        build_helper = self.construct_build_helper(build_num=1)
 
         # mock test results
+        filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
+                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+        for filename in glob(filename_pattern):
+            os.remove(filename)
+
         filename = os.path.join(build_helper.proj_tests_xml_dir,
                                 '{0}.2.7.12.xml'.format(build_helper.proj_tests_xml_latest_filename))
         with open(filename, 'w') as file:
             file.write('<?xml version="1.0" encoding="utf-8"?>')
-            file.write('<testsuite errors="0" failures="0" skips="0" tests="3">')
-            file.write('<testcase classname="tests.core.TestCase" name="test_pass_1" time="0.01"></testcase>')
-            file.write('<testcase classname="tests.core.TestCase" name="test_pass_2" time="0.01"></testcase>')
-            file.write('<testcase classname="tests.core.TestCase" name="test_pass_3" time="0.01"></testcase>')
+            file.write('<testsuite errors="0" failures="0" skips="0" tests="4">')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_pass_1" time="0.01"></testcase>')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_pass_2" time="0.01"></testcase>')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_pass_3" time="0.01"></testcase>')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_skipped_5" file="/script.py" line="1" time="0.01">')
+            file.write('    <system-out>stdout</system-out>')
+            file.write('    <system-err>stderr</system-err>')
+            file.write('    <skipped type="skip" message="msg">details</skipped>')
+            file.write('  </testcase>')
             file.write('</testsuite>')
+
+        test_results = build_helper.get_test_results()
+        self.assertEqual(test_results.get_num_tests(), 4)
+        self.assertEqual(test_results.get_num_passed(), 3)
+        self.assertEqual(test_results.get_num_skipped(), 1)
+        self.assertEqual(test_results.get_num_errors(), 0)
+        self.assertEqual(test_results.get_num_failures(), 0)
+
+    def test_send_email_notifications_no_failure(self):
+        build_helper = self.construct_build_helper(build_num=1)
+
+        # mock test results
+        filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
+                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+        for filename in glob(filename_pattern):
+            os.remove(filename)
+
+        filename = os.path.join(build_helper.proj_tests_xml_dir,
+                                '{0}.2.7.12.xml'.format(build_helper.proj_tests_xml_latest_filename))
+        with open(filename, 'w') as file:
+            file.write('<?xml version="1.0" encoding="utf-8"?>')
+            file.write('<testsuite errors="0" failures="0" skips="0" tests="4">')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_pass_1" time="0.01"></testcase>')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_pass_2" time="0.01"></testcase>')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_pass_3" time="0.01"></testcase>')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_skipped_4" file="/script.py" line="1" time="0.01">')
+            file.write('    <system-out>stdout</system-out>')
+            file.write('    <system-err>stderr</system-err>')
+            file.write('    <skipped type="skip" message="msg">details</skipped>')
+            file.write('  </testcase>')
+            file.write('</testsuite>')
+
+        test_results = build_helper.get_test_results()
+        self.assertEqual(test_results.get_num_tests(), 4)
+        self.assertEqual(test_results.get_num_passed(), 3)
+        self.assertEqual(test_results.get_num_skipped(), 1)
+        self.assertEqual(test_results.get_num_errors(), 0)
+        self.assertEqual(test_results.get_num_failures(), 0)
 
         # requests side effects
         requests_get_1 = attrdict.AttrDict({
@@ -493,12 +542,106 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             },
         })
 
+        # mock SMTP
+        smtp = attrdict.AttrDict({
+            'ehlo': lambda: None,
+            'starttls': lambda: None,
+            'login': lambda user, pwd: None,
+            'sendmail': lambda from_addr, to_addrs, msg: None,
+            'quit': lambda: None,
+        })
+
         # test API
-        with mock.patch('requests.get', side_effect=[requests_get_1]):
-            self.assertFalse(build_helper.send_email_notifications()['is_new_downstream_error'])
+        with self.construct_environment(build_num=1):
+            build_helper = self.construct_build_helper(build_num=1)
+            with mock.patch('requests.get', side_effect=[requests_get_1]):
+                with mock.patch('smtplib.SMTP', return_value=smtp):
+                    result = build_helper.send_email_notifications()
+                    self.assertEqual(result, {
+                        'is_fixed': True,
+                        'is_new_error': False,
+                        'is_old_error': False,
+                        'is_new_downstream_error': False,
+                    })
+
+    def test_send_email_notifications_fixed(self):
+        build_helper = self.construct_build_helper(build_num=10)
+
+        # mock test results
+        filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
+                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+        for filename in glob(filename_pattern):
+            os.remove(filename)
+
+        filename = os.path.join(build_helper.proj_tests_xml_dir,
+                                '{0}.2.7.12.xml'.format(build_helper.proj_tests_xml_latest_filename))
+        with open(filename, 'w') as file:
+            file.write('<?xml version="1.0" encoding="utf-8"?>')
+            file.write('<testsuite errors="0" failures="0" skips="0" tests="4">')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_pass_1" time="0.01"></testcase>')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_pass_2" time="0.01"></testcase>')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_pass_3" time="0.01"></testcase>')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_skipped_4" file="/script.py" line="1" time="0.01">')
+            file.write('    <system-out>stdout</system-out>')
+            file.write('    <system-err>stderr</system-err>')
+            file.write('    <skipped type="skip" message="msg">details</skipped>')
+            file.write('  </testcase>')
+            file.write('</testsuite>')
+
+        test_results = build_helper.get_test_results()
+        self.assertEqual(test_results.get_num_tests(), 4)
+        self.assertEqual(test_results.get_num_passed(), 3)
+        self.assertEqual(test_results.get_num_skipped(), 1)
+        self.assertEqual(test_results.get_num_errors(), 0)
+        self.assertEqual(test_results.get_num_failures(), 0)
+
+        # requests side effects
+        requests_get_1 = attrdict.AttrDict({
+            'raise_for_status': lambda: None,
+            'json': lambda: {
+                'commit': 'yyyyyyyyyyyyyyyyyyy1',
+                'committer_name': 'Test user 1',
+                'committer_email': 'test1@test.com',
+                'subject': 'Test commit 1',
+                'commit_url': 'https://github.com/KarrLab/test_repo/commit/yyyyyyyyyyyyyyyyyyy1',
+                'build_url': 'https://circleci.com/gh/KarrLab/test_repo/51',
+                'status': 'failure',
+            },
+        })
+        requests_get_2 = attrdict.AttrDict({
+            'raise_for_status': lambda: None,
+            'json': lambda: {
+                'commit': 'yyyyyyyyyyyyyyyyyyy2',
+                'committer_name': 'Test user 2',
+                'committer_email': 'test2@test.com',
+                'subject': 'Test commit 2',
+                'commit_url': 'https://github.com/KarrLab/test_repo/commit/yyyyyyyyyyyyyyyyyyy2',
+                'build_url': 'https://circleci.com/gh/KarrLab/test_repo/52',
+            },
+        })
+
+        # mock SMTP
+        smtp = attrdict.AttrDict({
+            'ehlo': lambda: None,
+            'starttls': lambda: None,
+            'login': lambda user, pwd: None,
+            'sendmail': lambda from_addr, to_addrs, msg: None,
+            'quit': lambda: None,
+        })
+
+        # test API
+        with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2]):
+            with mock.patch('smtplib.SMTP', return_value=smtp):
+                result = build_helper.send_email_notifications()
+                self.assertEqual(result, {
+                    'is_fixed': True,
+                    'is_new_error': False,
+                    'is_old_error': False,
+                    'is_new_downstream_error': False,
+                })
 
     def test_send_email_notifications_no_upstream(self):
-        build_helper = self.construct_build_helper()
+        build_helper = self.construct_build_helper(build_num=1)
 
         # mock test results
         filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
@@ -523,6 +666,13 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             file.write('  </testcase>')
             file.write('  <testcase classname="tests.core.TestCase" name="test_pass_3" file="/script.py" line="1" time="0.01"></testcase>')
             file.write('</testsuite>')
+
+        test_results = build_helper.get_test_results()
+        self.assertEqual(test_results.get_num_tests(), 3)
+        self.assertEqual(test_results.get_num_passed(), 1)
+        self.assertEqual(test_results.get_num_skipped(), 0)
+        self.assertEqual(test_results.get_num_errors(), 1)
+        self.assertEqual(test_results.get_num_failures(), 1)
 
         # requests side effects
         requests_get_1 = attrdict.AttrDict({
@@ -537,12 +687,28 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             },
         })
 
+        # mock SMTP
+        smtp = attrdict.AttrDict({
+            'ehlo': lambda: None,
+            'starttls': lambda: None,
+            'login': lambda user, pwd: None,
+            'sendmail': lambda from_addr, to_addrs, msg: None,
+            'quit': lambda: None,
+        })
+
         # test API
         with mock.patch('requests.get', side_effect=[requests_get_1]):
-            self.assertFalse(build_helper.send_email_notifications()['is_new_downstream_error'])
+            with mock.patch('smtplib.SMTP', return_value=smtp):
+                result = build_helper.send_email_notifications()
+                self.assertEqual(result, {
+                    'is_fixed': False,
+                    'is_new_error': True,
+                    'is_old_error': False,
+                    'is_new_downstream_error': False,
+                })
 
     def test_send_email_notifications_no_previous_builds(self):
-        build_helper = self.construct_build_helper()
+        build_helper = self.construct_build_helper(build_num=1)
 
         # mock test results
         filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
@@ -568,6 +734,13 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             file.write('  <testcase classname="tests.core.TestCase" name="test_pass_3" file="/script.py" line="1" time="0.01"></testcase>')
             file.write('</testsuite>')
 
+        test_results = build_helper.get_test_results()
+        self.assertEqual(test_results.get_num_tests(), 3)
+        self.assertEqual(test_results.get_num_passed(), 1)
+        self.assertEqual(test_results.get_num_skipped(), 0)
+        self.assertEqual(test_results.get_num_errors(), 1)
+        self.assertEqual(test_results.get_num_failures(), 1)
+
         # requests side effects
         requests_get_1 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
@@ -579,6 +752,15 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 'commit_url': 'https://github.com/KarrLab/test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
                 'build_url': 'https://circleci.com/gh/KarrLab/test_repo_2/51',
             },
+        })
+
+        # mock SMTP
+        smtp = attrdict.AttrDict({
+            'ehlo': lambda: None,
+            'starttls': lambda: None,
+            'login': lambda user, pwd: None,
+            'sendmail': lambda from_addr, to_addrs, msg: None,
+            'quit': lambda: None,
         })
 
         # mock environment
@@ -591,9 +773,16 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         # test API
         with mock.patch('requests.get', side_effect=[requests_get_1]):
-            with env:
-                build_helper = self.construct_build_helper(build_num=1)
-                self.assertFalse(build_helper.send_email_notifications()['is_new_downstream_error'])
+            with mock.patch('smtplib.SMTP', return_value=smtp):
+                with env:
+                    build_helper = self.construct_build_helper(build_num=1)
+                    result = build_helper.send_email_notifications()
+                    self.assertEqual(result, {
+                        'is_fixed': False,
+                        'is_new_error': True,
+                        'is_old_error': False,
+                        'is_new_downstream_error': False,
+                    })
 
     def test_send_email_notifications_existing_error(self):
         build_helper = self.construct_build_helper()
@@ -622,6 +811,13 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             file.write('  <testcase classname="tests.core.TestCase" name="test_pass_3" file="/script.py" line="1" time="0.01"></testcase>')
             file.write('</testsuite>')
 
+        test_results = build_helper.get_test_results()
+        self.assertEqual(test_results.get_num_tests(), 3)
+        self.assertEqual(test_results.get_num_passed(), 1)
+        self.assertEqual(test_results.get_num_skipped(), 0)
+        self.assertEqual(test_results.get_num_errors(), 1)
+        self.assertEqual(test_results.get_num_failures(), 1)
+
         # requests side effects
         requests_get_1 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
@@ -639,6 +835,15 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             },
         })
 
+        # mock SMTP
+        smtp = attrdict.AttrDict({
+            'ehlo': lambda: None,
+            'starttls': lambda: None,
+            'login': lambda user, pwd: None,
+            'sendmail': lambda from_addr, to_addrs, msg: None,
+            'quit': lambda: None,
+        })
+
         # mock environment
         env = self.construct_environment(build_num=51)
         env.set('CIRCLE_PROJECT_REPONAME', 'test_repo_2')
@@ -651,7 +856,14 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with env:
             build_helper = self.construct_build_helper(build_num=51)
             with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2]):
-                self.assertFalse(build_helper.send_email_notifications()['is_new_downstream_error'])
+                with mock.patch('smtplib.SMTP', return_value=smtp):
+                    result = build_helper.send_email_notifications()
+                    self.assertEqual(result, {
+                        'is_fixed': False,
+                        'is_new_error': False,
+                        'is_old_error': True,
+                        'is_new_downstream_error': False,
+                    })
 
     def test_send_email_notifications_send_email(self):
         build_helper = self.construct_build_helper()
@@ -679,6 +891,13 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             file.write('  </testcase>')
             file.write('  <testcase classname="tests.core.TestCase" name="test_pass_3" file="/script.py" line="1" time="0.01"></testcase>')
             file.write('</testsuite>')
+
+        test_results = build_helper.get_test_results()
+        self.assertEqual(test_results.get_num_tests(), 3)
+        self.assertEqual(test_results.get_num_passed(), 1)
+        self.assertEqual(test_results.get_num_skipped(), 0)
+        self.assertEqual(test_results.get_num_errors(), 1)
+        self.assertEqual(test_results.get_num_failures(), 1)
 
         # mock environment
         env = self.construct_environment(build_num=51)
@@ -716,6 +935,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             },
         })
 
+        # mock SMTP
         smtp = attrdict.AttrDict({
             'ehlo': lambda: None,
             'starttls': lambda: None,
@@ -725,11 +945,16 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         })
 
         with env:
-            """ test API """
             build_helper = self.construct_build_helper(build_num=51)
             with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_3]):
                 with mock.patch('smtplib.SMTP', return_value=smtp):
-                    self.assertTrue(build_helper.send_email_notifications()['is_new_downstream_error'])
+                    result = build_helper.send_email_notifications()
+                    self.assertEqual(result, {
+                        'is_fixed': False,
+                        'is_new_error': True,
+                        'is_old_error': False,
+                        'is_new_downstream_error': True,
+                    })
 
     def test_make_and_archive_reports(self):
         build_helper = self.construct_build_helper()
@@ -1161,6 +1386,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         })
         requests_post = attrdict.AttrDict({
             'raise_for_status': lambda: None,
+            'json':lambda: None,
         })
 
         env = self.construct_environment()
@@ -1215,6 +1441,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         })
         requests_post = attrdict.AttrDict({
             'raise_for_status': lambda: None,
+            'json':lambda: None,
         })
 
         env = self.construct_environment()
@@ -1269,6 +1496,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         })
         requests_post = attrdict.AttrDict({
             'raise_for_status': lambda: None,
+            'json':lambda: None,
         })
 
         env = self.construct_environment()
@@ -1310,6 +1538,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         })
         requests_post = attrdict.AttrDict({
             'raise_for_status': lambda: None,
+            'json':lambda: None,
         })
 
         env = self.construct_environment()

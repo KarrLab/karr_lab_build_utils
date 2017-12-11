@@ -17,6 +17,7 @@ from six.moves import configparser
 from xml.dom import minidom
 import abduct
 import attrdict
+import capturer
 import coverage
 import coveralls
 import email
@@ -309,7 +310,7 @@ class BuildHelper(object):
         if circleci_api_token is None:
             circleci_api_token = self.circleci_api_token
 
-        result = self.run_circleci_api('follow',
+        result = self.run_circleci_api('/follow',
                                        method='post', repo_type=repo_type, repo_owner=repo_owner, repo_name=repo_name,
                                        circleci_api_token=circleci_api_token)
         if 'following' not in result or not result['following']:
@@ -340,7 +341,7 @@ class BuildHelper(object):
         if circleci_api_token is None:
             circleci_api_token = self.circleci_api_token
 
-        vars = self.run_circleci_api('envvar',
+        vars = self.run_circleci_api('/envvar',
                                      repo_type=repo_type, repo_owner=repo_owner, repo_name=repo_name,
                                      circleci_api_token=circleci_api_token)
         return {var['name']: var['value'] for var in vars}
@@ -384,7 +385,7 @@ class BuildHelper(object):
                                                           circleci_api_token=circleci_api_token)
 
             # add environment variable
-            self.run_circleci_api('envvar',
+            self.run_circleci_api('/envvar',
                                   method='post', repo_type=repo_type, repo_owner=repo_owner, repo_name=repo_name,
                                   circleci_api_token=circleci_api_token, data={'name': name, 'value': value})
 
@@ -410,7 +411,7 @@ class BuildHelper(object):
         if circleci_api_token is None:
             circleci_api_token = self.circleci_api_token
 
-        self.run_circleci_api('envvar/{}'.format(var),
+        self.run_circleci_api('/envvar/{}'.format(var),
                               method='delete', repo_type=repo_type, repo_owner=repo_owner, repo_name=repo_name,
                               circleci_api_token=circleci_api_token)
 
@@ -546,7 +547,7 @@ class BuildHelper(object):
         elif environment == Environment.docker:
             self._run_tests_docker(dirname=dirname, test_path=test_path, ssh_key_filename=ssh_key_filename)
         elif environment == Environment.circleci:
-            self._run_tests_circleci(dirname=dirname, ssh_key_filename=ssh_key_filename)
+            self._run_tests_circleci(dirname=dirname, test_path=test_path, ssh_key_filename=ssh_key_filename)
         else:
             raise BuildHelperError('Unsupported environment: {}'.format(environment))
 
@@ -652,7 +653,7 @@ class BuildHelper(object):
         #. Create a container based on the build image (e.g, karrlab/build:latest)
         #. Copy your GitHub SSH key to the container
         #. Remove Python cache directories (``__pycache__``) from the package
-        #. Copy the package to the container at ``/root/projects``        
+        #. Copy the package to the container at ``/root/projects``
         #. Install the Karr Lab build utilities into the container
         #. Install the requirements for the package in the container
         #. Run the tests inside the container using the same version of Python that called this method
@@ -720,12 +721,13 @@ class BuildHelper(object):
         if process.returncode and process.returncode != 0:
             raise BuildHelperError(process.communicate()[1])
 
-    def _run_tests_circleci(self, dirname='.', ssh_key_filename='~/.ssh/id_rsa'):
-        """ Run unit tests located at `test_path` using the CircleCI local executor. This will run the same commands defined in 
+    def _run_tests_circleci(self, dirname='.', test_path='tests', ssh_key_filename='~/.ssh/id_rsa'):
+        """ Run unit tests located at `test_path` using the CircleCI local executor. This will run the same commands defined in
         ``.circle/config.yml`` as the cloud version of CircleCI.
 
         Args:
             dirname (:obj:`str`, optional): path to package that should be tested
+            test_path (:obj:`str`, optional): path to tests that should be run
             ssh_key_filename (:obj:`str`, optional): path to GitHub SSH key
 
         Raises:
@@ -776,9 +778,11 @@ class BuildHelper(object):
                                  cwd=karr_lab_build_utils_dirname)
 
         # test package
-        process = subprocess.Popen(['circleci', 'build'], cwd=dirname)
-        while process.poll() is None:
-            time.sleep(0.5)
+        with capturer.CaptureOutput() as captured:
+            process = subprocess.Popen(['circleci', '--env', 'test_path={}'.format(test_path), 'build'], cwd=dirname)
+            while process.poll() is None:
+                time.sleep(0.5)
+            out = captured.get_text()
 
         # revert CircleCI config file
         shutil.move(backup_circleci_config_filename, circleci_config_filename)
@@ -787,11 +791,11 @@ class BuildHelper(object):
         self._run_docker_command(['rmi', image_with_ssh_key_name])
 
         # raise error if tests didn't pass
-        if process.returncode != 0 and process.communicate()[1] is not None:
-            raise BuildHelperError(process.communicate()[1])
+        if process.returncode != 0 or 'Task failed' in out:
+            raise BuildHelperError(out.encode('utf-8'))
 
     def get_test_results(self):
-        """ Load test results from a set of XML files 
+        """ Load test results from a set of XML files
 
         Results:
             :obj:`TestResults`: test results
@@ -878,7 +882,7 @@ class BuildHelper(object):
                 is_new_error = True
                 is_fixed = False
         else:
-            prev_result = self.run_circleci_api(str(self.build_num - 1))
+            prev_result = self.run_circleci_api('/' + str(self.build_num - 1))
             if passed:
                 is_old_error = False
                 is_new_error = False
@@ -921,13 +925,13 @@ class BuildHelper(object):
         """ Send email notifications of failures, fixes, and downstream failures
 
         Returns:
-            :obj:`dict`: 
+            :obj:`dict`:
         """
         test_results = self.get_test_results()
         status = self.get_test_results_status(test_results)
 
         # build context for email
-        result = self.run_circleci_api(str(self.build_num))
+        result = self.run_circleci_api('/' + str(self.build_num))
         context = {
             'repo_name': self.repo_name,
             'commit': result['commit'],
@@ -943,7 +947,7 @@ class BuildHelper(object):
         if status['is_new_downstream_error']:
             upstream_repo_name = os.getenv('UPSTREAM_REPONAME', '')
             upstream_build_num = int(os.getenv('UPSTREAM_BUILD_NUM', '0'))
-            result = self.run_circleci_api(str(upstream_build_num), repo_name=upstream_repo_name)
+            result = self.run_circleci_api('/' + str(upstream_build_num), repo_name=upstream_repo_name)
             context['upstream'] = {
                 'repo_name': upstream_repo_name,
                 'commit': result['commit'],
@@ -955,15 +959,26 @@ class BuildHelper(object):
                 'build_url': result['build_url'],
             }
 
+        recipients = [{'name': 'Whole-Cell Modeling Developers', 'email': 'wholecell-developers@googlegroups.com'}]
+
         # send notifications
+        if status['is_fixed']:
+            subject = '[Builds] [{0}] {0} is fixed!'.format(context['repo_name'])
+            self._send_notification_email(recipients, subject, 'fixed.html', context)
+
+        if status['is_old_error']:
+            subject = '[Builds] [{0}] {0} is still broken!'.format(context['repo_name'])
+            self._send_notification_email(recipients, subject, 'old_error.html', context)
+
+        if status['is_new_error']:
+            subject = '[Builds] [{0}] {0} has been broken!'.format(context['repo_name'])
+            self._send_notification_email(recipients, subject, 'new_error.html', context)
+
         if status['is_new_downstream_error']:
-            recipients = [
-                {'name': 'Whole-Cell Modeling Developers', 'email': 'wholecell-developers@googlegroups.com'},
-                {'name': context['upstream']['committer_name'], 'email': context['upstream']['committer_email']},
-            ]
+            recipients.append({'name': context['upstream']['committer_name'], 'email': context['upstream']['committer_email']})
             subject = '[Builds] [{1}] commit {0} to {1} may have broken {2}'.format(
                 context['upstream']['commit'], context['upstream']['repo_name'], context['repo_name'])
-            self._send_notification_email(recipients, subject, 'new_downstream_failure_notification_email.html', context)
+            self._send_notification_email(recipients, subject, 'new_downstream_error.html', context)
 
         return status
 
@@ -976,8 +991,8 @@ class BuildHelper(object):
             template_filename (obj:`str`): path to template
             context (obj:`dict`): context for template
         """
-        full_template_filename = pkg_resources.resource_filename('karr_lab_build_utils',
-                                                                 os.path.join('templates', template_filename))
+        full_template_filename = pkg_resources.resource_filename(
+            'karr_lab_build_utils', os.path.join('templates', 'email_notifications', template_filename))
         with open(full_template_filename, 'r') as file:
             template = Template(file.read())
             body = template.render(**context)
@@ -1376,7 +1391,7 @@ class BuildHelper(object):
             upstream_repo_name = self.repo_name
             upstream_build_num = str(self.build_num)
 
-        result = self.run_circleci_api(str(upstream_build_num), repo_name=upstream_repo_name)
+        result = self.run_circleci_api('/' + str(upstream_build_num), repo_name=upstream_repo_name)
         upstream_build_time = datetime.strptime(result['committer_date'][0:-5], '%Y-%m-%dT%H:%M:%S')
 
         triggered_packages = []
@@ -1384,7 +1399,7 @@ class BuildHelper(object):
             branch = 'master'
 
             # get summary of recent builds
-            builds = self.run_circleci_api(repo_name=package)
+            builds = self.run_circleci_api('', repo_name=package)
 
             # don't trigger build if a build has already been triggered from the same upstream build
             # this prevents building the same project multiple times, including infinite looping
@@ -1416,7 +1431,7 @@ class BuildHelper(object):
                 continue
 
             # trigger build
-            self.run_circleci_api('tree/{}'.format(branch), method='post', repo_name=package, data={
+            self.run_circleci_api('/tree/{}'.format(branch), method='post', repo_name=package, data={
                 'build_parameters': {
                     'UPSTREAM_REPONAME': upstream_repo_name,
                     'UPSTREAM_BUILD_NUM': upstream_build_num,
@@ -1641,7 +1656,7 @@ class BuildHelper(object):
         if not circleci_api_token:
             circleci_api_token = self.circleci_api_token
 
-        url = '{}/project/{}/{}/{}/{}?circle-token={}'.format(
+        url = '{}/project/{}/{}/{}{}?circle-token={}'.format(
             self.CIRCLE_API_ENDPOINT, repo_type, repo_owner, repo_name, command, circleci_api_token)
         response = getattr(requests, method)(url, json=data)
         response.raise_for_status()
@@ -1709,12 +1724,12 @@ class TestCaseResult(object):
         line (obj:`int`): line where the test was defined
         python_version (obj:`str`): python version which ran the test
         type (obj:`TestCaseResultType`): type of the result (pass, skip, error, failure)
-        subtype (obj:`str`): detailed type of the result 
+        subtype (obj:`str`): detailed type of the result
         message (obj:`str`): message from the result
         details (obj:`str`): detailed message from the result
         time (obj:`float`): duration of the time in seconds
         stdout (obj:`str`): standard output
-        stderr (obj:`str`): standard error        
+        stderr (obj:`str`): standard error
     """
 
     def __init__(self):

@@ -118,10 +118,12 @@ class RunTestsController(CementBaseController):
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
-            (['test_path'], dict(
-                type=str, default='tests', help='path to tests to run')),
+            (['--test-path'], dict(
+                type=str, default=None, help=(
+                    'Path to tests to run. '
+                    'If the `test_path` environment variable is not define, this defaults to `tests`.'))),
             (['--dirname'], dict(
-                type=str, default='.', help='path to package to test')),
+                type=str, default='.', help='Path to package to test')),
             (['--with-xunit'], dict(
                 default=False, action='store_true', help='True/False to save test results to XML file')),
             (['--with-coverage'], dict(
@@ -141,9 +143,23 @@ class RunTestsController(CementBaseController):
     @expose(hide=True)
     def default(self):
         args = self.app.pargs
-        buildHelper = BuildHelper()
+
+        # if `test_path` was not specified at the command line, try to get it from the `test_path` environment variable
+        # which can be set in CircleCI via build parameters
+        if args.test_path is None:
+            if 'test_path' in os.environ:
+                test_path = os.getenv('test_path')
+            else:
+                test_path = 'tests'
+        else:
+            test_path = args.test_path
+
+        # get coverage type
         coverage_type = karr_lab_build_utils.core.CoverageType[args.coverage_type.lower().replace('-', '_')]
-        buildHelper.run_tests(dirname=args.dirname, test_path=args.test_path, with_xunit=args.with_xunit,
+
+        # run tests
+        buildHelper = BuildHelper()
+        buildHelper.run_tests(dirname=args.dirname, test_path=test_path, with_xunit=args.with_xunit,
                               with_coverage=args.with_coverage, coverage_dirname=args.coverage_dirname,
                               coverage_type=coverage_type, environment=karr_lab_build_utils.core.Environment[args.environment],
                               ssh_key_filename=args.ssh_key_filename)
