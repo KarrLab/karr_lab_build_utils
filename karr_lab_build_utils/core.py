@@ -887,10 +887,10 @@ class BuildHelper(object):
             if passed:
                 is_old_error = False
                 is_new_error = False
-                is_fixed = prev_result['status'] != 'success'
+                is_fixed = prev_result['status'] not in ['success', 'fixed']
             else:
-                is_old_error = prev_result['status'] != 'success'
-                is_new_error = prev_result['status'] == 'success'
+                is_old_error = prev_result['status'] not in ['success', 'fixed']
+                is_new_error = prev_result['status'] in ['success', 'fixed']
                 is_fixed = False
 
         # determine if build was triggered by an upstream package
