@@ -17,7 +17,7 @@ class BaseController(CementBaseController):
     def do_post_test_tasks(self):
         """ Do all post-test tasks for CircleCI """
         buildHelper = BuildHelper()
-        triggered_packages, status = buildHelper.do_post_test_tasks()
+        docs_compiled, triggered_packages, status = buildHelper.do_post_test_tasks()
 
         # downstream triggered tests
         if triggered_packages:
@@ -28,21 +28,24 @@ class BaseController(CementBaseController):
             print("No downstream builds were triggered.")
 
         # email notifications
-        num_notifications = status['is_fixed'] + status['is_old_error'] + status['is_new_error'] + status['is_new_downstream_error']
+        num_notifications = (not docs_compiled) + status['is_fixed'] + status['is_old_error'] + status['is_new_error'] + status['is_new_downstream_error']
         if num_notifications > 0:
             print('{} notifications were sent'.format(num_notifications))
 
             if status['is_fixed']:
-                print('  Build fixed notification')
+                print('  Build fixed')
 
             if status['is_old_error']:
-                print('  Recurring error notification')
+                print('  Recurring error')
 
             if status['is_new_error']:
-                print('  New error notification')
+                print('  New error')
 
             if status['is_new_downstream_error']:
-                print('  Downstream error notification')
+                print('  Downstream error')
+
+            if not docs_compiled:
+                print('  Documentation generation error')
         else:
             print('No notifications were sent.')
 

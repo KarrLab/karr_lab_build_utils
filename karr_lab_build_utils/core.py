@@ -919,13 +919,25 @@ class BuildHelper(object):
         * Notify authors of new failures in downstream packages
 
         Returns:
+            :obj:`bool`: :obj:`True` if the documentation compiled
             :obj:`list` of :obj:`str`: names of triggered packages
             :obj:`dict`: status of a set of results
         """
-        self.make_and_archive_reports()
+        try:
+            self.make_and_archive_reports()
+            docs_compiled = True
+        except Exception as exception:
+            docs_compiled = False
+            recipients = [{'name': 'Whole-Cell Modeling Developers', 'email': 'wholecell-developers@googlegroups.com'}]
+            subject = '[Builds] [{0}] {0} documentation could not be compiled!'.format(self.repo_name)
+            self._send_notification_email(recipients, subject, 'documentation_broken.html', {
+                'repo_name': self.repo_name,
+                'error': str(exception),
+            })
+
         triggered_packages = self.trigger_tests_of_downstream_dependencies()
         status = self.send_email_notifications()
-        return (triggered_packages, status)
+        return (docs_compiled, triggered_packages, status)
 
     def send_email_notifications(self):
         """ Send email notifications of failures, fixes, and downstream failures

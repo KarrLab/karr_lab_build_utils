@@ -488,11 +488,6 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with mock.patch.object(core.BuildHelper, 'make_and_archive_reports', return_value=None):
             with mock.patch.object(core.BuildHelper, 'trigger_tests_of_downstream_dependencies', return_value=down_pkgs_return):
                 with mock.patch.object(core.BuildHelper, 'send_email_notifications', return_value=notify_return):
-                    # test api
-                    build_helper = self.construct_build_helper()
-                    build_helper.do_post_test_tasks()
-
-                    # test cli
                     with self.construct_environment():
                         with capturer.CaptureOutput(merged=False, relay=False) as captured:
                             with __main__.App(argv=['do-post-test-tasks']) as app:
@@ -501,11 +496,39 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                                 self.assertRegexpMatches(captured.stdout.get_text(), '  pkg_1')
                                 self.assertRegexpMatches(captured.stdout.get_text(), '  pkg_2')
                                 self.assertRegexpMatches(captured.stdout.get_text(), '4 notifications were sent')
-                                self.assertRegexpMatches(captured.stdout.get_text(), '  Build fixed notification')
-                                self.assertRegexpMatches(captured.stdout.get_text(), '  Recurring error notification')
-                                self.assertRegexpMatches(captured.stdout.get_text(), '  New error notification')
-                                self.assertRegexpMatches(captured.stdout.get_text(), '  Downstream error notification')
+                                self.assertRegexpMatches(captured.stdout.get_text(), '  Build fixed')
+                                self.assertRegexpMatches(captured.stdout.get_text(), '  Recurring error')
+                                self.assertRegexpMatches(captured.stdout.get_text(), '  New error')
+                                self.assertRegexpMatches(captured.stdout.get_text(), '  Downstream error')
                                 self.assertEqual(captured.stderr.get_text(), '')
+
+        def make_and_archive_reports():
+            raise Exception()
+        down_pkgs_return = []
+        notify_return = {
+            'is_fixed': False,
+            'is_old_error': False,
+            'is_new_error': False,
+            'is_new_downstream_error': False,
+        }
+        smtp = attrdict.AttrDict({
+            'ehlo': lambda: None,
+            'starttls': lambda: None,
+            'login': lambda user, pwd: None,
+            'sendmail': lambda from_addr, to_addrs, msg: None,
+            'quit': lambda: None,
+        })
+        with mock.patch.object(core.BuildHelper, 'make_and_archive_reports', make_and_archive_reports):
+            with mock.patch.object(core.BuildHelper, 'trigger_tests_of_downstream_dependencies', return_value=down_pkgs_return):
+                with mock.patch.object(core.BuildHelper, 'send_email_notifications', return_value=notify_return):
+                    with mock.patch('smtplib.SMTP', return_value=smtp):
+                        with self.construct_environment():
+                            with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                                with __main__.App(argv=['do-post-test-tasks']) as app:
+                                    app.run()
+                                    self.assertRegexpMatches(captured.stdout.get_text(), '1 notifications were sent')
+                                    self.assertRegexpMatches(captured.stdout.get_text(), '  Documentation generation error')
+                                    self.assertEqual(captured.stderr.get_text(), '')
 
     def test_get_test_results(self):
         build_helper = self.construct_build_helper(build_num=1)
