@@ -1691,6 +1691,26 @@ class TestResults(object):
     def __init__(self):
         self.cases = []
 
+    @property
+    def num_tests(self):
+        return self.get_num_tests()
+
+    @property
+    def num_passed(self):
+        return self.get_num_passed()
+
+    @property
+    def num_skipped(self):
+        return self.get_num_skipped()
+
+    @property
+    def num_errors(self):
+        return self.get_num_errors()
+
+    @property
+    def num_failures(self):
+        return self.get_num_failures()
+
     def get_num_tests(self):
         """ Get the number of tests
 
