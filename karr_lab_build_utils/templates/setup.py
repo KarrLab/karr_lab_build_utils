@@ -9,9 +9,14 @@ import os
 
 name = '{{ name }}'
 dirname = os.path.dirname(__file__)
+package_data = {
+    name: [
+        'VERSION',
+    ],
+}
 
 # get package metadata
-md = pkg_utils.get_package_metadata(dirname, name)
+md = pkg_utils.get_package_metadata(dirname, name, package_data_filename_patterns=package_data)
 
 # install package
 setuptools.setup(
@@ -26,11 +31,7 @@ setuptools.setup(
     license="MIT",
     keywords='',
     packages=setuptools.find_packages(exclude=['tests', 'tests.*']),
-    package_data={
-        name: [
-            'VERSION',
-        ],
-    },
+    package_data=md.package_data,
     install_requires=md.install_requires,
     extras_require=md.extras_require,
     tests_require=md.tests_require,
