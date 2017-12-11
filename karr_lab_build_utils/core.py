@@ -1428,8 +1428,8 @@ class BuildHelper(object):
                     break
 
                 # don't trigger a build if the package has already been more recently tested than the commit time
-                build_start_time = dateutil.parser.parse(build['start_time'])
-                if build_start_time > upstream_build_time:
+                build_start_time = build['start_time']
+                if build_start_time is None or dateutil.parser.parse(build['start_time']) > upstream_build_time:
                     already_queued = True
                     break
 
