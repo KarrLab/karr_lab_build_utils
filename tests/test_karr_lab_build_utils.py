@@ -538,6 +538,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.assertEqual(test_results.get_num_errors(), 0)
         self.assertEqual(test_results.get_num_failures(), 0)
 
+        # cleanup
+        os.remove(filename)
+
     def test_send_email_notifications_no_failure(self):
         build_helper = self.construct_build_helper(build_num=1)
 
@@ -605,6 +608,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                         'is_old_error': False,
                         'is_new_downstream_error': False,
                     })
+
+        # cleanup
+        os.remove(filename)
 
     def test_send_email_notifications_fixed(self):
         build_helper = self.construct_build_helper(build_num=10)
@@ -686,6 +692,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     'is_new_downstream_error': False,
                 })
 
+        # cleanup
+        os.remove(filename)
+
     def test_send_email_notifications_no_upstream(self):
         build_helper = self.construct_build_helper(build_num=1)
 
@@ -754,6 +763,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     'is_old_error': False,
                     'is_new_downstream_error': False,
                 })
+
+        # cleanup
+        os.remove(filename)
 
     def test_send_email_notifications_no_previous_builds(self):
         build_helper = self.construct_build_helper(build_num=1)
@@ -833,6 +845,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                         'is_old_error': False,
                         'is_new_downstream_error': False,
                     })
+
+        # cleanup
+        os.remove(filename)
 
     def test_send_email_notifications_existing_error(self):
         build_helper = self.construct_build_helper()
@@ -916,6 +931,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                         'is_old_error': True,
                         'is_new_downstream_error': False,
                     })
+
+        # cleanup
+        os.remove(filename)
 
     def test_send_email_notifications_send_email(self):
         build_helper = self.construct_build_helper()
@@ -1011,6 +1029,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                         'is_old_error': False,
                         'is_new_downstream_error': True,
                     })
+
+        # cleanup
+        os.remove(filename)
 
     def test_make_and_archive_reports(self):
         build_helper = self.construct_build_helper()
