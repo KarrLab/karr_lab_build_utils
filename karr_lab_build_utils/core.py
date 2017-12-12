@@ -702,7 +702,7 @@ class BuildHelper(object):
         # test package in container
         try:
             self._run_docker_command(['exec', container, 'bash', '-c',
-                                      'cd /root/project && karr_lab_build_utils{} run-tests {}'.format(py_v, test_path)])
+                                      'cd /root/project && karr_lab_build_utils{} run-tests --test-path {}'.format(py_v, test_path)])
         finally:
             # stop and remove container
             self._run_docker_command(['rm', '-f', container])
