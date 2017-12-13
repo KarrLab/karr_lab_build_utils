@@ -690,6 +690,11 @@ class BuildHelper(object):
         # copy package to container
         self._run_docker_command(['cp', os.path.abspath(dirname), container + ':/root/project'])
 
+        # install pkg_utils
+        build_utils_uri = 'git+https://github.com/KarrLab/pkg_utils.git#egg=pkg_utils'
+        self._run_docker_command(['exec', container, 'bash', '-c',
+                                  'pip{} install -U {}'.format(py_v, build_utils_uri)])
+
         # install Karr Lab build utils
         build_utils_uri = 'git+https://github.com/KarrLab/karr_lab_build_utils.git#egg=karr_lab_build_utils'
         self._run_docker_command(['exec', container, 'bash', '-c',
