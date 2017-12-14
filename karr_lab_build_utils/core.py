@@ -506,7 +506,7 @@ class BuildHelper(object):
 
             filename = sanitized_filename
 
-        self.run_method_and_capture_stderr(pip.main, ['install', '-U', '-r', filename])
+        self.run_method_and_capture_stderr(pip.main, ['install', '-U', '--process-dependency-links', '-r', filename])
 
         # cleanup temporary file
         if ignore_options:
@@ -693,12 +693,12 @@ class BuildHelper(object):
         # install pkg_utils
         build_utils_uri = 'git+https://github.com/KarrLab/pkg_utils.git#egg=pkg_utils'
         self._run_docker_command(['exec', container, 'bash', '-c',
-                                  'pip{} install -U {}'.format(py_v, build_utils_uri)])
+                                  'pip{} install -U --process-dependency-links {}'.format(py_v, build_utils_uri)])
 
         # install Karr Lab build utils
         build_utils_uri = 'git+https://github.com/KarrLab/karr_lab_build_utils.git#egg=karr_lab_build_utils'
         self._run_docker_command(['exec', container, 'bash', '-c',
-                                  'pip{} install -U {}'.format(py_v, build_utils_uri)])
+                                  'pip{} install -U --process-dependency-links {}'.format(py_v, build_utils_uri)])
 
         # install requirements
         self._run_docker_command(['exec', container, 'bash', '-c',
