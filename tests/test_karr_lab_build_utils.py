@@ -1307,7 +1307,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             pass
         with open(os.path.join(packages_parent_dir, 'pkg_1', 'requirements.txt'), 'w') as file:
             file.write('dep_1\n')
-            file.write('git+https://github.com/KarrLab/karr_lab_build_utils.git#egg=karr_lab_build_utils\n')
+            file.write('git+https://github.com/KarrLab/karr_lab_build_utils.git#egg=karr_lab_build_utils-0.0.1\n')
             file.write('dep_2\n')
         with open(os.path.join(packages_parent_dir, 'pkg_2', 'requirements.txt'), 'w') as file:
             file.write('dep_3\n')
@@ -1316,7 +1316,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with open(os.path.join(packages_parent_dir, 'pkg_3', 'requirements.txt'), 'w') as file:
             file.write('dep_6\n')
             file.write('dep_7\n')
-            file.write('git+https://github.com/KarrLab/karr_lab_build_utils.git#egg=karr_lab_build_utils\n')
+            file.write('git+https://github.com/KarrLab/karr_lab_build_utils.git#egg=karr_lab_build_utils-0.0.1\n')
 
         # create temp filename to save dependencies
         tmp_file, downstream_dependencies_filename = tempfile.mkstemp(suffix='.yml')

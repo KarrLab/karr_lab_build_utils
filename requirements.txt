@@ -19,7 +19,7 @@ pyyaml
 pytest
 python_dateutil
 requests
-git+https://github.com/KarrLab/pkg_utils.git#egg=pkg_utils-0.0.2[all]
+git+https://github.com/KarrLab/pkg_utils.git#egg=pkg_utils-0.0.3[all]
 setuptools
 six
 sphinx
