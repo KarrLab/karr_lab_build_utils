@@ -14,16 +14,18 @@ networkx
 nose
 pip
 pip_check_reqs
+git+https://github.com/KarrLab/pkg_utils.git#egg=pkg_utils-0.0.3[all]
 pylint
-pyyaml
 pytest
 python_dateutil
+pyyaml
 requests
-git+https://github.com/KarrLab/pkg_utils.git#egg=pkg_utils-0.0.3[all]
+robpol86_sphinxcontrib_googleanalytics
 setuptools
 six
-sphinx
+sphinx >= 1.6
 sphinx_rtd_theme
+sphinxcontrib_bibtex
 sphinxcontrib_spelling
 twine
 wheel

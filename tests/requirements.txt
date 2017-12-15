@@ -1,6 +1,1 @@
-coverage < 4.4
-coveralls
-mock
-nose
-robpol86_sphinxcontrib_googleanalytics
 whichcraft

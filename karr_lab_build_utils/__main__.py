@@ -13,42 +13,6 @@ class BaseController(CementBaseController):
         label = 'base'
         description = "Karr Lab build utilities"
 
-    @expose(help='Do all post-test tasks for CircleCI')
-    def do_post_test_tasks(self):
-        """ Do all post-test tasks for CircleCI """
-        buildHelper = BuildHelper()
-        docs_compiled, triggered_packages, status = buildHelper.do_post_test_tasks()
-
-        # downstream triggered tests
-        if triggered_packages:
-            print('{} downstream builds were triggered'.format(len(triggered_packages)))
-            for triggered_package in triggered_packages:
-                print('  {}'.format(triggered_package))
-        else:
-            print("No downstream builds were triggered.")
-
-        # email notifications
-        num_notifications = (not docs_compiled) + status['is_fixed'] + status['is_old_error'] + status['is_new_error'] + status['is_new_downstream_error']
-        if num_notifications > 0:
-            print('{} notifications were sent'.format(num_notifications))
-
-            if status['is_fixed']:
-                print('  Build fixed')
-
-            if status['is_old_error']:
-                print('  Recurring error')
-
-            if status['is_new_error']:
-                print('  New error')
-
-            if status['is_new_downstream_error']:
-                print('  Downstream error')
-
-            if not docs_compiled:
-                print('  Documentation generation error')
-        else:
-            print('No notifications were sent.')
-
     @expose(help='Archive test report')
     def archive_test_report(self):
         """ Upload test report to history server """
@@ -154,6 +118,8 @@ class RunTestsController(CementBaseController):
                     'If the `test_path` environment variable is not define, this defaults to `tests`.'))),
             (['--dirname'], dict(
                 type=str, default='.', help='Path to package to test')),
+            (['--verbose'], dict(
+                default=False, action='store_true', help='True/False to display test output')),
             (['--with-xunit'], dict(
                 default=False, action='store_true', help='True/False to save test results to XML file')),
             (['--with-coverage'], dict(
@@ -184,12 +150,14 @@ class RunTestsController(CementBaseController):
         else:
             test_path = args.test_path
 
+        verbose = args.verbose or bool(int(os.getenv('verbose', '0')))
+
         # get coverage type
         coverage_type = karr_lab_build_utils.core.CoverageType[args.coverage_type.lower().replace('-', '_')]
 
         # run tests
         buildHelper = BuildHelper()
-        buildHelper.run_tests(dirname=args.dirname, test_path=test_path, with_xunit=args.with_xunit,
+        buildHelper.run_tests(dirname=args.dirname, test_path=test_path, verbose=verbose, with_xunit=args.with_xunit,
                               with_coverage=args.with_coverage, coverage_dirname=args.coverage_dirname,
                               coverage_type=coverage_type, environment=karr_lab_build_utils.core.Environment[args.environment],
                               ssh_key_filename=args.ssh_key_filename)
@@ -341,6 +309,60 @@ class CreateCodeclimateGithubWebhookController(CementBaseController):
             github_username=args.github_username, github_password=args.github_password)
 
 
+class DoPostTestTasksController(CementBaseController):
+    """ Do all post-test tasks for CircleCI """
+
+    class Meta:
+        label = 'do-post-test-tasks'
+        description = 'Do all post-test tasks for CircleCI'
+        stacked_on = 'base'
+        stacked_type = 'nested'
+        arguments = [
+            (['--dry-run'], dict(
+                default=False, dest='dry_run', action='store_true', help='If true, do not send results to Coveralls and Code Climate')),
+        ]
+
+    @expose(hide=True)
+    def default(self):
+        args = self.app.pargs
+        dry_run = args.dry_run or bool(int(os.getenv('dry_run', '0')))
+
+        """ Do all post-test tasks for CircleCI """
+        buildHelper = BuildHelper()
+        docs_compiled, triggered_packages, status = buildHelper.do_post_test_tasks(dry_run=dry_run)
+
+        # downstream triggered tests
+        if triggered_packages:
+            print('{} downstream builds were triggered'.format(len(triggered_packages)))
+            for triggered_package in triggered_packages:
+                print('  {}'.format(triggered_package))
+        else:
+            print("No downstream builds were triggered.")
+
+        # email notifications
+        num_notifications = (not docs_compiled) + status['is_fixed'] + status['is_old_error'] + \
+            status['is_new_error'] + status['is_new_downstream_error']
+        if num_notifications > 0:
+            print('{} notifications were sent'.format(num_notifications))
+
+            if status['is_fixed']:
+                print('  Build fixed')
+
+            if status['is_old_error']:
+                print('  Recurring error')
+
+            if status['is_new_error']:
+                print('  New error')
+
+            if status['is_new_downstream_error']:
+                print('  Downstream error')
+
+            if not docs_compiled:
+                print('  Documentation generation error')
+        else:
+            print('No notifications were sent.')
+
+
 class MakeAndArchiveReportsController(CementBaseController):
     """ Make and archive reports:
 
@@ -364,8 +386,11 @@ class MakeAndArchiveReportsController(CementBaseController):
     @expose(hide=True)
     def default(self):
         args = self.app.pargs
+
+        dry_run = args.dry_run or bool(int(os.getenv('dry_run', '0')))
+
         buildHelper = BuildHelper()
-        buildHelper.make_and_archive_reports(coverage_dirname=args.coverage_dirname, dry_run=args.dry_run)
+        buildHelper.make_and_archive_reports(coverage_dirname=args.coverage_dirname, dry_run=dry_run)
 
 
 class CombineCoverageReportsController(CementBaseController):
@@ -413,8 +438,9 @@ class ArchiveCoverageReportController(CementBaseController):
         * Upload report to Coveralls and Code Climate
         """
         args = self.app.pargs
+        dry_run = args.dry_run or bool(int(os.getenv('dry_run', '0')))
         buildHelper = BuildHelper()
-        buildHelper.archive_coverage_report(coverage_dirname=args.coverage_dirname, dry_run=args.dry_run)
+        buildHelper.archive_coverage_report(coverage_dirname=args.coverage_dirname, dry_run=dry_run)
 
 
 class UploadCoverageReportToCoverallsController(CementBaseController):
@@ -436,8 +462,9 @@ class UploadCoverageReportToCoverallsController(CementBaseController):
     def default(self):
         """ Upload coverage report to Coveralls """
         args = self.app.pargs
+        dry_run = args.dry_run or bool(int(os.getenv('dry_run', '0')))
         buildHelper = BuildHelper()
-        buildHelper.upload_coverage_report_to_coveralls(coverage_dirname=args.coverage_dirname, dry_run=args.dry_run)
+        buildHelper.upload_coverage_report_to_coveralls(coverage_dirname=args.coverage_dirname, dry_run=dry_run)
 
 
 class UploadCoverageReportToCodeClimateController(CementBaseController):
@@ -459,8 +486,9 @@ class UploadCoverageReportToCodeClimateController(CementBaseController):
     def default(self):
         """ Upload coverage report to Code Climate """
         args = self.app.pargs
+        dry_run = args.dry_run or bool(int(os.getenv('dry_run', '0')))
         buildHelper = BuildHelper()
-        buildHelper.upload_coverage_report_to_code_climate(coverage_dirname=args.coverage_dirname, dry_run=args.dry_run)
+        buildHelper.upload_coverage_report_to_code_climate(coverage_dirname=args.coverage_dirname, dry_run=dry_run)
 
 
 class MakeDocumentationController(CementBaseController):
@@ -730,6 +758,7 @@ class App(CementApp):
             SetCircleciEnvironmentVariableController,
             DeleteCircleciEnvironmentVariableController,
             CreateCodeclimateGithubWebhookController,
+            DoPostTestTasksController,
             MakeAndArchiveReportsController,
             CombineCoverageReportsController,
             ArchiveCoverageReportController,

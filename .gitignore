@@ -29,3 +29,6 @@ tests/fixtures/secret/
 
 # IDE configuration
 .idea/
+
+# CircleCI Docker context
+circleci_docker_context/

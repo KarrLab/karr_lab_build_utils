@@ -401,6 +401,28 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         shutil.rmtree(tempdirname)
 
+    def test_run_tests_default_path(self):
+        with self.construct_environment():
+            with __main__.App(argv=['run-tests']) as app:
+                with mock.patch.object(core.BuildHelper, 'run_tests', return_value=None):
+                    app.run()
+
+    def test_run_tests_with_test_path_env_var(self):
+        env = self.construct_environment()
+        env.set('test_path', TestKarrLabBuildUtils.DUMMY_TEST)
+        with env:
+            with __main__.App(argv=['run-tests']) as app:
+                app.run()
+
+    def test_run_tests_with_verbose(self):
+        build_helper = self.construct_build_helper()
+
+        build_helper.test_runner = 'pytest'
+        build_helper.run_tests(test_path=self.DUMMY_TEST, verbose=True)
+
+        build_helper.test_runner = 'nose'
+        build_helper.run_tests(test_path=self.DUMMY_TEST, verbose=True)
+
     def test_run_tests_error(self):
         build_helper = self.construct_build_helper()
 
@@ -429,25 +451,24 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         'See installation instructions at `https://intro-to-wc-modeling.readthedocs.io/en/latest/installation.html`'
     ))
     def test_run_tests_docker(self):
+        if not os.path.isdir('tests/__pycache__'):
+            os.mkdir(os.path.join('tests/__pycache__'))
+
         build_helper = self.construct_build_helper()
 
         # test success
-        build_helper.run_tests(test_path=self.DUMMY_TEST, environment=core.Environment.docker)
+        build_helper.run_tests(test_path=self.DUMMY_TEST, environment=core.Environment.docker, verbose=True)
 
         # :todo: test failure
 
-    @unittest.skipIf(whichcraft.which('docker') is None or whichcraft.which('circleci') is None, (
-        'Test requires the CircleCI command line utility (local executor) and this isn''t installed. See '
-        'installation instructions at `http://intro-to-wc-modeling.readthedocs.io/en/latest/installation.html`.'
+    @unittest.skipIf(whichcraft.which('docker') is None, (
+        'Test requires Docker and Docker isn''t installed. '
+        'See installation instructions at `https://intro-to-wc-modeling.readthedocs.io/en/latest/installation.html`'
     ))
-    def test_run_tests_circleci(self):
+    def test__run_docker_command_exception(self):
         build_helper = self.construct_build_helper()
-
-        # test success
-        with self.assertRaisesRegexp(core.BuildHelperError, '404 Client Error'):
-            build_helper.run_tests(test_path=self.DUMMY_TEST, environment=core.Environment.circleci)
-
-        # :todo: test failure
+        with self.assertRaisesRegexp(core.BuildHelperError, 'is not a docker command'):
+            build_helper._run_docker_command(['XXXXX'])
 
     def test_run_tests_unsupported_env(self):
         build_helper = self.construct_build_helper()
@@ -1056,6 +1077,22 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         # cleanup
         os.remove(filename)
 
+    def test_send_email_notifications_dry_run(self):
+        build_helper = self.construct_build_helper()
+
+        filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
+                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+        for filename in glob(filename_pattern):
+            os.remove(filename)
+
+        result = build_helper.send_email_notifications(dry_run=True)
+        self.assertEqual(result, {
+            'is_fixed': False,
+            'is_new_error': False,
+            'is_old_error': False,
+            'is_new_downstream_error': False,
+        })
+
     def test_make_and_archive_reports(self):
         build_helper = self.construct_build_helper()
         build_helper.run_tests(test_path=self.DUMMY_TEST,
@@ -1349,7 +1386,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
                 with __main__.App(argv=['compile-downstream-dependencies', '--packages-parent-dir', packages_parent_dir]) as app:
                     app.run()
-                    self.assertRegexpMatches(captured.stdout.get_text(), '^The following downstream dependencies were found')
+                    self.assertRegexpMatches(captured.stdout.get_text(), 'The following downstream dependencies were found')
                     self.assertEqual(captured.stderr.get_text(), '')
 
         with self.construct_environment():
@@ -1357,7 +1394,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 with __main__.App(argv=['compile-downstream-dependencies',
                                         '--packages-parent-dir', os.path.join(packages_parent_dir, 'pkg_1')]) as app:
                     app.run()
-                    self.assertEqual(captured.stdout.get_text(), 'No downstream packages were found.')
+                    self.assertRegexpMatches(captured.stdout.get_text(), 'No downstream packages were found.')
                     self.assertEqual(captured.stderr.get_text(), '')
 
         # cleanup
@@ -1398,7 +1435,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 with __main__.App(argv=['are-package-dependencies-acyclic',
                                         '--packages-parent-dir', packages_parent_dir]) as app:
                     app.run()
-                    self.assertEqual(captured.stdout.get_text(), 'The dependencies are acyclic.')
+                    self.assertRegexpMatches(captured.stdout.get_text(), 'The dependencies are acyclic.')
                     self.assertEqual(captured.stderr.get_text(), '')
 
         """ cyclic """
@@ -1417,7 +1454,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 with __main__.App(argv=['are-package-dependencies-acyclic',
                                         '--packages-parent-dir', packages_parent_dir]) as app:
                     app.run()
-                    self.assertRegexpMatches(captured.stdout.get_text(), '^The dependencies are cyclic.')
+                    self.assertRegexpMatches(captured.stdout.get_text(), 'The dependencies are cyclic.')
                     self.assertEqual(captured.stderr.get_text(), '')
 
         """ Cleanup """
@@ -1510,7 +1547,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                                             '--downstream-dependencies-filename', downstream_dependencies_filename]) as app:
                         with capturer.CaptureOutput(merged=False, relay=False) as captured:
                             app.run()
-                    self.assertRegexpMatches(captured.stdout.get_text(), '^2 dependent builds were triggered')
+                    self.assertRegexpMatches(captured.stdout.get_text(), '2 dependent builds were triggered')
                     self.assertEqual(captured.stderr.get_text(), '')
 
         # cleanup
@@ -1563,7 +1600,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                                             '--downstream-dependencies-filename', downstream_dependencies_filename]) as app:
                         with capturer.CaptureOutput(merged=False, relay=False) as captured:
                             app.run()
-                    self.assertEqual(captured.stdout.get_text(), 'No dependent builds were triggered.')
+                    self.assertRegexpMatches(captured.stdout.get_text(), 'No dependent builds were triggered.')
                     self.assertEqual(captured.stderr.get_text(), '')
 
         # cleanup
@@ -1669,6 +1706,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         # cleanup
         os.remove(downstream_dependencies_filename)
 
+    def test_trigger_tests_of_downstream_dependencies_dry_run(self):
+        build_helper = core.BuildHelper()
+        self.assertEqual(build_helper.trigger_tests_of_downstream_dependencies(dry_run=True), [])
+
     def test_analyze_package(self):
         # test api
         build_helper = core.BuildHelper()
@@ -1696,7 +1737,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         # test api
         build_helper = core.BuildHelper()
         missing = build_helper.find_missing_requirements('karr_lab_build_utils', ignore_files=['karr_lab_build_utils/templates/*'])
-        self.assertEqual(missing, [])
+        self.assertEqual(missing, ['pip_check_reqs'])
 
         # test cli
         with self.construct_environment():
@@ -1705,7 +1746,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                         'find-missing-requirements', 'karr_lab_build_utils',
                         '--ignore-files', 'karr_lab_build_utils/templates/*']) as app:
                     app.run()
-                    self.assertEqual(captured.stdout.get_text(), 'requirements.txt appears to contain all of the dependencies')
+                    self.assertRegexpMatches(captured.stdout.get_text(), 'requirements.txt appears to contain all of the dependencies')
                     self.assertEqual(captured.stderr.get_text(), '')
 
         shutil.copy('requirements.optional.txt', 'requirements.optional.txt.save')
@@ -1717,7 +1758,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                         'find-missing-requirements', 'karr_lab_build_utils',
                         '--ignore-files', 'karr_lab_build_utils/templates/*']) as app:
                     app.run()
-                    self.assertRegexpMatches(captured.stdout.get_text(), '^The following dependencies should likely be added to')
+                    self.assertRegexpMatches(captured.stdout.get_text(), 'The following dependencies should likely be added to')
                     self.assertEqual(captured.stderr.get_text(), '')
         os.remove('requirements.optional.txt')
         os.rename('requirements.optional.txt.save', 'requirements.optional.txt')
@@ -1727,10 +1768,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         build_helper = core.BuildHelper()
         unused = build_helper.find_unused_requirements('karr_lab_build_utils', ignore_files=['karr_lab_build_utils/templates/*'])
         unused.sort()
+
+        expected_unused = ['robpol86_sphinxcontrib_googleanalytics', 'sphinx_rtd_theme',
+                           'sphinxcontrib_bibtex', 'sphinxcontrib_spelling', 'wheel']
         if six.PY3:
-            self.assertEqual(unused, ['enum34', 'sphinx_rtd_theme', 'sphinxcontrib_spelling', 'wheel'])
-        else:
-            self.assertEqual(unused, ['sphinx_rtd_theme', 'sphinxcontrib_spelling', 'wheel'])
+            expected_unused.insert(0, 'enum34')
+        self.assertEqual(unused, expected_unused)
 
         # test cli
         with self.construct_environment():
@@ -1740,7 +1783,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                         '--ignore-file', 'karr_lab_build_utils/templates/*']) as app:
                     app.run()
                     self.assertRegexpMatches(captured.stdout.get_text(),
-                                             '^The following requirements from requirements.txt may not be necessary:\n')
+                                             'The following requirements from requirements.txt may not be necessary:\n')
                     self.assertEqual(captured.stderr.get_text(), '')
 
         os.rename('requirements.txt', 'requirements.txt.save')
@@ -1753,7 +1796,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                         '--ignore-file', 'karr_lab_build_utils/templates/*',
                 ]) as app:
                     app.run()
-                    self.assertEqual(captured.stdout.get_text(), 'All of the dependencies appear to be necessary')
+                    self.assertRegexpMatches(captured.stdout.get_text(), 'All of the dependencies appear to be necessary')
                     self.assertEqual(captured.stderr.get_text(), '')
         os.remove('requirements.txt')
         os.rename('requirements.txt.save', 'requirements.txt')
@@ -1874,3 +1917,44 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
     def test_dummy_test(self):
         pass
+
+
+@unittest.skipIf(whichcraft.which('docker') is None or whichcraft.which('circleci') is None, (
+    'Test requires the CircleCI command line utility (local executor) and this isn''t installed. See '
+    'installation instructions at `http://intro-to-wc-modeling.readthedocs.io/en/latest/installation.html`.'
+))
+class TestCircleCi(unittest.TestCase):
+
+    def setUp(self):
+        file, self.temp_filename = tempfile.mkstemp(suffix='.yml')
+        os.close(file)
+
+        shutil.copyfile(os.path.join('.circleci', 'config.yml'), self.temp_filename)
+
+    def tearDown(self):
+        os.remove(os.path.join('.circleci', 'config.yml'))
+        shutil.move(self.temp_filename, os.path.join('.circleci', 'config.yml'))
+
+    def test_run_tests_circleci(self):
+        if os.path.isdir('circleci_docker_context'):
+            shutil.rmtree('circleci_docker_context')
+
+        if not os.path.isdir('tests/__pycache__'):
+            os.mkdir(os.path.join('tests/__pycache__'))
+
+        build_helper = TestKarrLabBuildUtils.construct_build_helper()
+
+        # test success
+        build_helper.run_tests(test_path=TestKarrLabBuildUtils.DUMMY_TEST, environment=core.Environment.circleci)
+
+    def test_run_tests_circleci_with_ssh_image(self):
+        build_helper = TestKarrLabBuildUtils.construct_build_helper()
+        return_value = {'jobs': {'build': {'docker': [{'image': 'x.with_ssh_key'}]}}}
+        with mock.patch('yaml.load', return_value=return_value):
+            with mock.patch('yaml.dump', return_value=None):
+                return_value = attrdict.AttrDict({
+                    'poll': lambda: True,
+                    'returncode': 0,
+                })
+                with mock.patch('subprocess.Popen', return_value=return_value):
+                    build_helper.run_tests(test_path=TestKarrLabBuildUtils.DUMMY_TEST, environment=core.Environment.circleci)

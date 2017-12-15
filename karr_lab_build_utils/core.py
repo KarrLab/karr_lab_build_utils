@@ -515,7 +515,7 @@ class BuildHelper(object):
     ########################
     # Running tests
     ########################
-    def run_tests(self, dirname='.', test_path='tests', with_xunit=False, with_coverage=False, coverage_dirname='.',
+    def run_tests(self, dirname='.', test_path='tests', verbose=False, with_xunit=False, with_coverage=False, coverage_dirname='.',
                   coverage_type=CoverageType.statement, environment=Environment.local, exit_on_failure=True,
                   ssh_key_filename='~/.ssh/id_rsa'):
         """ Run unit tests located at `test_path`.
@@ -530,6 +530,7 @@ class BuildHelper(object):
         Args:
             dirname (:obj:`str`, optional): path to package that should be tested
             test_path (:obj:`str`, optional): path to tests that should be run
+            verbose (:obj:`str`, optional): if :obj:`True`, display stdout from tests
             with_xunit (:obj:`bool`, optional): whether or not to save test results
             with_coverage (:obj:`bool`, optional): whether or not coverage should be assessed
             coverage_dirname (:obj:`str`, optional): directory to save coverage data
@@ -542,17 +543,17 @@ class BuildHelper(object):
             :obj:`BuildHelperError`: If the environment is not supported or the package directory not set
         """
         if environment == Environment.local:
-            self._run_tests_local(dirname=dirname, test_path=test_path, with_xunit=with_xunit,
+            self._run_tests_local(dirname=dirname, test_path=test_path, verbose=verbose, with_xunit=with_xunit,
                                   with_coverage=with_coverage, coverage_dirname=coverage_dirname,
                                   coverage_type=coverage_type, exit_on_failure=exit_on_failure)
         elif environment == Environment.docker:
-            self._run_tests_docker(dirname=dirname, test_path=test_path, ssh_key_filename=ssh_key_filename)
+            self._run_tests_docker(dirname=dirname, test_path=test_path, verbose=verbose, ssh_key_filename=ssh_key_filename)
         elif environment == Environment.circleci:
-            self._run_tests_circleci(dirname=dirname, test_path=test_path, ssh_key_filename=ssh_key_filename)
+            self._run_tests_circleci(dirname=dirname, test_path=test_path, verbose=verbose, ssh_key_filename=ssh_key_filename)
         else:
             raise BuildHelperError('Unsupported environment: {}'.format(environment))
 
-    def _run_tests_local(self, dirname='.', test_path='tests', with_xunit=False, with_coverage=False, coverage_dirname='.',
+    def _run_tests_local(self, dirname='.', test_path='tests', verbose=False, with_xunit=False, with_coverage=False, coverage_dirname='.',
                          coverage_type=CoverageType.statement, exit_on_failure=True):
         """ Run unit tests located at `test_path` locally
 
@@ -566,6 +567,7 @@ class BuildHelper(object):
         Args:
             dirname (:obj:`str`, optional): path to package that should be tested
             test_path (:obj:`str`, optional): path to tests that should be run
+            verbose (:obj:`str`, optional): if :obj:`True`, display stdout from tests
             with_xunit (:obj:`bool`, optional): whether or not to save test results
             with_coverage (:obj:`bool`, optional): whether or not coverage should be assessed
             coverage_dirname (:obj:`str`, optional): directory to save coverage data
@@ -625,6 +627,8 @@ class BuildHelper(object):
             test_path = re.sub('::(.+?)(\.)', r'::\1::', test_path)
 
             argv = [test_path]
+            if verbose:
+                argv.append('--capture=no')
             if with_xunit:
                 argv.append('--junitxml=' + abs_xml_latest_filename)
 
@@ -634,6 +638,8 @@ class BuildHelper(object):
             test_path = test_path.replace('::', '.', 1)
 
             argv = ['nosetests', test_path]
+            if verbose:
+                argv.append('--nocapture')
             if with_xunit:
                 argv += ['--with-xunit', '--xunit-file', abs_xml_latest_filename]
 
@@ -648,7 +654,7 @@ class BuildHelper(object):
         if exit_on_failure and result != 0:
             sys.exit(1)
 
-    def _run_tests_docker(self, dirname='.', test_path='tests', ssh_key_filename='~/.ssh/id_rsa'):
+    def _run_tests_docker(self, dirname='.', test_path='tests', verbose=False, ssh_key_filename='~/.ssh/id_rsa'):
         """ Run unit tests located at `test_path` using a Docker image:
 
         #. Create a container based on the build image (e.g, karrlab/build:latest)
@@ -663,6 +669,7 @@ class BuildHelper(object):
         Args:
             dirname (:obj:`str`, optional): path to package that should be tested
             test_path (:obj:`str`, optional): path to tests that should be run
+            verbose (:obj:`str`, optional): if :obj:`True`, display stdout from tests
             ssh_key_filename (:obj:`str`, optional): path to GitHub SSH key
         """
 
@@ -677,68 +684,120 @@ class BuildHelper(object):
         py_v = '{}.{}'.format(sys.version_info[0], sys.version_info[1])
 
         # create container
+        print('\n\n')
+        print('=====================================')
+        print('== Creating container')
+        print('=====================================')
         self._run_docker_command(['run', '-it', '-d', '--name', container, self.build_image, 'bash'])
 
         # copy GitHub SSH key to container
+        print('\n\n')
+        print('=====================================')
+        print('== Copying SSH key to container')
+        print('=====================================')
         self._run_docker_command(['cp', ssh_key_filename, container + ':/root/.ssh/'])
 
         # delete __pycache__ directories
+        print('\n\n')
+        print('=====================================')
+        print('== Deleting __pycache__ directories')
+        print('=====================================')
         for root, rel_dirnames, rel_filenames in os.walk(dirname):
             for rel_dirname in fnmatch.filter(rel_dirnames, '__pycache__'):
                 shutil.rmtree(os.path.join(root, rel_dirname))
 
         # copy package to container
+        print('\n\n')
+        print('=====================================')
+        print('== Copying package to container')
+        print('=====================================')
         self._run_docker_command(['cp', os.path.abspath(dirname), container + ':/root/project'])
 
         # install pkg_utils
+        print('\n\n')
+        print('=====================================')
+        print('== Install pkg_utils')
+        print('=====================================')
         build_utils_uri = 'git+https://github.com/KarrLab/pkg_utils.git#egg=pkg_utils'
         self._run_docker_command(['exec', container, 'bash', '-c',
                                   'pip{} install -U --process-dependency-links {}'.format(py_v, build_utils_uri)])
 
         # install Karr Lab build utils
+        print('\n\n')
+        print('=====================================')
+        print('== Install karr_lab_build_utils')
+        print('=====================================')
         build_utils_uri = 'git+https://github.com/KarrLab/karr_lab_build_utils.git#egg=karr_lab_build_utils'
         self._run_docker_command(['exec', container, 'bash', '-c',
                                   'pip{} install -U --process-dependency-links {}'.format(py_v, build_utils_uri)])
 
         # install requirements
+        print('\n\n')
+        print('=====================================')
+        print('== Install requirements')
+        print('=====================================')
         self._run_docker_command(['exec', container, 'bash', '-c',
                                   'cd /root/project && karr_lab_build_utils{} install-requirements'.format(py_v)])
 
-        # test package in container
-        try:
-            self._run_docker_command(['exec', container, 'bash', '-c',
-                                      'cd /root/project && karr_lab_build_utils{} run-tests --test-path {}'.format(py_v, test_path)])
-        finally:
-            # stop and remove container
-            self._run_docker_command(['rm', '-f', container])
+        # install package
+        print('\n\n')
+        print('=====================================')
+        print('== Install package')
+        print('=====================================')
+        self._run_docker_command(['exec', container, 'bash', '-c',
+                                  'cd /root/project && pip{} install --process-dependency-links -e .'.format(py_v)])
 
-    def _run_docker_command(self, cmd, cwd=None):
+        # test package in container
+        print('\n\n')
+        print('=====================================')
+        print('== Running tests')
+        print('=====================================')
+        options = []
+        if verbose:
+            options.append('--verbose')
+        self._run_docker_command(['exec', container, 'bash', '-c',
+                                  'cd /root/project && karr_lab_build_utils{} run-tests --test-path {} {}'.format(py_v, test_path, ' '.join(options))],
+                                 raise_error=False)
+
+        # stop and remove container
+        print('\n\n')
+        print('=====================================')
+        print('== Removing container')
+        print('=====================================')
+        self._run_docker_command(['rm', '-f', container])
+
+    def _run_docker_command(self, cmd, cwd=None, raise_error=True):
         """ Run a docker command
 
         Args:
             cmd (:obj:`list`): docker command to run
+            cwd (:obj:`str`, optional): directory from which to run :obj:`cmd`
+            raise_error (:obj:`bool`, optional): if true, raise errors
 
         Raises:
             :obj:`BuildHelperError`: if the docker command fails
         """
-        process = subprocess.Popen(['docker'] + cmd, cwd=cwd)
-        while process.poll() is None:
-            time.sleep(0.5)
-        if process.returncode and process.returncode != 0:
-            raise BuildHelperError(process.communicate()[1])
+        with capturer.CaptureOutput() as captured:
+            process = subprocess.Popen(['docker'] + cmd, cwd=cwd)
+            while process.poll() is None:
+                time.sleep(0.5)
+            out = captured.get_text()
+        if process.returncode != 0 and raise_error:
+            raise BuildHelperError(out)
 
-    def _run_tests_circleci(self, dirname='.', test_path='tests', ssh_key_filename='~/.ssh/id_rsa'):
+    def _run_tests_circleci(self, dirname='.', test_path='tests', verbose=False, ssh_key_filename='~/.ssh/id_rsa'):
         """ Run unit tests located at `test_path` using the CircleCI local executor. This will run the same commands defined in
         ``.circle/config.yml`` as the cloud version of CircleCI.
 
         Args:
             dirname (:obj:`str`, optional): path to package that should be tested
             test_path (:obj:`str`, optional): path to tests that should be run
+            verbose (:obj:`str`, optional): if :obj:`True`, display stdout from tests
             ssh_key_filename (:obj:`str`, optional): path to GitHub SSH key
 
         Raises:
             :obj:`BuildHelperError`: if the tests fail
-        """
+        """        
         ssh_key_filename = os.path.expanduser(ssh_key_filename)
         karr_lab_build_utils_dirname = os.path.expanduser('~/Documents/karr_lab_build_utils')
 
@@ -752,7 +811,7 @@ class BuildHelper(object):
         backup_circleci_config_filename = os.path.join(dirname, '.circleci', 'config.yml.save')
 
         with open(circleci_config_filename, 'r') as file:
-            config = yaml.load(file)
+            config = yaml.load(file)        
 
         image_name = config['jobs']['build']['docker'][0]['image']
         if image_name.endswith('.with_ssh_key'):
@@ -767,34 +826,42 @@ class BuildHelper(object):
             yaml.dump(config, file, default_flow_style=False)
 
         # Build docker image with SSH key
-        secret_dirname = os.path.join(karr_lab_build_utils_dirname, 'tests', 'fixtures', 'secret')
-        if not os.path.isdir(secret_dirname):
-            os.makedirs(secret_dirname)
-        shutil.copy(ssh_key_filename, os.path.join(secret_dirname, 'GITHUB_SSH_KEY'))
+        circleci_context_dirname = os.path.join(karr_lab_build_utils_dirname, 'circleci_docker_context')
+        if not os.path.isdir(circleci_context_dirname):
+            os.makedirs(circleci_context_dirname)
+        shutil.copy(ssh_key_filename, os.path.join(circleci_context_dirname, 'GITHUB_SSH_KEY'))
 
-        dockerfile_filename = os.path.join(karr_lab_build_utils_dirname, 'tests', 'fixtures', 'secret', 'Dockerfile_Circleci')
+        dockerfile_filename = os.path.join(circleci_context_dirname, 'Dockerfile_Circleci')
         with open(dockerfile_filename, 'w') as file:
             file.write('FROM {}\n'.format(image_name))
-            file.write('COPY tests/fixtures/secret/GITHUB_SSH_KEY /root/.ssh/id_rsa\n')
+            file.write('COPY circleci_docker_context/GITHUB_SSH_KEY /root/.ssh/id_rsa\n')
             file.write('ENV TEST_SERVER_TOKEN={}\n'.format(self.test_server_token or ''))
             file.write('RUN eval `ssh-agent` && ssh-add /root/.ssh/id_rsa\n')
             file.write('CMD bash\n')
 
-        self._run_docker_command(['build', '--tag', image_with_ssh_key_name, '-f', 'tests/fixtures/secret/Dockerfile_Circleci', '.'],
+        self._run_docker_command(['build', '--tag', image_with_ssh_key_name, '-f', os.path.join('circleci_docker_context', 'Dockerfile_Circleci'), '.'],
                                  cwd=karr_lab_build_utils_dirname)
 
         # test package
         with capturer.CaptureOutput() as captured:
-            process = subprocess.Popen(['circleci', '--env', 'test_path={}'.format(test_path), 'build'], cwd=dirname)
+            process = subprocess.Popen(['circleci',
+                                        '--env', 'test_path={}'.format(test_path),
+                                        '--env', 'verbose={:d}'.format(verbose),
+                                        '--env', 'dry_run=1',
+                                        'build'], cwd=dirname)
             while process.poll() is None:
                 time.sleep(0.5)
             out = captured.get_text()
 
         # revert CircleCI config file
+        os.remove(circleci_config_filename)
         shutil.move(backup_circleci_config_filename, circleci_config_filename)
 
         # delete docker image
-        self._run_docker_command(['rmi', image_with_ssh_key_name])
+        self._run_docker_command(['rmi', image_with_ssh_key_name], raise_error=False)
+
+        # cleanup circleci context
+        shutil.rmtree(circleci_context_dirname)
 
         # raise error if tests didn't pass
         if process.returncode != 0 or 'Task failed' in out:
@@ -860,7 +927,7 @@ class BuildHelper(object):
 
         return test_results
 
-    def get_test_results_status(self, test_results):
+    def get_test_results_status(self, test_results, dry_run=False):
         """ Get the status of a set of results
 
         * Old err
@@ -870,10 +937,19 @@ class BuildHelper(object):
 
         Args:
             test_results (:obj:`TestResults`): test results
+            dry_run (:obj:`bool`, optional): if true, don't upload to the coveralls and code climate servers
 
         Returns:
             :obj:`dict`: status of a set of results
         """
+        if dry_run:
+            return {
+                'is_fixed': False,
+                'is_old_error': False,
+                'is_new_error': False,
+                'is_new_downstream_error': False,
+            }
+
         # determine if there is an error
         passed = test_results.get_num_errors() == 0 and test_results.get_num_failures() == 0
 
@@ -914,7 +990,7 @@ class BuildHelper(object):
             'is_new_downstream_error': is_new_downstream_error,
         }
 
-    def do_post_test_tasks(self):
+    def do_post_test_tasks(self, dry_run=False):
         """ Do all post-test tasks for CircleCI
 
         * Make test and coverage reports
@@ -923,35 +999,46 @@ class BuildHelper(object):
         * Trigger tests of downstream dependencies
         * Notify authors of new failures in downstream packages
 
+        Args:
+            dry_run (:obj:`bool`, optional): if true, don't upload to the coveralls and code climate servers
+
         Returns:
             :obj:`bool`: :obj:`True` if the documentation compiled
             :obj:`list` of :obj:`str`: names of triggered packages
             :obj:`dict`: status of a set of results
         """
         try:
-            self.make_and_archive_reports()
+            self.make_and_archive_reports(dry_run=dry_run)
             docs_compiled = True
         except Exception as exception:
             docs_compiled = False
             recipients = [{'name': 'Whole-Cell Modeling Developers', 'email': 'wholecell-developers@googlegroups.com'}]
-            subject = '[Builds] [{0}] {0} documentation could not be compiled!'.format(self.repo_name)
-            self._send_notification_email(recipients, subject, 'documentation_broken.html', {
+            subject = '[Builds] [{0}] {0} The test reports and/or documentation could not be compiled and/or archived!'.format(
+                self.repo_name)
+            self._send_notification_email(recipients, subject, 'make_and_archive_reports_error.html', {
                 'repo_name': self.repo_name,
                 'error': str(exception),
-            })
+            }, dry_run=dry_run)
 
-        triggered_packages = self.trigger_tests_of_downstream_dependencies()
-        status = self.send_email_notifications()
+        triggered_packages = self.trigger_tests_of_downstream_dependencies(dry_run=dry_run)
+        status = self.send_email_notifications(dry_run=dry_run)
         return (docs_compiled, triggered_packages, status)
 
-    def send_email_notifications(self):
+    def send_email_notifications(self, dry_run=False):
         """ Send email notifications of failures, fixes, and downstream failures
+
+        Args:
+            dry_run (:obj:`bool`, optional): if true, don't upload to the coveralls and code climate servers
 
         Returns:
             :obj:`dict`: status of a set of results
         """
         test_results = self.get_test_results()
-        status = self.get_test_results_status(test_results)
+        status = self.get_test_results_status(test_results, dry_run=dry_run)
+
+        # stop if this is a dry run
+        if dry_run:
+            return status
 
         # build context for email
         result = self.run_circleci_api('/' + str(self.build_num))
@@ -1005,7 +1092,7 @@ class BuildHelper(object):
 
         return status
 
-    def _send_notification_email(self, recipients, subject, template_filename, context):
+    def _send_notification_email(self, recipients, subject, template_filename, context, dry_run=False):
         """ Send an email notification of test results
 
         Args:
@@ -1013,6 +1100,7 @@ class BuildHelper(object):
             subject (:obj:`str`): subject
             template_filename (obj:`str`): path to template
             context (obj:`dict`): context for template
+            dry_run (:obj:`bool`, optional): if true, don't upload to the coveralls and code climate servers
         """
         full_template_filename = pkg_resources.resource_filename(
             'karr_lab_build_utils', os.path.join('templates', 'email_notifications', template_filename))
@@ -1030,12 +1118,13 @@ class BuildHelper(object):
         msg.add_header('Content-Type', 'text/html')
         msg.set_payload(body)
 
-        smtp = smtplib.SMTP('smtp.gmail.com:587')
-        smtp.ehlo()
-        smtp.starttls()
-        smtp.login('karr.lab.daemon', os.getenv('KARR_LAB_DAEMON_GMAIL_PASSWORD'))
-        smtp.sendmail('noreply@karrlab.org', [recipient['email'] for recipient in recipients], msg.as_string())
-        smtp.quit()
+        if not dry_run:
+            smtp = smtplib.SMTP('smtp.gmail.com:587')
+            smtp.ehlo()
+            smtp.starttls()
+            smtp.login('karr.lab.daemon', os.getenv('KARR_LAB_DAEMON_GMAIL_PASSWORD'))
+            smtp.sendmail('noreply@karrlab.org', [recipient['email'] for recipient in recipients], msg.as_string())
+            smtp.quit()
 
     def make_and_archive_reports(self, coverage_dirname='.', dry_run=False):
         """ Make and archive reports:
@@ -1391,17 +1480,21 @@ class BuildHelper(object):
 
         dot.render(filename=basename, cleanup=True)
 
-    def trigger_tests_of_downstream_dependencies(self, downstream_dependencies_filename='.circleci/downstream_dependencies.yml'):
+    def trigger_tests_of_downstream_dependencies(self, downstream_dependencies_filename='.circleci/downstream_dependencies.yml', dry_run=False):
         """ Trigger CircleCI to test downstream dependencies listed in :obj:`downstream_dependencies_filename`
 
         Args:
             downstream_dependencies_filename (:obj:`str`, optional): path to YAML file which contains a list of downstream dependencies
+            dry_run (:obj:`bool`, optional): if true, don't upload to the coveralls and code climate servers
 
         Returns:
             :obj:`list` of :obj:`str`: names of triggered packages
 
         :todo: support branches
         """
+        if dry_run:
+            return []
+
         if os.path.isfile(downstream_dependencies_filename):
             with open(downstream_dependencies_filename, 'r') as file:
                 packages = yaml.load(file)
@@ -1570,7 +1663,7 @@ class BuildHelper(object):
         for option, opt_deps in extras_require.items():
             if option not in ['all', 'tests', 'docs']:
                 all_deps += opt_deps
-        missing = list(filter(lambda m: m[0] not in all_deps, missing))
+        missing = list(filter(lambda m: m[0].replace('-', '_') not in all_deps, missing))
 
         return missing
 
@@ -1681,7 +1774,9 @@ class BuildHelper(object):
 
         url = '{}/project/{}/{}/{}{}?circle-token={}'.format(
             self.CIRCLE_API_ENDPOINT, repo_type, repo_owner, repo_name, command, circleci_api_token)
-        response = getattr(requests, method)(url, json=data)
+        request_method = getattr(requests, method)
+
+        response = request_method(url, json=data)
         response.raise_for_status()
         return response.json()
 
