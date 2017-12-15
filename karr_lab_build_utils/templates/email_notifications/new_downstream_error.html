@@ -11,6 +11,9 @@
                 <li>Commiter: <a href="mailto:{{ upstream.committer_email }}">{{ upstream.committer_name }}</a></li>
                 <li>Subject: {{ upstream.commit_subject }}</li>
                 <li>Build: <a href="{{ upstream.build_url }}">{{ upstream.build_num }}</a></li>
+                <li>Test results: <a href="http://tests.karrlab.org/KarrLab/{{ repo_name }}/{{ build_num }}">{{ build_num }}</a></li>
+                <li>Coverage results: <a href="https://coveralls.io/github/KarrLab/{{ repo_name }}">latest</a></li>
+                <li>Static analysis: <a href="https://codeclimate.com">latest</a></li>
             </ul>
         </p>
 
