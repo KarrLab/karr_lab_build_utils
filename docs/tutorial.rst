@@ -7,7 +7,7 @@ Except as indicated below, the command line interface should be run from the des
 
 To use the command line interface, your package should follow the organization scheme described in "An Introduction Whole-Cell Modeling":
 
-* `Structing Python projects <http://intro-to-wc-modeling.readthedocs.io/en/latest/concepts_skills/software_engineering/structuring_python_projects.html>`_
+* `Structuring Python projects <http://intro-to-wc-modeling.readthedocs.io/en/latest/concepts_skills/software_engineering/structuring_python_projects.html>`_
 * `Testing Python projects <http://intro-to-wc-modeling.readthedocs.io/en/latest/concepts_skills/software_engineering/continuous_integration.html>`_
 * `Documenting Python code <http://intro-to-wc-modeling.readthedocs.io/en/latest/concepts_skills/software_engineering/documenting_python.html>`_
 * `Packaging Python projects <http://intro-to-wc-modeling.readthedocs.io/en/latest/concepts_skills/software_engineering/distributing_python.html>`_
@@ -33,7 +33,7 @@ Versioning with Git and GitHub
 Create a repository for a package
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Run this command to create a new repository with the proper directory sturcture and files for our build system. This should be run from the desired parent directory of the package, e.g. ``~/Documents``.::
+Run this command to create a new repository with the proper directory structure and files for our build system. This should be run from the desired parent directory of the package, e.g. ``~/Documents``.::
 
     cd ~/Documents
     karr_lab_build_utils create-repository --dirname new_package --url https://github.com/KarrLab/new_package
@@ -91,10 +91,10 @@ Run this command to compile the documentation in HTML format for a package.::
 
     karr_lab_build_utils make-documentation
 
-Spell checkling documentation
+Spell checking documentation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Add the ``--spell-check`` option to spell check the documenation, e.g.::
+Add the ``--spell-check`` option to spell check the documentation, e.g.::
 
     karr_lab_build_utils -spell-check make-documentation
 
@@ -143,7 +143,7 @@ Compile the downstream dependencies of a package
 
     karr_lab_build_utils compile-downstream-dependencies --packages-parent-dir ~/Documents
 
-#. Optionaly, add the ``--downstream-dependencies-filename`` option to save the dependencies to a YAML file::
+#. Optionally, add the ``--downstream-dependencies-filename`` option to save the dependencies to a YAML file::
 
     karr_lab_build_utils compile-downstream-dependencies --packages-parent-dir ~/Documents --downstream-dependencies-filename .circleci/downstream_dependencies.yml
 
@@ -164,7 +164,7 @@ The commands described in this section require a CircleCI API token. Visit `http
 Create a build for a package
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Run this command to create a CircleCI build for a package instead of usign the CirlceCI web interface::
+Run this command to create a CircleCI build for a package instead of using the CirlceCI web interface::
 
     karr_lab_build_utils create-circleci-build \
         --repo-owner <repo_owner> \
@@ -224,7 +224,7 @@ Static analysis and coverage analysis with Code Climate
 Create Code Climate build for a package
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Run this command to create a Code Climate build for a package instead of usign the Code Climate web interface::
+Run this command to create a Code Climate build for a package instead of using the Code Climate web interface::
 
     karr_lab_build_utils create-codeclimate-github-webhook \
         --repo-owner <repo_owner> \

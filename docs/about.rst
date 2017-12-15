@@ -17,7 +17,7 @@ Development team
 This package was developed by the `Karr Lab <http://www.karrlab.org/>`_ at the Icahn School of Medicine at Mount Sinai in New York, USA.
 
 ----------------------
-Acknowledgements
+Acknowledgments
 ----------------------
 
 This work was supported by a National Institute of Health MIRA award [grant number 1 R35 GM 119771-01]; a National Science Foundation INSPIRE award [grant number 1649014]; and the National Science Foundation / ERASynBio [grant numbers 1548123, 335672].

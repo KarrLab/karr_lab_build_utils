@@ -1,7 +1,7 @@
 Installation
 ============
 
-Pre-requisities
+Pre-requisites
 ---------------
 
 #. Run this command to install the required packages on Ubuntu::

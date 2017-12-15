@@ -3,7 +3,7 @@
 
 This package performs several aspects of the Karr Lab's build system:
 
-* Versionning with `Git <https://git-scm.com>`_ and `GitHub <https://github.com>`_
+* Versioning with `Git <https://git-scm.com>`_ and `GitHub <https://github.com>`_
 
   * Creates new Git repositories with the proper directory structure and files for our build system
 
@@ -29,7 +29,7 @@ This package performs several aspects of the Karr Lab's build system:
   * Visualizes downstream packages dependencies
   * Checks for cycles in package dependencies
 
-* Continous integration with `CircleCI <https://circleci.com>`_
+* Continuous integration with `CircleCI <https://circleci.com>`_
 
   * Creates CircleCI builds for packages
   * Gets, sets, and deletes environment variables
