@@ -1507,7 +1507,59 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         shutil.rmtree(packages_parent_dir)
         os.remove(out_filename)
 
+    def test_trigger_tests_of_downstream_dependencies_with_error(self):
+        build_helper = core.BuildHelper()
+        filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
+                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+        for filename in glob(filename_pattern):
+            os.remove(filename)
+
+        filename = os.path.join(build_helper.proj_tests_xml_dir,
+                                '{}.2.7.12.xml'.format(build_helper.proj_tests_xml_latest_filename))
+        with open(filename, 'w') as file:
+            file.write('<?xml version="1.0" encoding="utf-8"?>')
+            file.write('<testsuite errors="1" failures="1" skips="0" tests="3">')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_error_1" file="/script.py" line="1" time="0.01">')
+            file.write('    <system-out>stdout</system-out>')
+            file.write('    <system-err>stderr</system-err>')
+            file.write('    <error type="err" message="msg">details</error>')
+            file.write('  </testcase>')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_failure_1" file="/script.py" line="1" time="0.01">')
+            file.write('    <system-out>stdout</system-out>')
+            file.write('    <system-err>stderr</system-err>')
+            file.write('    <failure type="err" message="msg">details</failure>')
+            file.write('  </testcase>')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_pass_3" file="/script.py" line="1" time="0.01"></testcase>')
+            file.write('</testsuite>')
+
+        build_helper = self.construct_build_helper()
+        deps = build_helper.trigger_tests_of_downstream_dependencies()
+        self.assertEqual(deps, [])
+
+    def test_trigger_tests_of_downstream_dependencies_no_downstream(self):
+        build_helper = core.BuildHelper()
+        filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
+                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+        for filename in glob(filename_pattern):
+            os.remove(filename)
+
+        tmp_file, downstream_dependencies_filename = tempfile.mkstemp(suffix='.yml')
+        os.close(tmp_file)
+        with open(downstream_dependencies_filename, 'w') as file:
+            yaml.dump([], file)
+
+        build_helper = self.construct_build_helper()
+        deps = build_helper.trigger_tests_of_downstream_dependencies(
+            downstream_dependencies_filename=downstream_dependencies_filename)
+        self.assertEqual(deps, [])
+
     def test_trigger_tests_of_downstream_dependencies_no_upstream(self):
+        build_helper = core.BuildHelper()
+        filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
+                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+        for filename in glob(filename_pattern):
+            os.remove(filename)
+
         tmp_file, downstream_dependencies_filename = tempfile.mkstemp(suffix='.yml')
         os.close(tmp_file)
         with open(downstream_dependencies_filename, 'w') as file:
@@ -1537,10 +1589,6 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                         downstream_dependencies_filename=downstream_dependencies_filename)
                     self.assertEqual(deps, ['dep_1', 'dep_2'])
 
-                with mock.patch('requests.get', side_effect=[requests_get_1]):
-                    deps = build_helper.trigger_tests_of_downstream_dependencies(downstream_dependencies_filename='__junk__')
-                    self.assertEqual(deps, [])
-
                 # test cli
                 with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_2]):
                     with __main__.App(argv=['trigger-tests-of-downstream-dependencies',
@@ -1554,6 +1602,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         os.remove(downstream_dependencies_filename)
 
     def test_trigger_tests_of_downstream_dependencies_with_upstream(self):
+        build_helper = core.BuildHelper()
+        filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
+                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+        for filename in glob(filename_pattern):
+            os.remove(filename)
+
         tmp_file, downstream_dependencies_filename = tempfile.mkstemp(suffix='.yml')
         os.close(tmp_file)
         with open(downstream_dependencies_filename, 'w') as file:
@@ -1607,6 +1661,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         os.remove(downstream_dependencies_filename)
 
     def test_trigger_tests_of_downstream_dependencies_trigger_original_upstream(self):
+        build_helper = core.BuildHelper()
+        filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
+                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+        for filename in glob(filename_pattern):
+            os.remove(filename)
+
         tmp_file, downstream_dependencies_filename = tempfile.mkstemp(suffix='.yml')
         os.close(tmp_file)
         with open(downstream_dependencies_filename, 'w') as file:
@@ -1654,6 +1714,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         os.remove(downstream_dependencies_filename)
 
     def test_trigger_tests_of_downstream_dependencies_already_queued(self):
+        build_helper = core.BuildHelper()
+        filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
+                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+        for filename in glob(filename_pattern):
+            os.remove(filename)
+
         tmp_file, downstream_dependencies_filename = tempfile.mkstemp(suffix='.yml')
         os.close(tmp_file)
         with open(downstream_dependencies_filename, 'w') as file:

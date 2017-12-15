@@ -1492,14 +1492,23 @@ class BuildHelper(object):
 
         :todo: support branches
         """
+
+        # stop if this is a dry run
         if dry_run:
             return []
 
-        if os.path.isfile(downstream_dependencies_filename):
-            with open(downstream_dependencies_filename, 'r') as file:
-                packages = yaml.load(file)
-        else:
-            packages = []
+        # stop if the tests didn't pass
+        test_results = self.get_test_results()
+        if test_results.get_num_errors() > 0 or test_results.get_num_failures() > 0:
+            return []
+
+        # read downstream dependencies
+        with open(downstream_dependencies_filename, 'r') as file:
+            packages = yaml.load(file)
+
+        # stop if there are no downstream dependencies
+        if not packages:
+            return []
 
         upstream_repo_name = os.getenv('UPSTREAM_REPONAME', '')
         upstream_build_num = os.getenv('UPSTREAM_BUILD_NUM', '0')
