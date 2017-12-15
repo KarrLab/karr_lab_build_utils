@@ -1803,7 +1803,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         # test api
         build_helper = core.BuildHelper()
         missing = build_helper.find_missing_requirements('karr_lab_build_utils', ignore_files=['karr_lab_build_utils/templates/*'])
-        self.assertEqual(missing, ['pip_check_reqs'])
+        self.assertEqual(missing, [])
 
         # test cli
         with self.construct_environment():
