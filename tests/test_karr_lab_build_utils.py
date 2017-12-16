@@ -1849,7 +1849,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                         '--ignore-file', 'karr_lab_build_utils/templates/*']) as app:
                     app.run()
                     self.assertRegexpMatches(captured.stdout.get_text(),
-                                             'The following requirements from requirements.txt may not be necessary:\n')
+                                             'The following requirements from requirements.txt may not be necessary:')
+                    self.assertRegexpMatches(captured.stdout.get_text(),
+                                             'robpol86_sphinxcontrib_googleanalytics')
                     self.assertEqual(captured.stderr.get_text(), '')
 
         os.rename('requirements.txt', 'requirements.txt.save')
