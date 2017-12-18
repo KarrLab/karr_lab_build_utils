@@ -451,15 +451,28 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         'See installation instructions at `https://intro-to-wc-modeling.readthedocs.io/en/latest/installation.html`'
     ))
     def test_run_tests_docker(self):
+        tmp_dirname = tempfile.mkdtemp()
+
         if not os.path.isdir('tests/__pycache__'):
             os.mkdir(os.path.join('tests/__pycache__'))
 
         build_helper = self.construct_build_helper()
+        build_helper.proj_tests_xml_dir = tmp_dirname
 
         # test success
-        build_helper.run_tests(test_path=self.DUMMY_TEST, environment=core.Environment.docker, verbose=True)
+        build_helper.run_tests(test_path=self.DUMMY_TEST,
+                               with_xunit=True, with_coverage=True, coverage_dirname=tmp_dirname,
+                               environment=core.Environment.docker, verbose=True)
+
+        py_v = '{}.{}'.format(sys.version_info[0], sys.version_info[1])
+        self.assertEqual(len(list(glob(os.path.join(tmp_dirname, '.coverage.{}.*'.format(py_v))))), 1)
+        self.assertEqual(len(list(glob(os.path.join(tmp_dirname,
+                                                    '{}.{}.*.xml'.format(build_helper.proj_tests_xml_latest_filename, py_v))))), 1)
 
         # :todo: test failure
+
+        # cleanup
+        shutil.rmtree(tmp_dirname)
 
     @unittest.skipIf(whichcraft.which('docker') is None, (
         'Test requires Docker and Docker isn''t installed. '

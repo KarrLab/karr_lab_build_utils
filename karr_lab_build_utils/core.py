@@ -547,7 +547,9 @@ class BuildHelper(object):
                                   with_coverage=with_coverage, coverage_dirname=coverage_dirname,
                                   coverage_type=coverage_type, exit_on_failure=exit_on_failure)
         elif environment == Environment.docker:
-            self._run_tests_docker(dirname=dirname, test_path=test_path, verbose=verbose, ssh_key_filename=ssh_key_filename)
+            self._run_tests_docker(dirname=dirname, test_path=test_path, verbose=verbose, with_xunit=with_xunit,
+                                   with_coverage=with_coverage, coverage_dirname=coverage_dirname,
+                                   coverage_type=coverage_type, ssh_key_filename=ssh_key_filename)
         elif environment == Environment.circleci:
             self._run_tests_circleci(dirname=dirname, test_path=test_path, verbose=verbose, ssh_key_filename=ssh_key_filename)
         else:
@@ -654,7 +656,8 @@ class BuildHelper(object):
         if exit_on_failure and result != 0:
             sys.exit(1)
 
-    def _run_tests_docker(self, dirname='.', test_path='tests', verbose=False, ssh_key_filename='~/.ssh/id_rsa'):
+    def _run_tests_docker(self, dirname='.', test_path='tests', verbose=False, with_xunit=False, with_coverage=False, coverage_dirname='.',
+                          coverage_type=CoverageType.statement, ssh_key_filename='~/.ssh/id_rsa'):
         """ Run unit tests located at `test_path` using a Docker image:
 
         #. Create a container based on the build image (e.g, karrlab/build:latest)
@@ -670,6 +673,10 @@ class BuildHelper(object):
             dirname (:obj:`str`, optional): path to package that should be tested
             test_path (:obj:`str`, optional): path to tests that should be run
             verbose (:obj:`str`, optional): if :obj:`True`, display stdout from tests
+            with_xunit (:obj:`bool`, optional): whether or not to save test results
+            with_coverage (:obj:`bool`, optional): whether or not coverage should be assessed
+            coverage_dirname (:obj:`str`, optional): directory to save coverage data
+            coverage_type (:obj:`CoverageType`, optional): type of coverage to run when :obj:`with_coverage` is :obj:`True`
             ssh_key_filename (:obj:`str`, optional): path to GitHub SSH key
         """
 
@@ -753,11 +760,35 @@ class BuildHelper(object):
         print('== Running tests')
         print('=====================================')
         options = []
+
+        options += ['--test-path', test_path]
+
+        if with_coverage:
+            options += ['--with-coverage', '--coverage-type', coverage_type.name]
+
+        if with_xunit:
+            options.append('--with-xunit')
+
         if verbose:
             options.append('--verbose')
+
         self._run_docker_command(['exec', container, 'bash', '-c',
-                                  'cd /root/project && karr_lab_build_utils{} run-tests --test-path {} {}'.format(py_v, test_path, ' '.join(options))],
+                                  'cd /root/project && karr_lab_build_utils{} run-tests {}'.format(py_v, ' '.join(options))],
                                  raise_error=False)
+
+        if with_coverage:
+            out = self._run_docker_command(['exec', container, 'bash', '-c', 'ls -la ' +
+                                            os.path.join('/root', 'project', '.coverage.{}.*'.format(py_v))])
+            match = re.search('/root/project/(\.coverage\.\d+\.\d+\.\d+)', out)
+            self._run_docker_command(['cp', container + ':' + match.group(0), os.path.join(coverage_dirname, match.group(1))])
+
+        if with_xunit:
+            out = self._run_docker_command(['exec', container, 'bash', '-c', 'ls -la ' +
+                                            os.path.join('/root', 'project', self.DEFAULT_PROJ_TESTS_XML_DIR,
+                                                         '{}.{}.*.xml'.format(self.DEFAULT_PROJ_TESTS_XML_LATEST_FILENAME, py_v))])
+            match = re.search('/root/project/{}/({}\.\d+\.\d+\.\d+.xml)'.format(self.DEFAULT_PROJ_TESTS_XML_DIR,
+                                                                            self.DEFAULT_PROJ_TESTS_XML_LATEST_FILENAME), out)
+            self._run_docker_command(['cp', container + ':' + match.group(0), os.path.join(self.proj_tests_xml_dir, match.group(1))])
 
         # stop and remove container
         print('\n\n')
@@ -774,6 +805,9 @@ class BuildHelper(object):
             cwd (:obj:`str`, optional): directory from which to run :obj:`cmd`
             raise_error (:obj:`bool`, optional): if true, raise errors
 
+        Returns:
+            :obj:`str`: standard output
+
         Raises:
             :obj:`BuildHelperError`: if the docker command fails
         """
@@ -784,6 +818,8 @@ class BuildHelper(object):
             out = captured.get_text()
         if process.returncode != 0 and raise_error:
             raise BuildHelperError(out)
+
+        return out
 
     def _run_tests_circleci(self, dirname='.', test_path='tests', verbose=False, ssh_key_filename='~/.ssh/id_rsa'):
         """ Run unit tests located at `test_path` using the CircleCI local executor. This will run the same commands defined in
@@ -797,7 +833,7 @@ class BuildHelper(object):
 
         Raises:
             :obj:`BuildHelperError`: if the tests fail
-        """        
+        """
         ssh_key_filename = os.path.expanduser(ssh_key_filename)
         karr_lab_build_utils_dirname = os.path.expanduser('~/Documents/karr_lab_build_utils')
 
@@ -811,7 +847,7 @@ class BuildHelper(object):
         backup_circleci_config_filename = os.path.join(dirname, '.circleci', 'config.yml.save')
 
         with open(circleci_config_filename, 'r') as file:
-            config = yaml.load(file)        
+            config = yaml.load(file)
 
         image_name = config['jobs']['build']['docker'][0]['image']
         if image_name.endswith('.with_ssh_key'):
@@ -839,7 +875,10 @@ class BuildHelper(object):
             file.write('RUN eval `ssh-agent` && ssh-add /root/.ssh/id_rsa\n')
             file.write('CMD bash\n')
 
-        self._run_docker_command(['build', '--tag', image_with_ssh_key_name, '-f', os.path.join('circleci_docker_context', 'Dockerfile_Circleci'), '.'],
+        self._run_docker_command(['build',
+                                  '--tag', image_with_ssh_key_name,
+                                  '-f', os.path.join('circleci_docker_context', 'Dockerfile_Circleci'),
+                                  '.'],
                                  cwd=karr_lab_build_utils_dirname)
 
         # test package
@@ -1480,7 +1519,8 @@ class BuildHelper(object):
 
         dot.render(filename=basename, cleanup=True)
 
-    def trigger_tests_of_downstream_dependencies(self, downstream_dependencies_filename='.circleci/downstream_dependencies.yml', dry_run=False):
+    def trigger_tests_of_downstream_dependencies(self, downstream_dependencies_filename='.circleci/downstream_dependencies.yml',
+                                                 dry_run=False):
         """ Trigger CircleCI to test downstream dependencies listed in :obj:`downstream_dependencies_filename`
 
         Args:
