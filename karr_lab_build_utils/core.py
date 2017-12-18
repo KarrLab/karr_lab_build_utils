@@ -41,7 +41,7 @@ import pip
 import pip_check_reqs
 import pip_check_reqs.find_extra_reqs
 import pip_check_reqs.find_missing_reqs
-import pkg_utils
+#import pkg_utils # pkg_utils is not imported globally so that we can use karr_lab_build_utils to properly calculate its coverage; :todo: figure out how to fix this
 import pkg_resources
 import pytest
 import re
@@ -787,7 +787,7 @@ class BuildHelper(object):
                                             os.path.join('/root', 'project', self.DEFAULT_PROJ_TESTS_XML_DIR,
                                                          '{}.{}.*.xml'.format(self.DEFAULT_PROJ_TESTS_XML_LATEST_FILENAME, py_v))])
             match = re.search('/root/project/{}/({}\.\d+\.\d+\.\d+.xml)'.format(self.DEFAULT_PROJ_TESTS_XML_DIR,
-                                                                            self.DEFAULT_PROJ_TESTS_XML_LATEST_FILENAME), out)
+                                                                                self.DEFAULT_PROJ_TESTS_XML_LATEST_FILENAME), out)
             self._run_docker_command(['cp', container + ':' + match.group(0), os.path.join(self.proj_tests_xml_dir, match.group(1))])
 
         # stop and remove container
@@ -1427,6 +1427,7 @@ class BuildHelper(object):
         Raises:
             :obj:`BuildHelperError`: if a package has more than one module
         """
+        import pkg_utils # pkg_utils is imported locally so that we can use karr_lab_build_utils to properly calculate its coverage; :todo: figure out how to fix this
 
         packages_parent_dir = os.path.abspath(packages_parent_dir)
 
@@ -1693,6 +1694,7 @@ class BuildHelper(object):
         Returns:
             :obj:`list`: list of missing dependencies and their occurences in the code
         """
+        import pkg_utils # pkg_utils is imported locally so that we can use karr_lab_build_utils to properly calculate its coverage; :todo: figure out how to fix this
 
         options = attrdict.AttrDict()
         options.paths = [package_name]
@@ -1727,6 +1729,8 @@ class BuildHelper(object):
         Returns:
             :obj:`list`: name of the unused dependencies
         """
+        import pkg_utils # pkg_utils is imported locally so that we can use karr_lab_build_utils to properly calculate its coverage; :todo: figure out how to fix this
+
         options = attrdict.AttrDict()
         options.paths = [package_name]
         options.ignore_files = pip_check_reqs.common.ignorer(ignore_files or [])
