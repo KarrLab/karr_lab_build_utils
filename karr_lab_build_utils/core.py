@@ -41,7 +41,9 @@ import pip
 import pip_check_reqs
 import pip_check_reqs.find_extra_reqs
 import pip_check_reqs.find_missing_reqs
-#import pkg_utils # pkg_utils is not imported globally so that we can use karr_lab_build_utils to properly calculate its coverage; :todo: figure out how to fix this
+# import pkg_utils # pkg_utils is not imported globally so that we can use
+# karr_lab_build_utils to properly calculate its coverage; :todo: figure
+# out how to fix this
 import pkg_resources
 import pytest
 import re
@@ -738,14 +740,6 @@ class BuildHelper(object):
         self._run_docker_command(['exec', container, 'bash', '-c',
                                   'pip{} install -U --process-dependency-links {}'.format(py_v, build_utils_uri)])
 
-        # install requirements
-        print('\n\n')
-        print('=====================================')
-        print('== Install requirements')
-        print('=====================================')
-        self._run_docker_command(['exec', container, 'bash', '-c',
-                                  'cd /root/project && karr_lab_build_utils{} install-requirements'.format(py_v)])
-
         # install package
         print('\n\n')
         print('=====================================')
@@ -1427,7 +1421,9 @@ class BuildHelper(object):
         Raises:
             :obj:`BuildHelperError`: if a package has more than one module
         """
-        import pkg_utils # pkg_utils is imported locally so that we can use karr_lab_build_utils to properly calculate its coverage; :todo: figure out how to fix this
+        import pkg_utils
+        # pkg_utils is imported locally so that we can use karr_lab_build_utils to properly calculate its coverage;
+        # :todo: figure out how to fix this
 
         packages_parent_dir = os.path.abspath(packages_parent_dir)
 
@@ -1694,7 +1690,9 @@ class BuildHelper(object):
         Returns:
             :obj:`list`: list of missing dependencies and their occurences in the code
         """
-        import pkg_utils # pkg_utils is imported locally so that we can use karr_lab_build_utils to properly calculate its coverage; :todo: figure out how to fix this
+        import pkg_utils
+        # pkg_utils is imported locally so that we can use karr_lab_build_utils to properly calculate its coverage;
+        # :todo: figure out how to fix this
 
         options = attrdict.AttrDict()
         options.paths = [package_name]
@@ -1729,7 +1727,9 @@ class BuildHelper(object):
         Returns:
             :obj:`list`: name of the unused dependencies
         """
-        import pkg_utils # pkg_utils is imported locally so that we can use karr_lab_build_utils to properly calculate its coverage; :todo: figure out how to fix this
+        import pkg_utils
+        # pkg_utils is imported locally so that we can use karr_lab_build_utils to properly calculate its coverage;
+        # :todo: figure out how to fix this
 
         options = attrdict.AttrDict()
         options.paths = [package_name]
