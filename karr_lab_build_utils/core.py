@@ -748,6 +748,14 @@ class BuildHelper(object):
         self._run_docker_command(['exec', container, 'bash', '-c',
                                   'cd /root/project && pip{} install --process-dependency-links -e .'.format(py_v)])
 
+        # install dependencies
+        print('\n\n')
+        print('=====================================')
+        print('== Install dependencies')
+        print('=====================================')
+        self._run_docker_command(['exec', container, 'bash', '-c',
+                                  'cd /root/project && karr_lab_build_utils{} install-requirements'.format(py_v)])
+
         # test package in container
         print('\n\n')
         print('=====================================')
