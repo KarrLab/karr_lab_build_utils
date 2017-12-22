@@ -527,15 +527,13 @@ class BuildHelper(object):
         for line in lines.split('\n'):
             if not line.startswith('-e') and '==' in line:
                 pkgs.append(line.partition('==')[0])
-        
+
         infos = self.run_method_and_capture_stdout(pip.main, ['show'] + pkgs)
         reqs = []
         for info in infos.split('---\n'):
             if 'github.com/KarrLab/' in info:
                 url = info.partition('Home-page: ')[2].partition('\n')[0]
                 reqs.append('git+' + url + '.git')
-
-        print(reqs)
 
         # ugrade requirements
         self.run_method_and_capture_stderr(pip.main, ['install', '-U', '--process-dependency-links'] + reqs)
