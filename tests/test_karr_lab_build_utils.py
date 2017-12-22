@@ -30,6 +30,7 @@ import six
 import smtplib
 import sys
 import tempfile
+import time
 import unittest
 import whichcraft
 import yaml
@@ -494,6 +495,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             'is_fixed': False,
             'is_old_error': False,
             'is_new_error': False,
+            'is_other_error': False,
             'is_new_downstream_error': False,
         }
         with mock.patch.object(core.BuildHelper, 'make_and_archive_reports', return_value=None):
@@ -501,22 +503,27 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 with mock.patch.object(core.BuildHelper, 'send_email_notifications', return_value=notify_return):
                     # test api
                     build_helper = self.construct_build_helper()
-                    build_helper.do_post_test_tasks()
+                    build_helper.do_post_test_tasks(0)
 
                     # test cli
                     with self.construct_environment():
                         with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                            with __main__.App(argv=['do-post-test-tasks']) as app:
+                            with __main__.App(argv=['do-post-test-tasks', '0']) as app:
                                 app.run()
+
+                                time.sleep(0.1)
+
+                                self.assertEqual(app.pargs.build_exit_code, 0)                                                                
                                 self.assertRegexpMatches(captured.stdout.get_text(), 'No downstream builds were triggered.')
                                 self.assertRegexpMatches(captured.stdout.get_text(), 'No notifications were sent.')
-                                self.assertEqual(captured.stderr.get_text(), '')
+                                self.assertEqual(captured.stderr.get_text(), '')                                
 
         down_pkgs_return = ['pkg_1', 'pkg_2']
         notify_return = {
             'is_fixed': True,
             'is_old_error': True,
             'is_new_error': True,
+            'is_other_error': True,
             'is_new_downstream_error': True,
         }
         with mock.patch.object(core.BuildHelper, 'make_and_archive_reports', return_value=None):
@@ -524,15 +531,17 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 with mock.patch.object(core.BuildHelper, 'send_email_notifications', return_value=notify_return):
                     with self.construct_environment():
                         with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                            with __main__.App(argv=['do-post-test-tasks']) as app:
+                            with __main__.App(argv=['do-post-test-tasks', '1']) as app:
                                 app.run()
+                                self.assertEqual(app.pargs.build_exit_code, 1)
                                 self.assertRegexpMatches(captured.stdout.get_text(), '2 downstream builds were triggered')
                                 self.assertRegexpMatches(captured.stdout.get_text(), '  pkg_1')
                                 self.assertRegexpMatches(captured.stdout.get_text(), '  pkg_2')
-                                self.assertRegexpMatches(captured.stdout.get_text(), '4 notifications were sent')
+                                self.assertRegexpMatches(captured.stdout.get_text(), '5 notifications were sent')
                                 self.assertRegexpMatches(captured.stdout.get_text(), '  Build fixed')
                                 self.assertRegexpMatches(captured.stdout.get_text(), '  Recurring error')
                                 self.assertRegexpMatches(captured.stdout.get_text(), '  New error')
+                                self.assertRegexpMatches(captured.stdout.get_text(), '  Other error')
                                 self.assertRegexpMatches(captured.stdout.get_text(), '  Downstream error')
                                 self.assertEqual(captured.stderr.get_text(), '')
 
@@ -543,6 +552,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             'is_fixed': False,
             'is_old_error': False,
             'is_new_error': False,
+            'is_other_error': True,
             'is_new_downstream_error': False,
         }
         smtp = attrdict.AttrDict({
@@ -558,10 +568,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     with mock.patch('smtplib.SMTP', return_value=smtp):
                         with self.construct_environment():
                             with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                                with __main__.App(argv=['do-post-test-tasks']) as app:
+                                with __main__.App(argv=['do-post-test-tasks', '0']) as app:
                                     app.run()
                                     self.assertRegexpMatches(captured.stdout.get_text(), '1 notifications were sent')
-                                    self.assertRegexpMatches(captured.stdout.get_text(), '  Documentation generation error')
+                                    self.assertRegexpMatches(captured.stdout.get_text(), '  Other error')
                                     self.assertEqual(captured.stderr.get_text(), '')
 
     def test_get_test_results(self):
@@ -658,11 +668,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             build_helper = self.construct_build_helper(build_num=1)
             with mock.patch('requests.get', side_effect=[requests_get_1]):
                 with mock.patch('smtplib.SMTP', return_value=smtp):
-                    result = build_helper.send_email_notifications()
+                    result = build_helper.send_email_notifications(0, False)
                     self.assertEqual(result, {
                         'is_fixed': True,
                         'is_new_error': False,
                         'is_old_error': False,
+                        'is_other_error': False,
                         'is_new_downstream_error': False,
                     })
 
@@ -741,11 +752,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         # test API
         with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2]):
             with mock.patch('smtplib.SMTP', return_value=smtp):
-                result = build_helper.send_email_notifications()
+                result = build_helper.send_email_notifications(0, False)
                 self.assertEqual(result, {
                     'is_fixed': True,
                     'is_new_error': False,
                     'is_old_error': False,
+                    'is_other_error': False,
                     'is_new_downstream_error': False,
                 })
 
@@ -813,11 +825,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         # test API
         with mock.patch('requests.get', side_effect=[requests_get_1]):
             with mock.patch('smtplib.SMTP', return_value=smtp):
-                result = build_helper.send_email_notifications()
+                result = build_helper.send_email_notifications(0, False)
                 self.assertEqual(result, {
                     'is_fixed': False,
                     'is_new_error': True,
                     'is_old_error': False,
+                    'is_other_error': False,
                     'is_new_downstream_error': False,
                 })
 
@@ -895,11 +908,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with mock.patch('smtplib.SMTP', return_value=smtp):
                 with env:
                     build_helper = self.construct_build_helper(build_num=1)
-                    result = build_helper.send_email_notifications()
+                    result = build_helper.send_email_notifications(0, False)
                     self.assertEqual(result, {
                         'is_fixed': False,
                         'is_new_error': True,
                         'is_old_error': False,
+                        'is_other_error': False,
                         'is_new_downstream_error': False,
                     })
 
@@ -981,16 +995,72 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             build_helper = self.construct_build_helper(build_num=51)
             with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2]):
                 with mock.patch('smtplib.SMTP', return_value=smtp):
-                    result = build_helper.send_email_notifications()
+                    result = build_helper.send_email_notifications(0, False)
                     self.assertEqual(result, {
                         'is_fixed': False,
                         'is_new_error': False,
                         'is_old_error': True,
+                        'is_other_error': False,
                         'is_new_downstream_error': False,
                     })
 
         # cleanup
         os.remove(filename)
+
+    def test_send_email_notifications_build_exit_code_failure(self):
+        build_helper = self.construct_build_helper()
+
+        # mock test results
+        filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
+                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+        for filename in glob(filename_pattern):
+            os.remove(filename)
+
+        # requests side effects
+        requests_get_1 = attrdict.AttrDict({
+            'raise_for_status': lambda: None,
+            'json': lambda: {
+                'all_commit_details': [{
+                    'commit': 'yyyyyyyyyyyyyyyyyyyy',
+                    'committer_name': 'Test user 2',
+                    'committer_email': 'test2@test.com',
+                    'subject': 'Test commit 2',
+                    'commit_url': 'https://github.com/KarrLab/test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
+                }],
+                'build_url': 'https://circleci.com/gh/KarrLab/test_repo_2/51',
+            },
+        })
+
+        # mock SMTP
+        smtp = attrdict.AttrDict({
+            'ehlo': lambda: None,
+            'starttls': lambda: None,
+            'login': lambda user, pwd: None,
+            'sendmail': lambda from_addr, to_addrs, msg: None,
+            'quit': lambda: None,
+        })
+
+        # mock environment
+        env = self.construct_environment(build_num=51)
+        env.set('CIRCLE_PROJECT_REPONAME', 'test_repo_2')
+        env.set('CIRCLE_SHA1', 'yyyyyyyyyyyyyyyyyyyy')
+        env.set('CIRCLE_BUILD_NUM', '51')
+        env.set('UPSTREAM_REPONAME', 'test_repo')
+        env.set('UPSTREAM_BUILD_NUM', '101')
+
+        # test API
+        with env:
+            build_helper = self.construct_build_helper(build_num=51)
+            with mock.patch('requests.get', side_effect=[requests_get_1]):
+                with mock.patch('smtplib.SMTP', return_value=smtp):
+                    result = build_helper.send_email_notifications(1, False)
+                    self.assertEqual(result, {
+                        'is_fixed': False,
+                        'is_new_error': False,
+                        'is_old_error': False,
+                        'is_other_error': True,
+                        'is_new_downstream_error': False,
+                    })
 
     def test_send_email_notifications_send_email(self):
         build_helper = self.construct_build_helper()
@@ -1079,11 +1149,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             build_helper = self.construct_build_helper(build_num=51)
             with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_3]):
                 with mock.patch('smtplib.SMTP', return_value=smtp):
-                    result = build_helper.send_email_notifications()
+                    result = build_helper.send_email_notifications(0, False)
                     self.assertEqual(result, {
                         'is_fixed': False,
                         'is_new_error': True,
                         'is_old_error': False,
+                        'is_other_error': False,
                         'is_new_downstream_error': True,
                     })
 
@@ -1098,11 +1169,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         for filename in glob(filename_pattern):
             os.remove(filename)
 
-        result = build_helper.send_email_notifications(dry_run=True)
+        result = build_helper.send_email_notifications(0, False, dry_run=True)
         self.assertEqual(result, {
             'is_fixed': False,
             'is_new_error': False,
             'is_old_error': False,
+            'is_other_error': False,
             'is_new_downstream_error': False,
         })
 

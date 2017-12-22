@@ -318,6 +318,8 @@ class DoPostTestTasksController(CementBaseController):
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
+            (['build_exit_code'], dict(
+                type=int, help='Exit code of the build')),
             (['--dry-run'], dict(
                 default=False, dest='dry_run', action='store_true', help='If true, do not send results to Coveralls and Code Climate')),
         ]
@@ -329,7 +331,8 @@ class DoPostTestTasksController(CementBaseController):
 
         """ Do all post-test tasks for CircleCI """
         buildHelper = BuildHelper()
-        docs_compiled, triggered_packages, status = buildHelper.do_post_test_tasks(dry_run=dry_run)
+        triggered_packages, status = buildHelper.do_post_test_tasks(
+            args.build_exit_code, dry_run=dry_run)
 
         # downstream triggered tests
         if triggered_packages:
@@ -340,8 +343,7 @@ class DoPostTestTasksController(CementBaseController):
             print("No downstream builds were triggered.")
 
         # email notifications
-        num_notifications = (not docs_compiled) + status['is_fixed'] + status['is_old_error'] + \
-            status['is_new_error'] + status['is_new_downstream_error']
+        num_notifications = sum(status.values())
         if num_notifications > 0:
             print('{} notifications were sent'.format(num_notifications))
 
@@ -354,11 +356,11 @@ class DoPostTestTasksController(CementBaseController):
             if status['is_new_error']:
                 print('  New error')
 
+            if status['is_other_error']:
+                print('  Other error')
+
             if status['is_new_downstream_error']:
                 print('  Downstream error')
-
-            if not docs_compiled:
-                print('  Documentation generation error')
         else:
             print('No notifications were sent.')
 

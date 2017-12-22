@@ -968,7 +968,7 @@ class BuildHelper(object):
 
         return test_results
 
-    def get_test_results_status(self, test_results, dry_run=False):
+    def get_test_results_status(self, test_results, build_exit_code, reports_error, dry_run=False):
         """ Get the status of a set of results
 
         * Old err
@@ -978,6 +978,8 @@ class BuildHelper(object):
 
         Args:
             test_results (:obj:`TestResults`): test results
+            build_exit_code (:obj:`int`): Exit code of the build
+            reports_error (:obj:`bool`): :obj:`True` if there was an error generating and/or archiving the reports
             dry_run (:obj:`bool`, optional): if true, don't upload to the coveralls and code climate servers
 
         Returns:
@@ -988,38 +990,46 @@ class BuildHelper(object):
                 'is_fixed': False,
                 'is_old_error': False,
                 'is_new_error': False,
-                'is_new_downstream_error': False,
+                'is_other_error': False,
+                'is_new_downstream_error': False,                
             }
 
         # determine if there is an error
-        passed = test_results.get_num_errors() == 0 and test_results.get_num_failures() == 0
-
-        # determine if error is new
-        if self.build_num <= 1:
-            if passed:
-                is_old_error = False
-                is_new_error = False
-                is_fixed = True
-            else:
-                is_old_error = False
-                is_new_error = True
-                is_fixed = False
+        if (build_exit_code != 0 or reports_error) and test_results.get_num_tests() == 0:            
+            is_other_error = True
+            is_new_error = False
+            is_old_error = False
+            is_fixed = False
         else:
-            prev_result = self.run_circleci_api('/' + str(self.build_num - 1))
-            if passed:
-                is_old_error = False
-                is_new_error = False
-                is_fixed = prev_result['status'] not in ['success', 'fixed']
+            is_other_error = False            
+            passed = test_results.get_num_errors() == 0 and test_results.get_num_failures() == 0
+
+            # determine if error is new
+            if self.build_num <= 1:
+                if passed:
+                    is_old_error = False
+                    is_new_error = False
+                    is_fixed = True
+                else:
+                    is_old_error = False
+                    is_new_error = True
+                    is_fixed = False
             else:
-                is_old_error = prev_result['status'] not in ['success', 'fixed']
-                is_new_error = prev_result['status'] in ['success', 'fixed']
-                is_fixed = False
+                prev_result = self.run_circleci_api('/' + str(self.build_num - 1))
+                if passed:
+                    is_old_error = False
+                    is_new_error = False
+                    is_fixed = prev_result['status'] not in ['success', 'fixed']
+                else:
+                    is_old_error = prev_result['status'] not in ['success', 'fixed']
+                    is_new_error = prev_result['status'] in ['success', 'fixed']
+                    is_fixed = False
 
         # determine if build was triggered by an upstream package
         upstream_repo_name = os.getenv('UPSTREAM_REPONAME', '')
         upstream_build_num = int(os.getenv('UPSTREAM_BUILD_NUM', '0'))
 
-        if upstream_repo_name and is_new_error and self.build_num > 1:
+        if upstream_repo_name and is_new_error and self.build_num > 1 and not is_other_error:
             is_new_downstream_error = True
         else:
             is_new_downstream_error = False
@@ -1028,10 +1038,11 @@ class BuildHelper(object):
             'is_fixed': is_fixed,
             'is_old_error': is_old_error,
             'is_new_error': is_new_error,
+            'is_other_error': is_other_error,
             'is_new_downstream_error': is_new_downstream_error,
         }
 
-    def do_post_test_tasks(self, dry_run=False):
+    def do_post_test_tasks(self, build_exit_code, dry_run=False):
         """ Do all post-test tasks for CircleCI
 
         * Make test and coverage reports
@@ -1041,41 +1052,36 @@ class BuildHelper(object):
         * Notify authors of new failures in downstream packages
 
         Args:
+            build_exit_code (:obj:`int`): Exit code of the build
             dry_run (:obj:`bool`, optional): if true, don't upload to the coveralls and code climate servers
 
         Returns:
-            :obj:`bool`: :obj:`True` if the documentation compiled
             :obj:`list` of :obj:`str`: names of triggered packages
             :obj:`dict`: status of a set of results
         """
         try:
             self.make_and_archive_reports(dry_run=dry_run)
-            docs_compiled = True
+            reports_error = False
         except Exception as exception:
-            docs_compiled = False
-            recipients = [{'name': 'Whole-Cell Modeling Developers', 'email': 'wholecell-developers@googlegroups.com'}]
-            subject = '[Builds] [{0}] {0} The test reports and/or documentation could not be compiled and/or archived!'.format(
-                self.repo_name)
-            self._send_notification_email(recipients, subject, 'make_and_archive_reports_error.html', {
-                'repo_name': self.repo_name,
-                'error': str(exception),
-            }, dry_run=dry_run)
+            reports_error = True
 
         triggered_packages = self.trigger_tests_of_downstream_dependencies(dry_run=dry_run)
-        status = self.send_email_notifications(dry_run=dry_run)
-        return (docs_compiled, triggered_packages, status)
+        status = self.send_email_notifications(build_exit_code, reports_error, dry_run=dry_run)
+        return (triggered_packages, status)
 
-    def send_email_notifications(self, dry_run=False):
+    def send_email_notifications(self, build_exit_code, reports_error, dry_run=False):
         """ Send email notifications of failures, fixes, and downstream failures
 
         Args:
+            build_exit_code (:obj:`int`): Exit code of the build
+            reports_error (:obj:`bool`): :obj:`True` if there was an error generating and/or archiving the reports
             dry_run (:obj:`bool`, optional): if true, don't upload to the coveralls and code climate servers
 
         Returns:
             :obj:`dict`: status of a set of results
         """
         test_results = self.get_test_results()
-        status = self.get_test_results_status(test_results, dry_run=dry_run)
+        status = self.get_test_results_status(test_results, build_exit_code, reports_error, dry_run=dry_run)
 
         # stop if this is a dry run
         if dry_run:
@@ -1116,14 +1122,15 @@ class BuildHelper(object):
         if status['is_fixed']:
             subject = '[Builds] [{0}] {0} is fixed!'.format(context['repo_name'])
             self._send_notification_email(recipients, subject, 'fixed.html', context)
-
-        if status['is_old_error']:
+        elif status['is_old_error']:
             subject = '[Builds] [{0}] {0} is still broken!'.format(context['repo_name'])
             self._send_notification_email(recipients, subject, 'old_error.html', context)
-
-        if status['is_new_error']:
+        elif status['is_new_error']:
             subject = '[Builds] [{0}] {0} has been broken!'.format(context['repo_name'])
             self._send_notification_email(recipients, subject, 'new_error.html', context)
+        elif status['is_other_error']:
+            subject = '[Builds] [{0}] {0} is broken!'.format(context['repo_name'])
+            self._send_notification_email(recipients, subject, 'other_error.html', context)
 
         if status['is_new_downstream_error']:
             recipients.append({'name': context['upstream']['committer_name'], 'email': context['upstream']['committer_email']})

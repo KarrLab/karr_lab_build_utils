@@ -1,0 +1,40 @@
+<html>
+    <body>
+        <p>Hi,</p>
+
+        <p>Oops, {{ repo_name }} is broken!</p>
+
+        <p>Latest commit:
+            <ul>
+                <li>Repo: <a href="https://github.com/KarrLab/{{ repo_name }}">{{ repo_name }}</a></li>
+                <li>Commit: <a href="{{ commit_url }}">{{ commit|truncate(6) }}</a></li>
+                <li>Commiter: <a href="mailto:{{ committer_email }}">{{ committer_name }}</a></li>
+                <li>Subject: {{ commit_subject }}</li>
+                <li>Build: <a href="{{ build_url }}">{{ build_num }}</a></li>
+                <li>Test results: <a href="http://tests.karrlab.org/KarrLab/{{ repo_name }}/{{ build_num }}">{{ build_num }}</a></li>
+                <li>Coverage results: <a href="https://coveralls.io/github/KarrLab/{{ repo_name }}">latest</a></li>
+                <li>Static analysis: <a href="https://codeclimate.com">latest</a></li>
+            </ul>
+        </p>
+
+        <p>Lastest build summary:
+            <ul>
+                <li>Tests: {{ test_results.num_tests }}</li>
+                <li>Passed: {{ test_results.num_passed }}</li>
+                <li>Skipped: {{ test_results.num_skipped }}</li>
+                <li>Errors: {{ test_results.num_errors }}</li>
+                <li>Failures: {{ test_results.num_failures }}</li>
+            </ul>
+        </p>
+
+        <p>Latest errors and failures:
+            <ul>
+            {% for case in test_results.cases %}
+                {% if case.type.name == 'error' or case.type.name == 'failure' %}
+                <li>{{ case.classname }}.{{ case.name }} :: {{ case.subtype }} :: {{ case.message }} ({{ case.time }} s)</li>
+                {% endif %}
+            {% endfor %}
+            </ul>
+        </p>
+    </body>
+</html>
