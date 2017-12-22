@@ -782,7 +782,7 @@ class BuildHelper(object):
         print('== Install dependencies')
         print('=====================================')
         self._run_docker_command(['exec', container, 'bash', '-c',
-                                  'cd /root/project && karr_lab_build_utils{} install-requirements'.format(py_v)])
+                                  'cd /root/project && karr_lab_build_utils{} upgrade-requirements'.format(py_v)])
 
         # test package in container
         print('\n\n')
