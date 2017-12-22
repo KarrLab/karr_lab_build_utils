@@ -369,25 +369,27 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 app.run()
 
     def test_upgrade_requirements_karr_lab_reqs(self):
-        def func(args):
-            if args[0] == 'freeze':
-                print('git+https://github.com/KarrLab/pkg1.git@commit#egg=pkg1')
-                print('git+https://github.com/KarrLab/pkg2.git@commit#egg=pkg2')
-            return 0
-        with mock.patch('pip.main', func):
-            build_helper = self.construct_build_helper()
-            reqs = build_helper.upgrade_requirements()
-        self.assertEqual(reqs, ['git+https://github.com/KarrLab/pkg1.git', 'git+https://github.com/KarrLab/pkg2.git'])
+        side_effect = [
+            '\n'.join([
+                '-e git+https://github.com/KarrLab/pkg1.git@commit#egg=pkg1',
+                'pkg2==0.0.2',
+                'pkg3==0.0.3',
+                'pkg4==0.0.4',
+                'pkg5==0.0.5',
+            ]),
+            '---\n'.join([
+                'Home-page: pypi',
+                'Home-page: https://github.com/KarrLab/pkg3',
+                'Home-page: pypi',
+                'Home-page: https://github.com/KarrLab/pkg5',
+            ]),
+        ]
 
-        def func(args):
-            if args[0] == 'freeze':
-                print('git+https://github.com/OrtherOrg/pkg1.git@commit#egg=pkg1')
-                print('git+https://github.com/OrtherOrg/pkg2.git@commit#egg=pkg2')
-            return 0
-        with mock.patch('pip.main', func):
-            build_helper = self.construct_build_helper()
-            reqs = build_helper.upgrade_requirements()
-        self.assertEqual(reqs, [])
+        with mock.patch.object(core.BuildHelper, 'run_method_and_capture_stdout', side_effect=side_effect):
+            with mock.patch.object(core.BuildHelper, 'run_method_and_capture_stderr', return_value=None):
+                build_helper = self.construct_build_helper()
+                reqs = build_helper.upgrade_requirements()
+        self.assertEqual(reqs, ['git+https://github.com/KarrLab/pkg3.git', 'git+https://github.com/KarrLab/pkg5.git'])
 
     def test_upgrade_requirements_pip_error(self):
         build_helper = self.construct_build_helper()

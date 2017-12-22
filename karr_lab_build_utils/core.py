@@ -522,20 +522,20 @@ class BuildHelper(object):
         """
 
         # get requirements
-        with abduct.captured(abduct.out(), abduct.err()) as (stdout, stderr):
-            result = pip.main(['freeze'])
-            out = stdout.getvalue()
-            err = stderr.getvalue()
-
-        if result != 0:
-            sys.stderr.write(err)
-            sys.stderr.flush()
-            sys.exit(1)
-
+        lines = self.run_method_and_capture_stdout(pip.main, ['freeze'])
+        pkgs = []
+        for line in lines.split('\n'):
+            if not line.startswith('-e') and '==' in line:
+                pkgs.append(line.partition('==')[0])
+        
+        infos = self.run_method_and_capture_stdout(pip.main, ['show'] + pkgs)
         reqs = []
-        for line in out.split('\n'):
-            if 'github.com/KarrLab' in line and not line.startswith('-e'):
-                reqs.append(line.partition('@')[0])
+        for info in infos.split('---\n'):
+            if 'github.com/KarrLab/' in info:
+                url = info.partition('Home-page: ')[2].partition('\n')[0]
+                reqs.append('git+' + url + '.git')
+
+        print(reqs)
 
         # ugrade requirements
         self.run_method_and_capture_stderr(pip.main, ['install', '-U', '--process-dependency-links'] + reqs)
@@ -1663,11 +1663,37 @@ class BuildHelper(object):
         """
         return '{0[0]:d}.{0[1]:d}.{0[2]:d}'.format(sys.version_info)
 
+    def run_method_and_capture_stdout(self, func, *args, **kwargs):
+        """ Run a method that returns a numerical error value, and exit if the return value is non-zero
+
+        Args:
+            func (:obj:`function`): function to run
+            *args (:obj:`list`): arguments to :obj:`func`
+            **kwargs (:obj:`dict`): keyword arguments to obj:`func`
+
+        Returns:
+            :obj:`str`: stdout
+        """
+        with abduct.captured(abduct.out(), abduct.err()) as (stdout, stderr):
+            result = func(*args, **kwargs)
+            out_msg = stdout.getvalue()
+            err_msg = stderr.getvalue()
+
+        if result != 0:
+            sys.stderr.write(err_msg)
+
+            sys.stderr.flush()
+            sys.exit(1)
+
+        return out_msg
+
     def run_method_and_capture_stderr(self, func, *args, **kwargs):
         """ Run a method that returns a numerical error value, and exit if the return value is non-zero
 
         Args:
             func (:obj:`function`): function to run
+            *args (:obj:`list`): arguments to :obj:`func`
+            **kwargs (:obj:`dict`): keyword arguments to obj:`func`
         """
         with abduct.captured(abduct.err()) as stderr:
             result = func(*args, **kwargs)
