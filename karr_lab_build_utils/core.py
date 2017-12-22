@@ -514,6 +514,34 @@ class BuildHelper(object):
         if ignore_options:
             os.remove(sanitized_filename)
 
+    def upgrade_requirements(self):
+        """ Upgrade requirements from the Karr Lab's GitHub organization 
+
+        Returns:
+            :obj:`list` of :obj:`str`: upgraded requirements from the Karr Lab's GitHub organization
+        """
+
+        # get requirements
+        with abduct.captured(abduct.out(), abduct.err()) as (stdout, stderr):
+            result = pip.main(['freeze'])
+            out = stdout.getvalue()
+            err = stderr.getvalue()
+
+        if result != 0:
+            sys.stderr.write(err)
+            sys.stderr.flush()
+            sys.exit(1)
+
+        reqs = []
+        for line in out.split('\n'):
+            if 'github.com/KarrLab' in line and not line.startswith('-e'):
+                reqs.append(line.partition('@')[0])
+
+        # ugrade requirements
+        self.run_method_and_capture_stderr(pip.main, ['install', '-U', '--process-dependency-links'] + reqs)
+
+        return reqs
+
     ########################
     # Running tests
     ########################
@@ -991,17 +1019,17 @@ class BuildHelper(object):
                 'is_old_error': False,
                 'is_new_error': False,
                 'is_other_error': False,
-                'is_new_downstream_error': False,                
+                'is_new_downstream_error': False,
             }
 
         # determine if there is an error
-        if (build_exit_code != 0 or reports_error) and test_results.get_num_tests() == 0:            
+        if (build_exit_code != 0 or reports_error) and test_results.get_num_tests() == 0:
             is_other_error = True
             is_new_error = False
             is_old_error = False
             is_fixed = False
         else:
-            is_other_error = False            
+            is_other_error = False
             passed = test_results.get_num_errors() == 0 and test_results.get_num_failures() == 0
 
             # determine if error is new

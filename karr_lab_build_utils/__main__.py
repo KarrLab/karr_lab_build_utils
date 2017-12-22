@@ -25,6 +25,12 @@ class BaseController(CementBaseController):
         buildHelper = BuildHelper()
         buildHelper.install_requirements()
 
+    @expose(help='Upgrade requirements from the Karr Labs''s GitHub organization')
+    def upgrade_requirements(self):
+        """ Upgrade requirements from the Karr Labs's GitHub organization """
+        buildHelper = BuildHelper()
+        buildHelper.upgrade_requirements()
+
     @expose(help='Get version')
     def get_version(self):
         """ Get version """

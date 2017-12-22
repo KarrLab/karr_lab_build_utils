@@ -357,6 +357,44 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         shutil.rmtree(tempdirname)
 
+    def test_upgrade_requirements(self):
+        build_helper = self.construct_build_helper()
+
+        """ test API """
+        build_helper.upgrade_requirements()
+
+        """ test CLI """
+        with self.construct_environment():
+            with __main__.App(argv=['upgrade-requirements']) as app:
+                app.run()
+
+    def test_upgrade_requirements_karr_lab_reqs(self):
+        def func(args):
+            if args[0] == 'freeze':
+                print('git+https://github.com/KarrLab/pkg1.git@commit#egg=pkg1')
+                print('git+https://github.com/KarrLab/pkg2.git@commit#egg=pkg2')
+            return 0
+        with mock.patch('pip.main', func):
+            build_helper = self.construct_build_helper()
+            reqs = build_helper.upgrade_requirements()
+        self.assertEqual(reqs, ['git+https://github.com/KarrLab/pkg1.git', 'git+https://github.com/KarrLab/pkg2.git'])
+
+        def func(args):
+            if args[0] == 'freeze':
+                print('git+https://github.com/OrtherOrg/pkg1.git@commit#egg=pkg1')
+                print('git+https://github.com/OrtherOrg/pkg2.git@commit#egg=pkg2')
+            return 0
+        with mock.patch('pip.main', func):
+            build_helper = self.construct_build_helper()
+            reqs = build_helper.upgrade_requirements()
+        self.assertEqual(reqs, [])
+
+    def test_upgrade_requirements_pip_error(self):
+        build_helper = self.construct_build_helper()
+        with mock.patch('pip.main', return_value=1):
+            with self.assertRaises(SystemExit):
+                build_helper.upgrade_requirements()
+
     def test_run_tests(self):
         self.help_run('pytest', coverage_type=core.CoverageType.statement)
         self.help_run('nose', coverage_type=core.CoverageType.branch)
@@ -513,10 +551,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
                                 time.sleep(0.1)
 
-                                self.assertEqual(app.pargs.build_exit_code, 0)                                                                
+                                self.assertEqual(app.pargs.build_exit_code, 0)
                                 self.assertRegexpMatches(captured.stdout.get_text(), 'No downstream builds were triggered.')
                                 self.assertRegexpMatches(captured.stdout.get_text(), 'No notifications were sent.')
-                                self.assertEqual(captured.stderr.get_text(), '')                                
+                                self.assertEqual(captured.stderr.get_text(), '')
 
         down_pkgs_return = ['pkg_1', 'pkg_2']
         notify_return = {

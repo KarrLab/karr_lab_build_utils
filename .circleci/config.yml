@@ -22,13 +22,13 @@ jobs:
 
           # Python 2
           pip2 install -U --process-dependency-links -e .[all] \
-          && karr_lab_build_utils2 install-requirements \
+          && karr_lab_build_utils2 upgrade-requirements \
           && karr_lab_build_utils2 run-tests --with-xunit --with-coverage
           RESULT_TESTS_PY2=$?
 
           # Python 3
           pip3 install -U --process-dependency-links -e .[all] \
-          && karr_lab_build_utils3 install-requirements \
+          && karr_lab_build_utils3 upgrade-requirements \
           && karr_lab_build_utils3 run-tests --with-xunit --with-coverage
           RESULT_TESTS_PY3=$?
 
