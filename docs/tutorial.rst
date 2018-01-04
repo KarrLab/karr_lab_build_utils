@@ -3,7 +3,7 @@ Tutorial
 
 The following is a brief tutorial of the command line interface for ``karr_lab_build_utils``. Note, the command line interface provides some functionality in addition to that described below. However, in general, these additional commands should only be run from CircleCI.
 
-Except as indicated below, the command line interface should be run from the desired parent directory of the package, e.g. ``~/Documents/my_package``.
+Except as indicated below, ``karr_lab_build_utils`` should be run from the package's root directory, e.g. with a current working directory of ``~/Documents/my_package``.
 
 To use the command line interface, your package should follow the organization scheme described in "An Introduction Whole-Cell Modeling":
 
@@ -12,7 +12,7 @@ To use the command line interface, your package should follow the organization s
 * `Documenting Python code <http://intro-to-wc-modeling.readthedocs.io/en/latest/concepts_skills/software_engineering/documenting_python.html>`_
 * `Packaging Python projects <http://intro-to-wc-modeling.readthedocs.io/en/latest/concepts_skills/software_engineering/distributing_python.html>`_
 
-In addition, you should save a list of your the downstream dependencies of the package in YAML format to ``.circleci/downstream_dependencies.yml``, e.g.::
+In addition, save a list of your package's downstream dependencies in YAML format in ``.circleci/downstream_dependencies.yml``. For example, if your package is used by ``wc_lang`` and ``wc_sim``, it should contain::
 
     - wc_lang
     - wc_sim
@@ -33,7 +33,7 @@ Versioning with Git and GitHub
 Create a repository for a package
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Run this command to create a new repository with the proper directory structure and files for our build system. This should be run from the desired parent directory of the package, e.g. ``~/Documents``.::
+Run this command to create a new repository with the proper directory structure and files for our build system. This should be run from the package's desired parent directory, e.g. with a current working directory of ``~/Documents``.::
 
     cd ~/Documents
     karr_lab_build_utils create-repository --dirname new_package --url https://github.com/KarrLab/new_package

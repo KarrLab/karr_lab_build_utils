@@ -25,9 +25,9 @@ class BaseController(CementBaseController):
         buildHelper = BuildHelper()
         buildHelper.install_requirements()
 
-    @expose(help='Upgrade requirements from the Karr Labs''s GitHub organization')
+    @expose(help="Upgrade requirements from the Karr Lab's GitHub organization")
     def upgrade_requirements(self):
-        """ Upgrade requirements from the Karr Labs's GitHub organization """
+        """ Upgrade requirements from the Karr Lab's GitHub organization """
         buildHelper = BuildHelper()
         buildHelper.upgrade_requirements()
 
@@ -287,10 +287,10 @@ class DeleteCircleciEnvironmentVariableController(CementBaseController):
 
 
 class CreateCodeclimateGithubWebhookController(CementBaseController):
-    """ Create CodeClimate GitHub webook for the current repository """
+    """ Create CodeClimate GitHub webhook for the current repository """
     class Meta:
         label = 'create-codeclimate-github-webhook'
-        description = 'Create CodeClimate GitHub webook for the current repository'
+        description = 'Create CodeClimate GitHub webhook for the current repository'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
@@ -557,11 +557,11 @@ class CompileDownstreamDependenciesController(CementBaseController):
 
 
 class ArePackageDependenciesAcyclicController(CementBaseController):
-    """ Check if the package dependencies are acyclic so they are suported by CircleCI """
+    """ Check if the package dependencies are acyclic so they are supported by CircleCI """
 
     class Meta:
         label = 'are-package-dependencies-acyclic'
-        description = 'Check if the package dependencies are acyclic so they are suported by CircleCI'
+        description = 'Check if the package dependencies are acyclic so they are supported by CircleCI'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [

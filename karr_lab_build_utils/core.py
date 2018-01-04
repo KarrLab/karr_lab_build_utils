@@ -1496,7 +1496,7 @@ class BuildHelper(object):
         return downstream_dependencies
 
     def are_package_dependencies_acyclic(self, packages_parent_dir='..'):
-        """ Check if the package dependencies are acyclic so they are suported by CircleCI
+        """ Check if the package dependencies are acyclic so they are supported by CircleCI
 
         Args:
             packages_parent_dir (:obj:`str`, optional): path to the parent directory of the packages
