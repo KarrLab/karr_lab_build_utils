@@ -1882,6 +1882,9 @@ class BuildHelper(object):
 
         Returns:
             :obj:`dict`: CircleCI result
+
+        Raises:
+            :obj:`requests.exceptions.HTTPError`: if the HTTP request to CircleCI does not succeed
         """
         if not repo_type:
             repo_type = self.repo_type
