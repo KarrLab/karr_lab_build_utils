@@ -8,7 +8,7 @@
             <ul>
                 <li>Repo: <a href="https://github.com/KarrLab/{{ upstream.repo_name }}">{{ upstream.repo_name }}</a></li>
                 <li>Commit: <a href="{{ upstream.commit_url }}">{{ upstream.commit|truncate(6) }}</a></li>
-                <li>Commiter: <a href="mailto:{{ upstream.committer_email }}">{{ upstream.committer_name }}</a></li>
+                <li>Committer: <a href="mailto:{{ upstream.committer_email }}">{{ upstream.committer_name }}</a></li>
                 <li>Subject: {{ upstream.commit_subject }}</li>
                 <li>Build: <a href="{{ upstream.build_url }}">{{ upstream.build_num }}</a></li>
                 <li>Test results: <a href="http://tests.karrlab.org/KarrLab/{{ repo_name }}/{{ build_num }}">{{ build_num }}</a></li>
@@ -21,7 +21,7 @@
             <ul>
                 <li>Repo: <a href="https://github.com/KarrLab/{{ repo_name }}">{{ repo_name }}</a></li>
                 <li>Commit: <a href="{{ commit_url }}">{{ commit|truncate(6) }}</a></li>
-                <li>Commiter: <a href="mailto:{{ committer_email }}">{{ committer_name }}</a></li>
+                <li>Committer: <a href="mailto:{{ committer_email }}">{{ committer_name }}</a></li>
                 <li>Subject: {{ commit_subject }}</li>
                 <li>Build: <a href="{{ build_url }}">{{ build_num }}</a></li>
             </ul>
