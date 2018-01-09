@@ -1,3 +1,11 @@
+""" Karr Lab build utilities
+
+:Author: Jonathan Karr <karr@mssm.edu>
+:Date: 2016-10-27
+:Copyright: 2018, Karr Lab
+:License: MIT
+"""
+
 from cement.core.foundation import CementApp
 from cement.core.controller import CementBaseController, expose
 from karr_lab_build_utils.core import BuildHelper
@@ -121,7 +129,7 @@ class RunTestsController(CementBaseController):
             (['--test-path'], dict(
                 type=str, default=None, help=(
                     'Path to tests to run. '
-                    'If the `test_path` environment variable is not define, this defaults to `tests`.'))),
+                    'If the `test_path` environment variable is not defined, TEST_PATH defaults to `tests`.'))),
             (['--dirname'], dict(
                 type=str, default='.', help='Path to package to test')),
             (['--verbose'], dict(
@@ -134,7 +142,7 @@ class RunTestsController(CementBaseController):
                 type=str, default='.', help='Directory to store coverage data')),
             (['--coverage-type'], dict(
                 type=str, default='statement',
-                help='Type of coverage analysis to run {statemment, branch, or multiple-decision}')),
+                help='Type of coverage analysis to run {statement, branch, or multiple-decision}')),
             (['--environment'], dict(
                 type=str, default='local',
                 help='Environment to run tests (local, docker, or circleci)')),
@@ -386,7 +394,7 @@ class MakeAndArchiveReportsController(CementBaseController):
         stacked_type = 'nested'
         arguments = [
             (['--coverage-dirname'], dict(
-                default='.', type=str, help='Directory to save coverage reports')),
+                default='.', type=str, help="Directory to save coverage reports, which defaults to '.'.")),
             (['--dry-run'], dict(
                 default=False, dest='dry_run', action='store_true', help='If true, do not send results to Coveralls and Code Climate')),
         ]
@@ -411,7 +419,7 @@ class CombineCoverageReportsController(CementBaseController):
         stacked_type = 'nested'
         arguments = [
             (['--coverage-dirname'], dict(
-                default='.', type=str, help='Directory to save coverage reports')),
+                default='.', type=str, help="Directory to save coverage reports, which defaults to '.'.")),
         ]
 
     @expose(hide=True)
@@ -434,7 +442,7 @@ class ArchiveCoverageReportController(CementBaseController):
         stacked_type = 'nested'
         arguments = [
             (['--coverage-dirname'], dict(
-                default='.', type=str, help='Directory to save coverage reports')),
+                default='.', type=str, help="Directory to save coverage reports, which defaults to '.'.")),
             (['--dry-run'], dict(
                 default=False, dest='dry_run', action='store_true', help='If true, do not send results to Coveralls and Code Climate')),
         ]
@@ -461,7 +469,7 @@ class UploadCoverageReportToCoverallsController(CementBaseController):
         stacked_type = 'nested'
         arguments = [
             (['--coverage-dirname'], dict(
-                default='.', type=str, help='Directory to save coverage reports')),
+                default='.', type=str, help="Directory to save coverage reports, which defaults to '.'.")),
             (['--dry-run'], dict(
                 default=False, dest='dry_run', action='store_true', help='If true, do not send results to Coveralls')),
         ]
@@ -485,7 +493,7 @@ class UploadCoverageReportToCodeClimateController(CementBaseController):
         stacked_type = 'nested'
         arguments = [
             (['--coverage-dirname'], dict(
-                default='.', type=str, help='Directory to save coverage reports')),
+                default='.', type=str, help="Directory to save coverage reports, which defaults to '.'.")),
             (['--dry-run'], dict(
                 default=False, dest='dry_run', action='store_true', help='If true, do not send results to Code Climate')),
         ]
@@ -640,7 +648,7 @@ class AnalyzePackageController(CementBaseController):
             (['package_name'], dict(
                 type=str, help='Name of the package to analyze')),
             (['--messages'], dict(
-                type=str, default='', help='comma-separted list of ids of Pylint checks to run')),
+                type=str, default='', help='comma-separated list of ids of Pylint checks to run')),
         ]
 
     @expose(hide=True)

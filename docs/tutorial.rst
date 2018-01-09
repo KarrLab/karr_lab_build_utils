@@ -45,16 +45,16 @@ Testing with pytest, coverage, instrumental, Docker, and CircleCI
 Run the tests for a package
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Run this command to test a package::
+Run this command to test the local package::
 
-    karr_lab_build_utils run-tests tests
+    karr_lab_build_utils run-tests
 
 Evaluating the coverage of the tests
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Add the ``--coverage-type`` option to specify ``statement``, ``branch``, or ``multiple-condition`` coverage, e.g.::
 
-    karr_lab_build_utils run-tests --with-coverage --coverage-type branch tests
+    karr_lab_build_utils run-tests --with-coverage --coverage-type branch
 
 Running tests with Docker or the CircleCI local executor
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -68,9 +68,9 @@ Static code analysis with Pylint
 Statically analyze a package with Pylint
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Run this command to statistically analyze a package using Pylint::
+Run this command to statically analyze a package using `Pylint https://www.pylint.org/`_::
 
-    karr_lab_build_utils analyze-package
+    karr_lab_build_utils analyze-package package_name
 
 This will identify potential errors such as
 

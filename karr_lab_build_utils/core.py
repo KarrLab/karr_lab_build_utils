@@ -1744,6 +1744,7 @@ class BuildHelper(object):
             '--reports=n',
             '--score=n',
         ]
+        # TODO: debug, does not work:
         epylint.lint(package_name, msg_opts + report_opts)
 
     def find_missing_requirements(self, package_name, dirname='.', ignore_files=None):
