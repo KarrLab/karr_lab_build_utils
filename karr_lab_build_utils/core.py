@@ -1496,7 +1496,7 @@ class BuildHelper(object):
         return downstream_dependencies
 
     def are_package_dependencies_acyclic(self, packages_parent_dir='..'):
-        """ Check if the package dependencies are acyclic so they are suported by CircleCI
+        """ Check if the package dependencies are acyclic so they are supported by CircleCI
 
         Args:
             packages_parent_dir (:obj:`str`, optional): path to the parent directory of the packages
@@ -1744,6 +1744,7 @@ class BuildHelper(object):
             '--reports=n',
             '--score=n',
         ]
+        # TODO: debug, does not work:
         epylint.lint(package_name, msg_opts + report_opts)
 
     def find_missing_requirements(self, package_name, dirname='.', ignore_files=None):
@@ -1882,6 +1883,9 @@ class BuildHelper(object):
 
         Returns:
             :obj:`dict`: CircleCI result
+
+        Raises:
+            :obj:`requests.exceptions.HTTPError`: if the HTTP request to CircleCI does not succeed
         """
         if not repo_type:
             repo_type = self.repo_type
