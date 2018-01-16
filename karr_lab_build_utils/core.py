@@ -234,15 +234,6 @@ class BuildHelper(object):
         if not os.path.isdir(dirname):
             os.makedirs(dirname)
 
-        # create directories
-        os.mkdir(os.path.join(dirname, name))
-        os.mkdir(os.path.join(dirname, 'tests'))
-        os.mkdir(os.path.join(dirname, 'tests', 'fixtures'))
-        os.mkdir(os.path.join(dirname, 'tests', 'fixtures', 'secret'))
-        os.mkdir(os.path.join(dirname, 'docs'))
-        os.mkdir(os.path.join(dirname, 'docs', '_static'))
-        os.mkdir(os.path.join(dirname, '.circleci'))
-
         # create files
         filenames = (
             '.gitignore',
@@ -254,36 +245,37 @@ class BuildHelper(object):
             'setup.py',
             'setup.cfg',
             'tests/requirements.txt',
+            'tests/test_core.py',
+            'tests/test_main.py',
             '.circleci/config.yml',
             '.circleci/downstream_dependencies.yml',
             '.readthedocs.yml',
+            '_package_/__init__.py',
+            '_package_/VERSION',
+            '_package_/core.py',
+            '_package_/__main__.py',
         )
 
+        now = datetime.now()
         context = {
             'name': name,
             'version': self.INITIAL_PACKAGE_VERSION,
-            'year': datetime.now().year,
+            'year': now.year,
+            'date': '{}-{}-{}'.format(now.year, now.month, now.day),
             'build_image_version': build_image_version,
         }
 
         for filename in filenames:
+            if os.path.dirname(filename) and not os.path.isdir(os.path.join(dirname, os.path.dirname(filename))):
+                os.makedirs(os.path.join(dirname, os.path.dirname(filename)))
+
             with open(pkg_resources.resource_filename(
                     'karr_lab_build_utils',
                     os.path.join('templates', filename)), 'r') as file:
                 template = Template(file.read())
             template.stream(**context).dump(os.path.join(dirname, filename))
 
-        with open(pkg_resources.resource_filename(
-                'karr_lab_build_utils',
-                os.path.join('templates', 'package', '__init__.py')), 'r') as file:
-            template = Template(file.read())
-        template.stream(**context).dump(os.path.join(dirname, name, '__init__.py'))
-
-        with open(pkg_resources.resource_filename(
-                'karr_lab_build_utils',
-                os.path.join('templates', 'package', 'VERSION')), 'r') as file:
-            template = Template(file.read())
-        template.stream(**context).dump(os.path.join(dirname, name, 'VERSION'))
+        os.rename(os.path.join(dirname, '_package_'), os.path.join(dirname, name))
 
         self.create_documentation_template(dirname)
 
