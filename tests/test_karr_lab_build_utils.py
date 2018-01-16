@@ -6,6 +6,26 @@
 :License: MIT
 """
 
+"""
+:todo: Test Docker (:obj:`karr_lab_build_utils.core.BuildHelper._run_tests_docker`) and CircleCI 
+    (:obj:`karr_lab_build_utils.core.BuildHelper._run_tests_circleci`) within CircleCI. Implementing 
+    this would require the following changes:
+
+    * Install Docker and CircleCI within the Docker image (i.e. add installation to
+      ``karr_lab_docker_images/build/Dockerfile``)
+    * Run the Docker image with privileged mode or with socket mounting, e.g.
+
+        * docker run --privileged karrlab/build:latest
+        * docker run -v /var/run/docker.sock:/var/run/docker.sock karrlab/build:latest
+
+        Both of these approaches would require:
+
+            * Changing the executor to ``machine`` in ``.circleci/config.yml``
+            * Replicating the functionality provided by CircleCI in ``.circleci/config.yml``.
+              This would require adding similar commands to those in
+              :obj:`karr_lab_build_utils.core.BuildHelper._run_tests_docker` to ``.circleci/config.yml``.
+"""
+
 from codeclimate_test_reporter.components.runner import Runner as CodeClimateRunner
 from glob import glob
 from jinja2 import Template
