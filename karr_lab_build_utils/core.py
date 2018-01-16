@@ -255,6 +255,7 @@ class BuildHelper(object):
             'setup.cfg',
             'tests/requirements.txt',
             '.circleci/config.yml',
+            '.circleci/downstream_dependencies.yml',
             '.readthedocs.yml',
         )
 

@@ -181,6 +181,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'docs', 'conda.environment.yml')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'docs', 'spelling_wordlist.txt')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', '.circleci', 'config.yml')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', '.circleci', 'downstream_dependencies.yml')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', '.readthedocs.yml')))
 
         """ test CLI """
@@ -204,6 +205,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'docs', 'conda.environment.yml')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'docs', 'spelling_wordlist.txt')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', '.circleci', 'config.yml')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', '.circleci', 'downstream_dependencies.yml')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', '.readthedocs.yml')))
 
         """ cleanup """
