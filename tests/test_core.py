@@ -36,6 +36,7 @@ from six.moves import configparser
 import abduct
 import attrdict
 import capturer
+import github
 import imp
 import karr_lab_build_utils
 import karr_lab_build_utils.__init__
@@ -70,7 +71,8 @@ else:
 class TestKarrLabBuildUtils(unittest.TestCase):
     COVERALLS_REPO_TOKEN = 'xxx'
     CODECLIMATE_REPO_TOKEN = 'xxx'
-    DUMMY_TEST = os.path.join(os.path.basename(os.path.dirname(__file__)), os.path.basename(__file__)) + ':TestKarrLabBuildUtils.test_dummy_test'
+    DUMMY_TEST = os.path.join(os.path.basename(os.path.dirname(__file__)), os.path.basename(__file__)) + \
+        ':TestKarrLabBuildUtils.test_dummy_test'
 
     def setUp(self):
         self.coverage_dirname = tempfile.mkdtemp()
@@ -130,25 +132,40 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         tempdirname = tempfile.mkdtemp()
 
+        g = github.Github(build_helper.github_username, build_helper.github_password)
+        org = g.get_organization('KarrLab')
+        for name in ['test_a', 'test_a2', 'test_a_2', 'test_b']:
+            try:
+                repo = org.get_repo(name)
+                repo.delete()
+            except github.UnknownObjectException:
+                pass
+
         """ test API """
         # test valid repo names
-        build_helper.create_repository(dirname=os.path.join(tempdirname, 'a'))
-        build_helper.create_repository(dirname=os.path.join(tempdirname, 'a2'))
-        build_helper.create_repository(dirname=os.path.join(tempdirname, 'a_2'))
-        self.assertRaises(Exception, build_helper.create_repository, dirname=os.path.join(tempdirname, '2'))
-        self.assertRaises(Exception, build_helper.create_repository, dirname=os.path.join(tempdirname, 'a-'))
+        build_helper.create_repository('test_a', dirname=os.path.join(tempdirname, 'test_a'))
+        build_helper.create_repository('test_a2', dirname=os.path.join(tempdirname, 'test_a2'))
+        build_helper.create_repository('test_a_2', dirname=os.path.join(tempdirname, 'test_a_2'))
+        self.assertRaises(Exception, build_helper.create_repository, '2')
+        self.assertRaises(Exception, build_helper.create_repository, 'test-a-')
 
         # check files create correctly
-        self.assertTrue(os.path.isdir(os.path.join(tempdirname, 'a', '.git')))
+        self.assertTrue(os.path.isdir(os.path.join(tempdirname, 'test_a', '.git')))
 
         """ test CLI """
         with self.construct_environment():
-            with __main__.App(argv=['create-repository', '--dirname', os.path.join(tempdirname, 'b')]) as app:
+            with __main__.App(argv=['create-repository', 'test_b', '--dirname', os.path.join(tempdirname, 'test_b')]) as app:
                 app.run()
 
-        self.assertTrue(os.path.isdir(os.path.join(tempdirname, 'b', '.git')))
+        self.assertTrue(os.path.isdir(os.path.join(tempdirname, 'test_b', '.git')))
 
         """ cleanup """
+        g = github.Github(build_helper.github_username, build_helper.github_password)
+        org = g.get_organization('KarrLab')
+        for name in ['test_a', 'test_a2', 'test_a_2', 'test_b']:
+            repo = org.get_repo(name)
+            repo.delete()
+
         shutil.rmtree(tempdirname)
 
     def test_setup_repository(self):
@@ -158,11 +175,11 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test API """
         # test valid repo names
-        build_helper.setup_repository(dirname=os.path.join(tempdirname, 'a'))
-        build_helper.setup_repository(dirname=os.path.join(tempdirname, 'a2'))
-        build_helper.setup_repository(dirname=os.path.join(tempdirname, 'a_2'))
-        self.assertRaises(Exception, build_helper.setup_repository, dirname=os.path.join(tempdirname, '2'))
-        self.assertRaises(Exception, build_helper.setup_repository, dirname=os.path.join(tempdirname, 'a-'))
+        build_helper.setup_repository('a', dirname=os.path.join(tempdirname, 'a'))
+        build_helper.setup_repository('a2', dirname=os.path.join(tempdirname, 'a2'))
+        build_helper.setup_repository('a_2', dirname=os.path.join(tempdirname, 'a_2'))
+        self.assertRaises(Exception, build_helper.setup_repository, '2')
+        self.assertRaises(Exception, build_helper.setup_repository, 'a-')
 
         # check files create correctly
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', '.gitignore')))
@@ -190,7 +207,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with __main__.App(argv=['setup-repository', '--dirname', os.path.join(tempdirname, 'b')]) as app:
+            with __main__.App(argv=['setup-repository', 'b', '--dirname', os.path.join(tempdirname, 'b')]) as app:
                 app.run()
 
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', '.gitignore')))

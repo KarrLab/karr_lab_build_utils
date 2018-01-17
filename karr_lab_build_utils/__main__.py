@@ -55,19 +55,26 @@ class CreateRepositoryController(CementBaseController):
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
-            (['--dirname'], dict(
-                default='.', type=str, help='Desired name for the Git repository')),
-            (['--url'], dict(
-                default=None, type=str, help='URL for the Git repository')),
+            (['name'], dict(
+                type=str, help='Name of the repository (i.e. KarrLab/<name>)')),
+            (['--description'], dict(
+                default='', type=str, help='Description of the repository')),
+            (['--keyword'], dict(
+                dest='keywords', default=[], type=list, action='append', help='Keyword for the repository')),
+            (['--public'], dict(
+                default=False, action='store_true', help='if set, make the repository public')),
             (['--build-image-version'], dict(
                 default=None, type=str, help='Build image version')),
+            (['--dirname'], dict(
+                default=None, type=str, help='Path for the repository')),
         ]
 
     @expose(hide=True)
     def default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
-        buildHelper.create_repository(dirname=args.dirname, url=args.url, build_image_version=args.build_image_version)
+        buildHelper.create_repository(args.name, description=args.description, keywords=args.keywords,
+                                      private=(not args.public), build_image_version=args.build_image_version, dirname=args.dirname)
 
 
 class SetupRepositoryController(CementBaseController):
@@ -79,17 +86,24 @@ class SetupRepositoryController(CementBaseController):
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
-            (['--dirname'], dict(
-                default='.', type=str, help='Desired name for the Git repository')),
+            (['name'], dict(
+                type=str, help='Name of the repository (i.e. KarrLab/<name>)')),
+            (['--description'], dict(
+                default='', type=str, help='Description of the repository')),
+            (['--keyword'], dict(
+                dest='keywords', default=[], type=list, action='append', help='Keyword for the repository')),
             (['--build-image-version'], dict(
                 default=None, type=str, help='Build image version')),
+            (['--dirname'], dict(
+                default=None, type=str, help='Path for the repository')),
         ]
 
     @expose(hide=True)
     def default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
-        buildHelper.setup_repository(dirname=args.dirname, build_image_version=args.build_image_version)
+        buildHelper.setup_repository(args.name, description=args.description, keywords=args.keywords,
+                                     build_image_version=args.build_image_version, dirname=args.dirname)
 
 
 class CreateDocumentationTemplateController(CementBaseController):

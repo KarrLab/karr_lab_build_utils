@@ -15,6 +15,7 @@ nose
 pip
 pip_check_reqs
 git+https://github.com/KarrLab/pkg_utils.git#egg=pkg_utils-0.0.3[all]
+pygithub
 pylint
 pytest
 python_dateutil

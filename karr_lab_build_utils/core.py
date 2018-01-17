@@ -27,6 +27,7 @@ import email.message
 import email.utils
 import enum
 import fnmatch
+import github
 import glob
 import graphviz
 # import instrumental.api
@@ -128,7 +129,7 @@ class BuildHelper(object):
     """
 
     INITIAL_PACKAGE_VERSION = '0.0.1'
-    DEFAULT_BUILD_IMAGE_VERSION = '0.0.11'
+    DEFAULT_BUILD_IMAGE_VERSION = '0.0.19'
 
     DEFAULT_TEST_RUNNER = 'pytest'
     DEFAULT_PROJ_TESTS_DIR = 'tests'
@@ -186,49 +187,99 @@ class BuildHelper(object):
         self.circleci_api_token = os.getenv('CIRCLECI_API_TOKEN')
 
     #####################
-    # Create a repository
+    # Create a package
     #####################
-    def create_repository(self, dirname='.', url=None, build_image_version=None):
+    def create_package(self, name, description='', keywords=None, dependencies=None, private=True, build_image_version=None):
+        """ Create a package
+
+        * Create a local Git repository
+        * Create a remote GitHub repository
+        * Add the repository to code.karrlab.org
+
+            * Add JSON-formatted file to ``ssh://code.karrlab.org:/home/karrlab_code/code.karrlab.org/repo/{{ name }}.json``
+
+        * Add the repository to Code Climate
+        * Add the repository to Coveralls
+        * Add the repository to CircleCI project (by following the GitHub repository)
+
+            * Add environment variable for tokens for code.karrlab.org, Coveralls, Code Climate, and CircleCI
+            * Add environment variable for password for karr.lab.daemon@gmail.com
+            * Generate API token for status badge
+
+        * If the repository is not private, add the repository to Read the Docs
+        * Add badges for Code Climate, Coveralls, CircleCI, and Read the Docs to README.md
+        * Add package name to ``.circleci/downstream_dependencies.yml`` files of all dependencies
+
+        Args:
+            name (:obj`str`): package name
+            description (:obj:`str`, optional): package description
+            keywords (:obj:`list` of :obj:`str`, optional): list of keywords
+            dependencies (:obj:`list` of :obj:`str`, optional): list of names of dependent packages/GitHub repositories
+            private (:obj:`bool`, optional): if :obj:`False`, make the GitHub repository public and set 
+                up documentation generation with Read the Docs
+            build_image_version (:obj:`str`, optional): build image version            
+        """
+        # :todo: implement
+        pass  # pragma: no cover
+
+    def create_repository(self, name, description='', keywords=None, private=True, build_image_version=None, dirname=None):
         """ Create a Git repository with the default directory structure
 
         Args:
-            dirname (:obj:`str`, optional): directory for the repository
-            url (:obj:`str`, optional): URL for the repository
+            name (:obj`str`): package name
+            description (:obj:`str`, optional): package description
+            keywords (:obj:`list` of :obj:`str`, optional): list of keywords
+            private (:obj:`bool`, optional): if :obj:`False`, make the GitHub repository public and set 
+                up documentation generation with Read the Docs
             build_image_version (:obj:`str`, optional): build image version
+            dirname (:obj:`str`, optional): directory name for repository
         """
 
-        name = os.path.basename(os.path.abspath(dirname))
         if not re.match('^[a-z][a-z0-9_]*$', name):
             raise Exception('Repository names should start with a letter and only include lower case letters, numbers, and underscores')
+
+        keywords = keywords or []
 
         if not build_image_version:
             build_image_version = self.DEFAULT_BUILD_IMAGE_VERSION
 
-        # create a directory for the repository
-        if not os.path.isdir(dirname):
-            os.makedirs(dirname)
+        dirname = dirname or os.path.join('.', name)
+
+        # create GitHub repository
+        g = github.Github(self.github_username, self.github_password)
+        org = g.get_organization('KarrLab')
+        org.create_repo(name=name, description=description, private=private)
 
         # initialize Git
         import pygit2
-        repo = pygit2.init_repository(dirname, origin_url=url or None)
+        credentials = pygit2.UserPass(self.github_username, self.github_password)
+        callbacks = pygit2.RemoteCallbacks(credentials=credentials)
+        pygit2.clone_repository('https://github.com/KarrLab/{}.git'.format(name), dirname, callbacks=callbacks)
 
         # setup repository
-        self.setup_repository(dirname=dirname, build_image_version=build_image_version)
+        self.setup_repository(name, description=description, keywords=keywords,
+                              build_image_version=build_image_version, dirname=dirname)
 
-    def setup_repository(self, dirname='.', build_image_version=None):
+    def setup_repository(self, name, description='', keywords=None, build_image_version=None, dirname=None):
         """ Setup Git repository with the default directory structure
 
-        Args:
-            dirname (:obj:`str`, optional): directory name
+        Args:            
+            name (:obj`str`): package name
+            description (:obj:`str`, optional): package description
+            keywords (:obj:`list` of :obj:`str`, optional): list of keywords
             build_image_version (:obj:`str`, optional): build image version
+            dirname (:obj:`str`, optional): directory name
         """
 
-        name = os.path.basename(os.path.abspath(dirname))
         if not re.match('^[a-z][a-z0-9_]*$', name):
             raise Exception('Repository names should start with a letter and only include lower case letters, numbers, and underscores')
 
+        keywords = keywords or []
+
         if not build_image_version:
             build_image_version = self.DEFAULT_BUILD_IMAGE_VERSION
+
+        dirname = dirname or os.path.join('.', name)
 
         # create a directory for the repository
         if not os.path.isdir(dirname):
@@ -259,6 +310,8 @@ class BuildHelper(object):
         now = datetime.now()
         context = {
             'name': name,
+            'description': description,
+            'keywords': keywords,
             'version': self.INITIAL_PACKAGE_VERSION,
             'year': now.year,
             'date': '{}-{}-{}'.format(now.year, now.month, now.day),
@@ -467,7 +520,8 @@ class BuildHelper(object):
         """ Install requirements """
 
         # upgrade pip, setuptools
-        self.run_method_and_capture_stderr(pip.main, ['install', '-U', 'pip', 'setuptools'])
+        self.run_method_and_capture_stderr(pip.main, ['install', '-U', 'setuptools'])
+        self.run_method_and_capture_stderr(pip.main, ['install', '-U', 'pip'])
 
         # requirements for package
         self._install_requirements_helper('requirements.txt')
@@ -1358,6 +1412,19 @@ class BuildHelper(object):
             os.mkdir(os.path.join(dirname, self.proj_docs_dir))
 
         for package in packages:
+            filenames = [
+                'conf.py',
+                'requirements.txt',
+                'conda.environment.yml',
+                'spelling_wordlist.txt',
+                'index.rst',
+                'overview.rst',
+                'installation.rst',
+                'about.rst',
+                'references.rst',
+                'references.bib',
+            ]
+
             context = {
                 "package": package,
                 'version': self.INITIAL_PACKAGE_VERSION,
@@ -1365,54 +1432,10 @@ class BuildHelper(object):
                 'package_underline': '=' * len(package),
             }
 
-            # configuration
-            with open(pkg_resources.resource_filename('karr_lab_build_utils', 'templates/docs/conf.py'), 'r') as file:
-                template = Template(file.read())
-            template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'conf.py'))
-
-            # requirements
-            with open(pkg_resources.resource_filename('karr_lab_build_utils', 'templates/docs/requirements.txt'), 'r') as file:
-                template = Template(file.read())
-            template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'requirements.txt'))
-
-            # requirements
-            with open(pkg_resources.resource_filename('karr_lab_build_utils', 'templates/docs/conda.environment.yml'), 'r') as file:
-                template = Template(file.read())
-            template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'conda.environment.yml'))
-
-            # requirements
-            with open(pkg_resources.resource_filename('karr_lab_build_utils', 'templates/docs/spelling_wordlist.txt'), 'r') as file:
-                template = Template(file.read())
-            template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'spelling_wordlist.txt'))
-
-            # index
-            with open(pkg_resources.resource_filename('karr_lab_build_utils', 'templates/docs/index.rst'), 'r') as file:
-                template = Template(file.read())
-            template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'index.rst'))
-
-            # references
-            with open(pkg_resources.resource_filename('karr_lab_build_utils', 'templates/docs/references.rst'), 'r') as file:
-                template = Template(file.read())
-            template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'references.rst'))
-
-            with open(pkg_resources.resource_filename('karr_lab_build_utils', 'templates/docs/references.bib'), 'r') as file:
-                template = Template(file.read())
-            template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'references.bib'))
-
-            # overview
-            with open(pkg_resources.resource_filename('karr_lab_build_utils', 'templates/docs/overview.rst'), 'r') as file:
-                template = Template(file.read())
-            template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'overview.rst'))
-
-            # installation
-            with open(pkg_resources.resource_filename('karr_lab_build_utils', 'templates/docs/installation.rst'), 'r') as file:
-                template = Template(file.read())
-            template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'installation.rst'))
-
-            # about
-            with open(pkg_resources.resource_filename('karr_lab_build_utils', 'templates/docs/about.rst'), 'r') as file:
-                template = Template(file.read())
-            template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, 'about.rst'))
+            for filename in filenames:
+                with open(pkg_resources.resource_filename('karr_lab_build_utils', os.path.join('templates', 'docs', filename)), 'r') as file:
+                    template = Template(file.read())
+                template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, filename))
 
     def make_documentation(self, spell_check=False):
         """ Make HTML documentation using Sphinx for one or more packages. Save documentation to `proj_docs_build_html_dir`
