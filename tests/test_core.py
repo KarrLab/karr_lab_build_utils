@@ -70,7 +70,7 @@ else:
 class TestKarrLabBuildUtils(unittest.TestCase):
     COVERALLS_REPO_TOKEN = 'xxx'
     CODECLIMATE_REPO_TOKEN = 'xxx'
-    DUMMY_TEST = 'tests/test_karr_lab_build_utils.py:TestKarrLabBuildUtils.test_dummy_test'
+    DUMMY_TEST = os.path.join(os.path.basename(os.path.dirname(__file__)), os.path.basename(__file__)) + ':TestKarrLabBuildUtils.test_dummy_test'
 
     def setUp(self):
         self.coverage_dirname = tempfile.mkdtemp()
@@ -462,11 +462,11 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.assertTrue(os.path.isfile(lastest_cov_filename))
 
         """ test CLI """
-        argv = ['run-tests', '--test-path', TestKarrLabBuildUtils.DUMMY_TEST, '--with-xunit', '--with-coverage']
+        argv = ['run-tests', '--test-path', self.DUMMY_TEST, '--with-xunit', '--with-coverage']
         with self.construct_environment():
             with __main__.App(argv=argv) as app:
                 app.run()
-                self.assertEqual(TestKarrLabBuildUtils.DUMMY_TEST, app.pargs.test_path)
+                self.assertEqual(self.DUMMY_TEST, app.pargs.test_path)
                 self.assertTrue(app.pargs.with_xunit)
                 self.assertTrue(app.pargs.with_coverage)
 
@@ -480,7 +480,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
     def test_run_tests_with_test_path_env_var(self):
         env = self.construct_environment()
-        env.set('test_path', TestKarrLabBuildUtils.DUMMY_TEST)
+        env.set('test_path', self.DUMMY_TEST)
         with env:
             with __main__.App(argv=['run-tests']) as app:
                 app.run()
