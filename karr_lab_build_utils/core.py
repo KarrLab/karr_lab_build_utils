@@ -27,6 +27,7 @@ import email.message
 import email.utils
 import enum
 import fnmatch
+import ftputil
 import github
 import glob
 import graphviz
@@ -57,6 +58,7 @@ import tempfile
 import time
 import twine.commands.upload
 import yaml
+import warnings
 
 
 class CoverageType(enum.Enum):
@@ -124,8 +126,8 @@ class BuildHelper(object):
         GITHUB_API_ENDPOINT (:obj:`str`): GitHub API endpoint
         CIRCLE_API_ENDPOINT (:obj:`str`): CircleCI API endpoint
 
-        COVERALLS_ENABLED (:obj:`bool`): if :obj:`True`, upload coverage reports to coveralls
-        CODE_CLIMATE_ENABLED (:obj:`bool`): if :obj:`True`, upload coverage reports to code climate
+        COVERALLS_ENABLED (:obj:`bool`): if :obj:`True`, upload coverage reports to Coveralls
+        CODE_CLIMATE_ENABLED (:obj:`bool`): if :obj:`True`, upload coverage reports to Code Climate
     """
 
     INITIAL_PACKAGE_VERSION = '0.0.1'
@@ -159,7 +161,7 @@ class BuildHelper(object):
 
         self.repo_type = 'github'
         self.repo_name = os.getenv('CIRCLE_PROJECT_REPONAME')
-        self.repo_owner = os.getenv('CIRCLE_PROJECT_USERNAME')
+        self.repo_owner = os.getenv('CIRCLE_PROJECT_USERNAME') or 'KarrLab'
         self.repo_branch = os.getenv('CIRCLE_BRANCH')
         self.repo_revision = os.getenv('CIRCLE_SHA1')
         try:
@@ -186,18 +188,21 @@ class BuildHelper(object):
         self.github_password = os.getenv('GITHUB_PASSWORD')
         self.circleci_api_token = os.getenv('CIRCLECI_API_TOKEN')
 
+        self.code_server_hostname = 'code.karrlab.org'
+        self.code_server_username = 'karrlab_code'
+        self.code_server_password = os.getenv('CODE_SERVER_PASSWORD')
+        self.code_server_directory = '/code.karrlab.org/repo'
+
     #####################
     # Create a package
     #####################
-    def create_package(self, name, description='', keywords=None, dependencies=None, private=True, build_image_version=None):
+    def create_package(self, name, description='', keywords=None, dependencies=None, private=True,
+                       build_image_version=None, dirname=None, github_username=None, github_password=None, 
+                       circleci_api_token=None, code_server_password=None):
         """ Create a package
 
         * Create a local Git repository
         * Create a remote GitHub repository
-        * Add the repository to code.karrlab.org
-
-            * Add JSON-formatted file to ``ssh://code.karrlab.org:/home/karrlab_code/code.karrlab.org/repo/{{ name }}.json``
-
         * Add the repository to Code Climate
         * Add the repository to Coveralls
         * Add the repository to CircleCI project (by following the GitHub repository)
@@ -207,6 +212,10 @@ class BuildHelper(object):
             * Generate API token for status badge
 
         * If the repository is not private, add the repository to Read the Docs
+        * Add the package to code.karrlab.org
+
+            * Add JSON-formatted file to ``ssh://code.karrlab.org:/home/karrlab_code/code.karrlab.org/repo/{{ name }}.json``
+
         * Add badges for Code Climate, Coveralls, CircleCI, and Read the Docs to README.md
         * Add package name to ``.circleci/downstream_dependencies.yml`` files of all dependencies
 
@@ -215,66 +224,172 @@ class BuildHelper(object):
             description (:obj:`str`, optional): package description
             keywords (:obj:`list` of :obj:`str`, optional): list of keywords
             dependencies (:obj:`list` of :obj:`str`, optional): list of names of dependent packages/GitHub repositories
-            private (:obj:`bool`, optional): if :obj:`False`, make the GitHub repository public and set 
+            private (:obj:`bool`, optional): if :obj:`False`, make the GitHub repository public and set
                 up documentation generation with Read the Docs
-            build_image_version (:obj:`str`, optional): build image version            
+            build_image_version (:obj:`str`, optional): build image version
+            dirname (:obj:`str`, optional): directory name for repository
+            github_username (:obj:`str`, optional): GitHub username
+            github_password (:obj:`str`, optional): GitHub password
+            circleci_api_token (:obj:`str`, optional): CircleCI API token
+            code_server_password (:obj:`str`, optional): password for code.karrlab.org
         """
-        # :todo: implement
-        pass  # pragma: no cover
 
-    def create_repository(self, name, description='', keywords=None, private=True, build_image_version=None, dirname=None):
+        # process arguments
+        dependencies = dependencies or []
+
+        dirname = dirname or os.path.join('.', name)
+
+        if github_username is None:
+            github_username = self.github_username
+
+        if github_password is None:
+            github_password = self.github_password
+
+        if code_server_password is None:
+            code_server_password = self.code_server_password
+
+        # create local and GitHub Git repositories
+        self.create_repository(name, description=description, private=private, dirname=dirname,
+                               github_username=github_username, github_password=github_password)
+
+        # Code Climate
+        # :todo: programmatically add repo to Code Climate and generate tokens
+        codeclimate_repo_id = None
+        codeclimate_repo_token = None
+        codeclimate_repo_badge_token = None
+
+        # Coveralls
+        # :todo: programmatically add repo to Coveralls and generate tokens
+        coveralls_repo_token = None
+        coveralls_repo_badge_token = None
+
+        # CircleCI
+        has_private_dependencies = False
+        g = github.Github(github_username, github_password)
+        org = g.get_organization('KarrLab')
+        for dependency in dependencies:
+            repo = org.get_repo(name)
+            has_private_dependencies = has_private_dependencies or repo.private
+
+        # :todo: programmatically create CircleCI build
+        # :todo: programmatically create CircleCI token for status badges
+        circleci_repo_token = None
+
+        # Read the Docs        
+        if not private:
+            # :todo: programmatically add repo to Read the Docs
+            pass
+
+        # add package to code.karrlab.org
+        with open(pkg_resources.resource_filename('karr_lab_build_utils',
+                                                  os.path.join('templates', 'code_server', '_package_.json')), 'r') as file:
+            template = Template(file.read())
+
+        fid, local_filename = tempfile.mkstemp()
+        os.close(fid)
+
+        context = {
+            'name': name,
+            'description': description,
+            'private': private,
+            'circleci_repo_token': circleci_repo_token,
+            'coveralls_repo_token': coveralls_repo_token,
+            'codeclimate_repo_id': codeclimate_repo_id,
+        }
+
+        template.stream(**context).dump(local_filename)
+
+        with ftputil.FTPHost(self.code_server_hostname, self.code_server_username, code_server_password) as ftp:
+            remote_filename = ftp.path.join(self.code_server_directory, '{}.json'.format(name))
+            ftp.upload(local_filename, remote_filename)
+
+        os.remove(local_filename)
+
+        # setup repository
+        self.setup_repository(name, description=description, keywords=keywords, dependencies=dependencies,
+                              private=private, build_image_version=build_image_version, dirname=dirname,
+                              circleci_repo_token=circleci_repo_token, coveralls_repo_badge_token=coveralls_repo_badge_token,
+                              codeclimate_repo_id=codeclimate_repo_id, codeclimate_repo_badge_token=codeclimate_repo_badge_token)
+
+        # append package to downstream dependencies of dependencies
+        parent_dirname = os.path.dirname(dirname)
+        for dependency in dependencies:
+            downstream_deps_filename = os.path.join(parent_dirname, dependency, '.circleci', 'downstream_dependencies.yml')
+
+            if not os.path.isfile(downstream_deps_filename):
+                warnings.warn(UserWarning, ('Unable to append package to downstream dependency {} because the '
+                                            'downstream dependency is not avaiable').format(dependency))
+
+            with open(downstream_deps_filename, 'r') as file:
+                downstream_deps = yaml.load(file)
+
+            downstream_deps.append(name)
+
+            with open(downstream_deps_filename, 'w') as file:
+                yaml.dump(downstream_deps, file, default_flow_style=False)
+
+    def create_repository(self, name, description='', private=True, dirname=None, github_username=None, github_password=None):
         """ Create a Git repository with the default directory structure
 
         Args:
             name (:obj`str`): package name
             description (:obj:`str`, optional): package description
-            keywords (:obj:`list` of :obj:`str`, optional): list of keywords
-            private (:obj:`bool`, optional): if :obj:`False`, make the GitHub repository public and set 
+            private (:obj:`bool`, optional): if :obj:`False`, make the GitHub repository public and set
                 up documentation generation with Read the Docs
-            build_image_version (:obj:`str`, optional): build image version
             dirname (:obj:`str`, optional): directory name for repository
+            github_username (:obj:`str`, optional): GitHub username
+            github_password (:obj:`str`, optional): GitHub password
         """
 
+        # process arguments
         if not re.match('^[a-z][a-z0-9_]*$', name):
             raise Exception('Repository names should start with a letter and only include lower case letters, numbers, and underscores')
 
-        keywords = keywords or []
-
-        if not build_image_version:
-            build_image_version = self.DEFAULT_BUILD_IMAGE_VERSION
-
         dirname = dirname or os.path.join('.', name)
 
+        if github_username is None:
+            github_username = self.github_username
+
+        if github_password is None:
+            github_password = self.github_password
+
         # create GitHub repository
-        g = github.Github(self.github_username, self.github_password)
+        g = github.Github(github_username, github_password)
         org = g.get_organization('KarrLab')
         org.create_repo(name=name, description=description, private=private)
 
         # initialize Git
         import pygit2
-        credentials = pygit2.UserPass(self.github_username, self.github_password)
+        credentials = pygit2.UserPass(github_username, github_password)
         callbacks = pygit2.RemoteCallbacks(credentials=credentials)
         pygit2.clone_repository('https://github.com/KarrLab/{}.git'.format(name), dirname, callbacks=callbacks)
 
-        # setup repository
-        self.setup_repository(name, description=description, keywords=keywords,
-                              build_image_version=build_image_version, dirname=dirname)
-
-    def setup_repository(self, name, description='', keywords=None, build_image_version=None, dirname=None):
+    def setup_repository(self, name, description='', keywords=None, dependencies=None, private=True, build_image_version=None,
+                         dirname=None, circleci_repo_token=None, coveralls_repo_badge_token=None, codeclimate_repo_id=None,
+                         codeclimate_repo_badge_token=None):
         """ Setup Git repository with the default directory structure
 
-        Args:            
+        Args:
             name (:obj`str`): package name
             description (:obj:`str`, optional): package description
             keywords (:obj:`list` of :obj:`str`, optional): list of keywords
+            dependencies (:obj:`list` of :obj:`str`, optional): list of Karr Lab packages that the package depends on
+            private (:obj:`bool`, optional): if :obj:`False`, make the GitHub repository public and set
+                up documentation generation with Read the Docs
             build_image_version (:obj:`str`, optional): build image version
             dirname (:obj:`str`, optional): directory name
+            circleci_repo_token (:obj:`str`, optional): CircleCI API token (e.g. for badges) for the repository
+            coveralls_repo_badge_token (:obj:`str`, optional): Coveralls badge token for the repository
+            codeclimate_repo_id (:obj:`str`, optional): Code Climate ID for the repository
+            codeclimate_repo_badge_token (:obj:`str`, optional): Code Climate for the repository
         """
 
         if not re.match('^[a-z][a-z0-9_]*$', name):
             raise Exception('Repository names should start with a letter and only include lower case letters, numbers, and underscores')
 
         keywords = keywords or []
+
+        dependencies = dependencies or []
 
         if not build_image_version:
             build_image_version = self.DEFAULT_BUILD_IMAGE_VERSION
@@ -315,7 +430,13 @@ class BuildHelper(object):
             'version': self.INITIAL_PACKAGE_VERSION,
             'year': now.year,
             'date': '{}-{}-{}'.format(now.year, now.month, now.day),
+            'dependencies': dependencies,
             'build_image_version': build_image_version,
+            'private': private,
+            'circleci_repo_token': circleci_repo_token,
+            'coveralls_repo_badge_token': coveralls_repo_badge_token,
+            'codeclimate_repo_id': codeclimate_repo_id,
+            'codeclimate_repo_badge_token': codeclimate_repo_badge_token,
         }
 
         for filename in filenames:
@@ -335,17 +456,19 @@ class BuildHelper(object):
     ###########################
     # Register repo on CircleCI
     ###########################
-    def create_circleci_build(self, repo_type=None, repo_owner=None, repo_name=None, circleci_api_token=None):
-        """ Create CircleCI build for a repository
+    def follow_circleci_build(self, repo_type=None, repo_owner=None, repo_name=None, circleci_api_token=None,
+                              has_private_dependencies=False):
+        """ Follow CircleCI build for a repository
 
         Args:
             repo_type (:obj:`str`, optional): repository type
             repo_owner (:obj:`str`, optional): repository owner
             repo_name (:obj:`str`, optional): repository name
             circleci_api_token (:obj:`str`, optional): CircleCI API token
+            has_private_dependencies (:obj:`bool`, optional): if :obj:`True`, add a GitHub SSH key for the Karr Lab machine user to the build
 
         Raises:
-            :obj:`ValueError`: if a CircleCI build wasn't created and didn't already exist
+            :obj:`ValueError`: if a CircleCI build wasn't followed and didn't already exist
         """
         if repo_type is None:
             repo_type = self.repo_type
@@ -359,12 +482,18 @@ class BuildHelper(object):
         if circleci_api_token is None:
             circleci_api_token = self.circleci_api_token
 
+        # follow repo
         result = self.run_circleci_api('/follow',
                                        method='post', repo_type=repo_type, repo_owner=repo_owner, repo_name=repo_name,
                                        circleci_api_token=circleci_api_token)
         if 'following' not in result or not result['following']:
             raise ValueError(
-                'Unable to create CircleCI build for repository {}/{}'.format(repo_owner, repo_name))
+                'Unable to follow CircleCI build for repository {}/{}'.format(repo_owner, repo_name))
+
+        # add checkout key
+        if has_private_dependencies:
+            # :todo: add a GitHub SSH key for the Karr Lab machine user to the build            
+            pass
 
     def get_circleci_environment_variables(self, repo_type=None, repo_owner=None, repo_name=None, circleci_api_token=None):
         """ Get the CircleCI environment variables for a repository and their partial values
@@ -466,7 +595,7 @@ class BuildHelper(object):
 
     def create_codeclimate_github_webhook(self, repo_type=None, repo_owner=None, repo_name=None,
                                           github_username=None, github_password=None):
-        """ Create GitHub webhook for CodeClimate
+        """ Create GitHub webhook for Code Climate
 
         Args:
             repo_type (:obj:`str`, optional): repository type
@@ -562,7 +691,7 @@ class BuildHelper(object):
             os.remove(sanitized_filename)
 
     def upgrade_requirements(self):
-        """ Upgrade requirements from the Karr Lab's GitHub organization 
+        """ Upgrade requirements from the Karr Lab's GitHub organization
 
         Returns:
             :obj:`list` of :obj:`str`: upgraded requirements from the Karr Lab's GitHub organization
@@ -1053,7 +1182,7 @@ class BuildHelper(object):
             test_results (:obj:`TestResults`): test results
             build_exit_code (:obj:`int`): Exit code of the build
             reports_error (:obj:`bool`): :obj:`True` if there was an error generating and/or archiving the reports
-            dry_run (:obj:`bool`, optional): if true, don't upload to the coveralls and code climate servers
+            dry_run (:obj:`bool`, optional): if true, don't upload to the Coveralls and Code Climate servers
 
         Returns:
             :obj:`dict`: status of a set of results
@@ -1126,7 +1255,7 @@ class BuildHelper(object):
 
         Args:
             build_exit_code (:obj:`int`): Exit code of the build
-            dry_run (:obj:`bool`, optional): if true, don't upload to the coveralls and code climate servers
+            dry_run (:obj:`bool`, optional): if true, don't upload to the Coveralls and Code Climate servers
 
         Returns:
             :obj:`list` of :obj:`str`: names of triggered packages
@@ -1148,7 +1277,7 @@ class BuildHelper(object):
         Args:
             build_exit_code (:obj:`int`): Exit code of the build
             reports_error (:obj:`bool`): :obj:`True` if there was an error generating and/or archiving the reports
-            dry_run (:obj:`bool`, optional): if true, don't upload to the coveralls and code climate servers
+            dry_run (:obj:`bool`, optional): if true, don't upload to the Coveralls and Code Climate servers
 
         Returns:
             :obj:`dict`: status of a set of results
@@ -1221,7 +1350,7 @@ class BuildHelper(object):
             subject (:obj:`str`): subject
             template_filename (obj:`str`): path to template
             context (obj:`dict`): context for template
-            dry_run (:obj:`bool`, optional): if true, don't upload to the coveralls and code climate servers
+            dry_run (:obj:`bool`, optional): if true, don't upload to the Coveralls and Code Climate servers
         """
         full_template_filename = pkg_resources.resource_filename(
             'karr_lab_build_utils', os.path.join('templates', 'email_notifications', template_filename))
@@ -1255,7 +1384,7 @@ class BuildHelper(object):
 
         Args:
             coverage_dirname (:obj:`str`, optional): directory to merge coverage files
-            dry_run (:obj:`bool`, optional): if true, don't upload to the coveralls and code climate servers
+            dry_run (:obj:`bool`, optional): if true, don't upload to the Coveralls and Code Climate servers
         """
 
         """ test reports """
@@ -1336,7 +1465,7 @@ class BuildHelper(object):
 
         Args:
             coverage_dirname (:obj:`str`, optional): directory to save coverage data
-            dry_run (:obj:`bool`, optional): if true, don't upload to the coveralls and code climate servers
+            dry_run (:obj:`bool`, optional): if true, don't upload to the Coveralls and Code Climate servers
 
         * Upload report to Coveralls and Code Climate
         """
@@ -1354,7 +1483,7 @@ class BuildHelper(object):
 
         Args:
             coverage_dirname (:obj:`str`, optional): directory to save coverage data
-            dry_run (:obj:`bool`, optional): if true, don't upload to the coveralls server
+            dry_run (:obj:`bool`, optional): if true, don't upload to the Coveralls server
         """
         if self.coveralls_token:
             runner = coveralls.Coveralls(True, repo_token=self.coveralls_token,
@@ -1375,7 +1504,7 @@ class BuildHelper(object):
 
         Args:
             coverage_dirname (:obj:`str`, optional): directory to save coverage data
-            dry_run (:obj:`bool`, optional): if true, don't upload to the coveralls server
+            dry_run (:obj:`bool`, optional): if true, don't upload to the Coveralls server
 
         Raises:
             :obj:`BuildHelperError`: If error uploading code coverage to Code Climate
@@ -1433,7 +1562,8 @@ class BuildHelper(object):
             }
 
             for filename in filenames:
-                with open(pkg_resources.resource_filename('karr_lab_build_utils', os.path.join('templates', 'docs', filename)), 'r') as file:
+                template_filename = pkg_resources.resource_filename('karr_lab_build_utils', os.path.join('templates', 'docs', filename))
+                with open(template_filename, 'r') as file:
                     template = Template(file.read())
                 template.stream(**context).dump(os.path.join(dirname, self.proj_docs_dir, filename))
 
@@ -1579,7 +1709,7 @@ class BuildHelper(object):
 
         Args:
             downstream_dependencies_filename (:obj:`str`, optional): path to YAML file which contains a list of downstream dependencies
-            dry_run (:obj:`bool`, optional): if true, don't upload to the coveralls and code climate servers
+            dry_run (:obj:`bool`, optional): if true, don't upload to the Coveralls and Code Climate servers
 
         Returns:
             :obj:`list` of :obj:`str`: names of triggered packages

@@ -7,8 +7,8 @@
 """
 
 """
-:todo: Test Docker (:obj:`karr_lab_build_utils.core.BuildHelper._run_tests_docker`) and CircleCI 
-    (:obj:`karr_lab_build_utils.core.BuildHelper._run_tests_circleci`) within CircleCI. Implementing 
+:todo: Test Docker (:obj:`karr_lab_build_utils.core.BuildHelper._run_tests_docker`) and CircleCI
+    (:obj:`karr_lab_build_utils.core.BuildHelper._run_tests_circleci`) within CircleCI. Implementing
     this would require the following changes:
 
     * Install Docker and CircleCI within the Docker image (i.e. add installation to
@@ -36,6 +36,7 @@ from six.moves import configparser
 import abduct
 import attrdict
 import capturer
+import ftputil
 import github
 import imp
 import karr_lab_build_utils
@@ -118,6 +119,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with open('tests/fixtures/secret/KARR_LAB_DAEMON_GMAIL_PASSWORD', 'r') as file:
                 env.set('KARR_LAB_DAEMON_GMAIL_PASSWORD', file.read().rstrip())
 
+        if not os.getenv('CODE_SERVER_PASSWORD'):
+            with open('tests/fixtures/secret/CODE_SERVER_PASSWORD', 'r') as file:
+                env.set('CODE_SERVER_PASSWORD', file.read().rstrip())
+
         return env
 
     @staticmethod
@@ -126,6 +131,99 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             build_helper = core.BuildHelper()
 
         return build_helper
+
+    def test_create_package(self):
+        build_helper = self.construct_build_helper()
+
+        tempdirname = tempfile.mkdtemp()
+
+        g = github.Github(build_helper.github_username, build_helper.github_password)
+        org = g.get_organization('KarrLab')
+        for name in ['test_a', 'test_b', 'test_c']:
+            try:
+                repo = org.get_repo(name)
+                repo.delete()
+            except github.UnknownObjectException:
+                pass
+
+        """ test API """
+        build_helper.create_package('test_a', description='description', keywords=['word_a', 'word_b'], dependencies=[], private=True,
+                                    dirname=os.path.join(tempdirname, 'test_a'))
+
+        self.assertTrue(os.path.isdir(os.path.join(tempdirname, 'test_a', '.git')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'test_a', 'README.md')))
+
+        downstream_deps_filename = os.path.join(tempdirname, 'test_a', '.circleci', 'downstream_dependencies.yml')
+        with open(downstream_deps_filename, 'r') as file:
+            self.assertEqual(yaml.load(file), [])
+
+        with ftputil.FTPHost(build_helper.code_server_hostname, build_helper.code_server_username, build_helper.code_server_password) as ftp:
+            remote_filename = ftp.path.join(build_helper.code_server_directory, '{}.json'.format('test_a'))
+            self.assertTrue(ftp.path.isfile(remote_filename))
+
+        build_helper.create_package('test_b', description='description', keywords=['word_a', 'word_b'], dependencies=['test_a'], private=False,
+                                    dirname=os.path.join(tempdirname, 'test_b'))
+
+        self.assertTrue(os.path.isdir(os.path.join(tempdirname, 'test_b', '.git')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'test_b', 'README.md')))
+
+        downstream_deps_filename = os.path.join(tempdirname, 'test_a', '.circleci', 'downstream_dependencies.yml')
+        with open(downstream_deps_filename, 'r') as file:
+            self.assertEqual(yaml.load(file), ['test_b'])
+
+        downstream_deps_filename = os.path.join(tempdirname, 'test_b', '.circleci', 'downstream_dependencies.yml')
+        with open(downstream_deps_filename, 'r') as file:
+            self.assertEqual(yaml.load(file), [])
+
+        with ftputil.FTPHost(build_helper.code_server_hostname, build_helper.code_server_username, build_helper.code_server_password) as ftp:
+            remote_filename = ftp.path.join(build_helper.code_server_directory, '{}.json'.format('test_b'))
+            self.assertTrue(ftp.path.isfile(remote_filename))
+
+        """ test CLI """
+        with self.construct_environment():
+            with __main__.App(argv=['create-package', 'test_c', 
+                '--description', 'description',
+                '--keyword', 'keyword_a',
+                '--keyword', 'keyword_b',
+                '--dependency', 'test_a',
+                '--dependency', 'test_b',
+                '--dirname', os.path.join(tempdirname, 'test_c'), 
+                '--public',
+                ]) as app:
+                app.run()
+
+        self.assertEqual(sorted(app.pargs.keywords), ['keyword_a', 'keyword_b'])
+        self.assertEqual(sorted(app.pargs.dependencies), ['test_a', 'test_b'])
+
+        self.assertTrue(os.path.isdir(os.path.join(tempdirname, 'test_c', '.git')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'test_c', 'README.md')))
+
+        downstream_deps_filename = os.path.join(tempdirname, 'test_c', '.circleci', 'downstream_dependencies.yml')
+        with open(downstream_deps_filename, 'r') as file:
+            self.assertEqual(yaml.load(file), [])
+
+        with ftputil.FTPHost(build_helper.code_server_hostname, build_helper.code_server_username, build_helper.code_server_password) as ftp:
+            remote_filename = ftp.path.join(build_helper.code_server_directory, '{}.json'.format('test_c'))
+            self.assertTrue(ftp.path.isfile(remote_filename))
+
+        """ cleanup """
+        g = github.Github(build_helper.github_username, build_helper.github_password)
+        org = g.get_organization('KarrLab')
+        for name in ['test_a', 'test_b', 'test_c']:
+            repo = org.get_repo(name)
+            repo.delete()
+
+        with ftputil.FTPHost(build_helper.code_server_hostname, build_helper.code_server_username, build_helper.code_server_password) as ftp:
+            remote_filename = ftp.path.join(build_helper.code_server_directory, '{}.json'.format('test_a'))
+            ftp.remove(remote_filename)
+
+            remote_filename = ftp.path.join(build_helper.code_server_directory, '{}.json'.format('test_b'))
+            ftp.remove(remote_filename)
+
+            remote_filename = ftp.path.join(build_helper.code_server_directory, '{}.json'.format('test_c'))
+            ftp.remove(remote_filename)
+
+        shutil.rmtree(tempdirname)
 
     def test_create_repository(self):
         build_helper = self.construct_build_helper()
@@ -175,7 +273,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test API """
         # test valid repo names
-        build_helper.setup_repository('a', dirname=os.path.join(tempdirname, 'a'))
+        build_helper.setup_repository('a', dirname=os.path.join(tempdirname, 'a'), keywords=['abc', 'def'], dependencies=['b', 'c'])
         build_helper.setup_repository('a2', dirname=os.path.join(tempdirname, 'a2'))
         build_helper.setup_repository('a_2', dirname=os.path.join(tempdirname, 'a_2'))
         self.assertRaises(Exception, build_helper.setup_repository, '2')
@@ -207,7 +305,13 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with __main__.App(argv=['setup-repository', 'b', '--dirname', os.path.join(tempdirname, 'b')]) as app:
+            with __main__.App(argv=['setup-repository', 'b',
+                                    '--dirname', os.path.join(tempdirname, 'b'),
+                                    '--keyword', 'abc',
+                                    '--keyword', 'def',
+                                    '--dependency', 'b',
+                                    '--dependency', 'c',
+                                    ]) as app:
                 app.run()
 
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', '.gitignore')))
@@ -236,18 +340,18 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         """ cleanup """
         shutil.rmtree(tempdirname)
 
-    def test_create_circleci_build(self):
+    def test_follow_circleci_build(self):
         """ test API """
         with self.construct_environment():
             build_helper = self.construct_build_helper()
-        build_helper.create_circleci_build()
+        build_helper.follow_circleci_build(has_private_dependencies=True)
 
         """ test CLI """
         with self.construct_environment():
-            with __main__.App(argv=['create-circleci-build']) as app:
+            with __main__.App(argv=['follow-circleci-build']) as app:
                 app.run()
 
-    def test_create_circleci_build_error(self):
+    def test_follow_circleci_build_error(self):
         with self.construct_environment():
             build_helper = self.construct_build_helper()
 
@@ -259,8 +363,8 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 return {'following': False}
 
         with mock.patch.object(requests, 'post', return_value=Result()):
-            with self.assertRaisesRegexp(ValueError, '^Unable to create CircleCI build for repository'):
-                build_helper.create_circleci_build()
+            with self.assertRaisesRegexp(ValueError, '^Unable to follow CircleCI build for repository'):
+                build_helper.follow_circleci_build()
 
     def test_get_circleci_environment_variables(self):
         """ test API """

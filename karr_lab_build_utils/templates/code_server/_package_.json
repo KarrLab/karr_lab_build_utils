@@ -1,0 +1,39 @@
+{
+  "id": "{{ name }}",
+  "description": "{{ description }}",
+  "availability": "{% if private %}Closed{% else %}Open{% endif %}",
+  "license": "MIT",
+  "docs": {
+    "readthedocs": {% if private %}false{% else %}{"id": "{{ name }}"}{% endif %}
+  },
+  "build": {
+    "circleci": {
+      {% if private %}
+      "token": "{{ circleci_repo_token }}"
+      {% else %}
+      "token": ""
+      {% endif %}
+      }
+    }
+  },
+  "test_results": true,
+  "test_coverage": {
+    "coveralls": {
+      {% if private %}
+      "token": "{{ coveralls_repo_token }}"
+      {% else %}
+      "token": ""
+      {% endif %}
+    },
+    "html": true
+  },
+  "code_analysis": {
+    "code_climate": {
+      {% if private %}
+      "token": "{{ codeclimate_repo_id }}"
+      {% else %}
+      "open_source": true
+      {% endif %}
+    }
+  }
+}

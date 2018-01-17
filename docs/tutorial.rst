@@ -26,6 +26,20 @@ Run the following commands to get help documentation about the command line util
     karr_lab_build_utils --help
     karr_lab_build_utils create-repository --help
 
+Creating a new package
+----------------------
+
+Run this command to create a new package (create local and remote repositories with the proper directory structure and files for our build system, add repository to CircleCI, add package to downstream dependencies of dependencies, etc.). This should be run from the package's desired parent directory, e.g. with a current working directory of ``~/Documents``.::
+
+    cd ~/Documents
+    karr_lab_build_utils create-package package_name \
+        --description description \
+        --keyword keyword_1 \
+        --keyword keyword_2 \
+        --dependency dependency_1 \
+        --dependency dependency_2 \
+        --private
+
 
 Versioning with Git and GitHub
 ------------------------------
@@ -33,10 +47,12 @@ Versioning with Git and GitHub
 Create a repository for a package
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Run this command to create a new repository with the proper directory structure and files for our build system. This should be run from the package's desired parent directory, e.g. with a current working directory of ``~/Documents``.::
+Run this command to create a new repository (including both local and GitHub versions). This should be run from the package's desired parent directory, e.g. with a current working directory of ``~/Documents``.::
 
     cd ~/Documents
-    karr_lab_build_utils create-repository --dirname new_package --url https://github.com/KarrLab/new_package
+    karr_lab_build_utils create-repository repository_name \
+        --description description \
+        --private
 
 
 Testing with pytest, coverage, instrumental, Docker, and CircleCI

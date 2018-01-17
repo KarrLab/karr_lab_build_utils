@@ -46,6 +46,56 @@ class BaseController(CementBaseController):
         print(buildHelper.get_version())
 
 
+class CreatePackageController(CementBaseController):
+    """ Create a package """
+
+    class Meta:
+        label = 'create-package'
+        description = (
+            'Create a package: \n'
+            '- Create local and remote Git repositories;\n'
+            '- Setup the directory structure of the repository;\n'
+            '- Add the repository to CircleCI, Coveralls, Code Climate, Read the Docs, and code.karrlab.org;\n'
+            '- Update the downstream dependencies of the package''s dependencies'
+        )
+        stacked_on = 'base'
+        stacked_type = 'nested'
+        arguments = [
+            (['name'], dict(
+                type=str, help='Name of the package')),
+            (['--description'], dict(
+                default='', type=str, help='Description of the package')),
+            (['--keyword'], dict(
+                dest='keywords', default=[], type=str, action='append', help='Keyword for the package')),
+            (['--dependency'], dict(
+                dest='dependencies', default=[], type=str, action='append',
+                help='Karr Lab package that the package depends on')),
+            (['--public'], dict(
+                default=False, action='store_true', help='if set, make the package public')),
+            (['--build-image-version'], dict(
+                default=None, type=str, help='Build image version')),
+            (['--dirname'], dict(
+                default=None, type=str, help='Path for the package')),
+            (['--github-username'], dict(
+                type=str, default=None, help='GitHub username')),
+            (['--github-password'], dict(
+                type=str, default=None, help='GitHub password')),
+            (['--circleci-api-token'], dict(
+                type=str, default=None, help='CircleCI API token')),
+            (['--code-server-password'], dict(
+                type=str, default=None, help='Password for code.karrlab.org')),
+        ]
+
+    @expose(hide=True)
+    def default(self):
+        args = self.app.pargs
+        buildHelper = BuildHelper()
+        buildHelper.create_package(args.name, description=args.description, keywords=args.keywords, dependencies=args.dependencies,
+                                   private=(not args.public), build_image_version=args.build_image_version, dirname=args.dirname,
+                                   github_username=args.github_username, github_password=args.github_password,
+                                   circleci_api_token=args.circleci_api_token, code_server_password=args.code_server_password)
+
+
 class CreateRepositoryController(CementBaseController):
     """ Create a Git repository with the default directory structure """
 
@@ -59,22 +109,22 @@ class CreateRepositoryController(CementBaseController):
                 type=str, help='Name of the repository (i.e. KarrLab/<name>)')),
             (['--description'], dict(
                 default='', type=str, help='Description of the repository')),
-            (['--keyword'], dict(
-                dest='keywords', default=[], type=list, action='append', help='Keyword for the repository')),
             (['--public'], dict(
                 default=False, action='store_true', help='if set, make the repository public')),
-            (['--build-image-version'], dict(
-                default=None, type=str, help='Build image version')),
             (['--dirname'], dict(
                 default=None, type=str, help='Path for the repository')),
+            (['--github-username'], dict(
+                type=str, default=None, help='GitHub username')),
+            (['--github-password'], dict(
+                type=str, default=None, help='GitHub password')),
         ]
 
     @expose(hide=True)
     def default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
-        buildHelper.create_repository(args.name, description=args.description, keywords=args.keywords,
-                                      private=(not args.public), build_image_version=args.build_image_version, dirname=args.dirname)
+        buildHelper.create_repository(args.name, description=args.description, private=(not args.public), dirname=args.dirname,
+                                      github_username=args.github_username, github_password=args.github_password)
 
 
 class SetupRepositoryController(CementBaseController):
@@ -91,19 +141,34 @@ class SetupRepositoryController(CementBaseController):
             (['--description'], dict(
                 default='', type=str, help='Description of the repository')),
             (['--keyword'], dict(
-                dest='keywords', default=[], type=list, action='append', help='Keyword for the repository')),
+                dest='keywords', default=[], type=str, action='append', help='Keyword for the repository')),
+            (['--dependency'], dict(
+                dest='dependencies', default=[], type=str, action='append', help='Karr Lab package that the package depends on')),
+            (['--public'], dict(
+                default=False, action='store_true', help='if set, make the repository public')),
             (['--build-image-version'], dict(
                 default=None, type=str, help='Build image version')),
             (['--dirname'], dict(
                 default=None, type=str, help='Path for the repository')),
+            (['--circleci-repo-token'], dict(
+                default=None, type=str, help='CircleCI API token for thre repository')),
+            (['--coveralls-repo-badge-token'], dict(
+                default=None, type=str, help='Coveralls badge token for the repository')),
+            (['--codeclimate-repo-id'], dict(
+                default=None, type=str, help='Code Climate ID the repository')),
+            (['--codeclimate-repo-badge-token'], dict(
+                default=None, type=str, help='Code Climate badge token for the repository')),
         ]
 
     @expose(hide=True)
     def default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
-        buildHelper.setup_repository(args.name, description=args.description, keywords=args.keywords,
-                                     build_image_version=args.build_image_version, dirname=args.dirname)
+        buildHelper.setup_repository(
+            args.name, description=args.description, keywords=args.keywords, dependencies=args.dependencies,
+            private=(not args.public), build_image_version=args.build_image_version, dirname=args.dirname,
+            circleci_repo_token=args.circleci_repo_token, coveralls_repo_badge_token=args.coveralls_repo_badge_token,
+            codeclimate_repo_id=args.codeclimate_repo_id, codeclimate_repo_badge_token=args.codeclimate_repo_badge_token)
 
 
 class CreateDocumentationTemplateController(CementBaseController):
@@ -191,11 +256,11 @@ class RunTestsController(CementBaseController):
                               ssh_key_filename=args.ssh_key_filename)
 
 
-class CreateCircleciBuildController(CementBaseController):
-    """ Create a CircleCI build for a repository """
+class FollowCircleciBuildController(CementBaseController):
+    """ Follow a CircleCI build for a repository """
     class Meta:
-        label = 'create-circleci-build'
-        description = 'Create a CircleCI build for a repository'
+        label = 'follow-circleci-build'
+        description = 'Follow a CircleCI build for a repository'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
@@ -207,15 +272,20 @@ class CreateCircleciBuildController(CementBaseController):
                 type=str, default=None, help='Name of the repository to build. This defaults to the name of the current repository.')),
             (['--circleci-api-token'], dict(
                 type=str, default=None, help='CircleCI API token')),
+            (['--has-private-dependencies'], dict(
+                default=False, action='store_true',
+                help=('Set if the build requires an SSH key for the Karr Lab machine user because the repository depends on '
+                      'another private repository'))),
         ]
 
     @expose(hide=True)
     def default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
-        buildHelper.create_circleci_build(
+        buildHelper.follow_circleci_build(
             repo_type=args.repo_type, repo_owner=args.repo_owner,
-            repo_name=args.repo_name, circleci_api_token=args.circleci_api_token)
+            repo_name=args.repo_name, circleci_api_token=args.circleci_api_token,
+            has_private_dependencies=args.has_private_dependencies)
 
 
 class GetCircleciEnvironmentVariablesController(CementBaseController):
@@ -309,10 +379,10 @@ class DeleteCircleciEnvironmentVariableController(CementBaseController):
 
 
 class CreateCodeclimateGithubWebhookController(CementBaseController):
-    """ Create CodeClimate GitHub webhook for the current repository """
+    """ Create Code Climate GitHub webhook for the current repository """
     class Meta:
         label = 'create-codeclimate-github-webhook'
-        description = 'Create CodeClimate GitHub webhook for the current repository'
+        description = 'Create Code Climate GitHub webhook for the current repository'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
@@ -779,11 +849,12 @@ class App(CementApp):
         base_controller = 'base'
         handlers = [
             BaseController,
+            CreatePackageController,
             CreateRepositoryController,
             SetupRepositoryController,
             CreateDocumentationTemplateController,
             RunTestsController,
-            CreateCircleciBuildController,
+            FollowCircleciBuildController,
             GetCircleciEnvironmentVariablesController,
             SetCircleciEnvironmentVariableController,
             DeleteCircleciEnvironmentVariableController,
