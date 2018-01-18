@@ -863,8 +863,9 @@ class BuildHelper(object):
         reqs = []
         for info in infos.split('---\n'):
             if 'github.com/KarrLab/' in info:
+                name = info.partition('Name: ')[2].partition('\n')[0].replace('-', '_')
                 url = info.partition('Home-page: ')[2].partition('\n')[0]
-                reqs.append('git+' + url + '.git')
+                reqs.append('git+{}.git#egg={}[all]'.format(url, name))
 
         # ugrade requirements
         self.run_method_and_capture_stderr(pip.main, ['install', '-U', '--process-dependency-links'] + reqs)

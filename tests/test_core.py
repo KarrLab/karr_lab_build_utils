@@ -582,10 +582,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 'pkg5==0.0.5',
             ]),
             '---\n'.join([
-                'Home-page: pypi',
-                'Home-page: https://github.com/KarrLab/pkg3',
-                'Home-page: pypi',
-                'Home-page: https://github.com/KarrLab/pkg5',
+                'Name: pkg2\nHome-page: pypi',
+                'Name: pkg3\nHome-page: https://github.com/KarrLab/pkg3',
+                'Name: pkg4\nHome-page: pypi',
+                'Name: pkg5\nHome-page: https://github.com/KarrLab/pkg5',
             ]),
         ]
 
@@ -593,7 +593,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with mock.patch.object(core.BuildHelper, 'run_method_and_capture_stderr', return_value=None):
                 build_helper = self.construct_build_helper()
                 reqs = build_helper.upgrade_requirements()
-        self.assertEqual(reqs, ['git+https://github.com/KarrLab/pkg3.git', 'git+https://github.com/KarrLab/pkg5.git'])
+        self.assertEqual(reqs, ['git+https://github.com/KarrLab/pkg3.git#egg=pkg3[all]', 'git+https://github.com/KarrLab/pkg5.git#egg=pkg5[all]'])
 
     def test_upgrade_requirements_pip_error(self):
         build_helper = self.construct_build_helper()
