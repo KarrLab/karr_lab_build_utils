@@ -18,6 +18,7 @@ from xml.dom import minidom
 import abduct
 import attrdict
 import capturer
+import click
 import coverage
 import coveralls
 import dateutil.parser
@@ -43,9 +44,9 @@ import pip
 import pip_check_reqs
 import pip_check_reqs.find_extra_reqs
 import pip_check_reqs.find_missing_reqs
-# import pkg_utils # pkg_utils is not imported globally so that we can use
-# karr_lab_build_utils to properly calculate its coverage; :todo: figure
-# out how to fix this
+# import pkg_utils
+# pkg_utils is not imported globally so that we can use karr_lab_build_utils to properly calculate its coverage
+# :todo: figure out how to fix this
 import pkg_resources
 import pytest
 import re
@@ -102,12 +103,14 @@ class BuildHelper(object):
         proj_docs_build_spelling_dir (:obj:`str`): local directory where spell check results should be saved
         build_image (:obj:`str`): Docker image to use to run tests
 
-        test_server_token (:obj:`str`): test history report server token
         coveralls_token (:obj:`str`): Coveralls token
-        code_climate_token (:obj:`str`): Code Climate token
+        code_climate_token (:obj:`str`): Code Climate token        
 
-        github_api_token (obj:`str`): GitHub API token
+        github_username (obj:`str`): GitHub username
+        github_password (obj:`str`): GitHub password
         circleci_api_token (:obj:`str`): CircleCI API token
+        test_server_token (:obj:`str`): test history report server token
+        karr_lab_daemon_gmail_password (:obj:`obj:`str`): password for karr.lab.daemon@gmail.com
 
         INITIAL_PACKAGE_VERSION (:obj:`str`): initial package version
         DEFAULT_BUILD_IMAGE_VERSION (:obj:`str`): default build image version
@@ -180,14 +183,14 @@ class BuildHelper(object):
         self.proj_docs_build_spelling_dir = self.DEFAULT_PROJ_DOCS_BUILD_SPELLING_DIR
         self.build_image = self.DEFAULT_BUILD_IMAGE
 
-        self.test_server_token = os.getenv('TEST_SERVER_TOKEN')
         self.coveralls_token = os.getenv('COVERALLS_REPO_TOKEN')
         self.code_climate_token = os.getenv('CODECLIMATE_REPO_TOKEN')
 
         self.github_username = os.getenv('GITHUB_USERNAME')
         self.github_password = os.getenv('GITHUB_PASSWORD')
         self.circleci_api_token = os.getenv('CIRCLECI_API_TOKEN')
-
+        self.test_server_token = os.getenv('TEST_SERVER_TOKEN')
+        self.karr_lab_daemon_gmail_password = os.getenv('KARR_LAB_DAEMON_GMAIL_PASSWORD')
         self.code_server_hostname = 'code.karrlab.org'
         self.code_server_username = 'karrlab_code'
         self.code_server_password = os.getenv('CODE_SERVER_PASSWORD')
@@ -196,9 +199,7 @@ class BuildHelper(object):
     #####################
     # Create a package
     #####################
-    def create_package(self, name, description='', keywords=None, dependencies=None, private=True,
-                       build_image_version=None, dirname=None, github_username=None, github_password=None, 
-                       circleci_api_token=None, code_server_password=None):
+    def create_package(self):
         """ Create a package
 
         * Create a local Git repository
@@ -218,67 +219,211 @@ class BuildHelper(object):
 
         * Add badges for Code Climate, Coveralls, CircleCI, and Read the Docs to README.md
         * Add package name to ``.circleci/downstream_dependencies.yml`` files of all dependencies
-
-        Args:
-            name (:obj`str`): package name
-            description (:obj:`str`, optional): package description
-            keywords (:obj:`list` of :obj:`str`, optional): list of keywords
-            dependencies (:obj:`list` of :obj:`str`, optional): list of names of dependent packages/GitHub repositories
-            private (:obj:`bool`, optional): if :obj:`False`, make the GitHub repository public and set
-                up documentation generation with Read the Docs
-            build_image_version (:obj:`str`, optional): build image version
-            dirname (:obj:`str`, optional): directory name for repository
-            github_username (:obj:`str`, optional): GitHub username
-            github_password (:obj:`str`, optional): GitHub password
-            circleci_api_token (:obj:`str`, optional): CircleCI API token
-            code_server_password (:obj:`str`, optional): password for code.karrlab.org
         """
+        # print introductory message
+        print('This program will guide you through creating a new package.')
+        click.confirm('Continue?', default=True, abort=True)
 
-        # process arguments
-        dependencies = dependencies or []
+        # gather basic information
+        name = click.prompt('Enter the name of the new package', type=str)
 
-        dirname = dirname or os.path.join('.', name)
+        description = click.prompt('Enter a brief description of the new package', type=str)
 
-        if github_username is None:
-            github_username = self.github_username
+        keywords = click.prompt('Enter a comma-separated list of keywords for the new package', type=str, default=' ')
+        keywords = [kw.strip() for kw in keywords.strip().split(',') if kw.strip()]
 
-        if github_password is None:
+        dependencies = click.prompt(
+            'Enter a comma-separated list of Karr Lab packages that the new package depends on', type=str, default=' ')
+        dependencies = [dep.strip() for dep in dependencies.strip().split(',') if dep.strip()]
+
+        private = click.confirm('Should the repository be private?', default=True)
+
+        dirname = click.prompt('Enter the directory for the new package', type=str, default=os.path.join('.', name))
+
+        build_image_version = click.prompt('Enter the build image version to test the package',
+                                           type=str, default=self.DEFAULT_BUILD_IMAGE_VERSION)
+
+        github_username = click.prompt('Enter your GitHub username', type=str, default=self.github_username)
+        github_password = click.prompt('Enter your GitHub password', type=str, hide_input=True,
+                                       default='*' * len(self.github_password or ''))
+        if github_password == '*' * len(self.github_password or ''):
             github_password = self.github_password
 
-        if code_server_password is None:
+        circleci_api_token = click.prompt('Enter the CircleCI API token for the karr-lab-daemon GitHub account',
+                                          type=str, hide_input=True, default='*' * len(self.circleci_api_token or ''))
+        if circleci_api_token == '*' * len(self.circleci_api_token or ''):
+            circleci_api_token = self.circleci_api_token
+
+        test_server_token = click.prompt('Enter the token for tests.karrlab.org', type=str,
+                                         hide_input=True, default='*' * len(self.test_server_token or ''))
+        if test_server_token == '*' * len(self.test_server_token or ''):
+            test_server_token = self.test_server_token
+
+        karr_lab_daemon_gmail_password = click.prompt('Enter the password for karr.lab.daemon@gmail.com',
+                                                      type=str, hide_input=True,
+                                                      default='*' * len(self.karr_lab_daemon_gmail_password or ''))
+        if karr_lab_daemon_gmail_password == '*' * len(self.karr_lab_daemon_gmail_password or ''):
+            karr_lab_daemon_gmail_password = self.karr_lab_daemon_gmail_password
+
+        code_server_username = click.prompt('Enter your username for ftp://' + self.code_server_hostname,
+                                            type=str, default=self.code_server_username)
+        code_server_password = click.prompt('Enter your password for ftp://' + self.code_server_hostname,
+                                            type=str, hide_input=True, default='*' * len(self.code_server_password or ''))
+        if code_server_password == '*' * len(self.code_server_password or ''):
             code_server_password = self.code_server_password
 
         # create local and GitHub Git repositories
+        print('Creating {} remote Git repository "{}/{}" on GitHub and cloning this repository to "{}"'.format(
+            'private' if private else 'public', self.repo_owner, name, dirname))
         self.create_repository(name, description=description, private=private, dirname=dirname,
                                github_username=github_username, github_password=github_password)
 
         # Code Climate
         # :todo: programmatically add repo to Code Climate and generate tokens
-        codeclimate_repo_id = None
-        codeclimate_repo_token = None
-        codeclimate_repo_badge_token = None
+        print('Visit "https://codeclimate.com/dashboard" and click on the "{}" organization.'.format(
+            self.repo_owner if private else 'Open source'))
+        click.confirm('Continue?', default=True, abort=True)
+
+        print('Click the "Sync now" button')
+        click.confirm('Continue?', default=True, abort=True)
+
+        print('Click the "Add a repository" button')
+        click.confirm('Continue?', default=True, abort=True)
+
+        print('Click the "Add repo" button for the "{}" repository'.format(name))
+        click.confirm('Continue?', default=True, abort=True)
+
+        print('Click the "settings" link'.format(name))
+        click.confirm('Continue?', default=True, abort=True)
+
+        print('Cick the "Test coverage" menu item')
+        click.confirm('Continue?', default=True, abort=True)
+        codeclimate_repo_token = click.prompt('Enter the "test reporter id"')
+
+        print('Cick the "Badges" menu item')
+        click.confirm('Continue?', default=True, abort=True)
+        codeclimate_repo_id = click.prompt('Enter the repository ID (ID in the URL https://codeclimate.com/repos/<id>/maintainability)')
+        codeclimate_repo_badge_token = click.prompt(
+            'Enter the badge token (token in the URL https://api.codeclimate.com/v1/badges/<token>/maintainability)')
 
         # Coveralls
         # :todo: programmatically add repo to Coveralls and generate tokens
-        coveralls_repo_token = None
-        coveralls_repo_badge_token = None
+        print('Visit "https://coveralls.io/repos/new"')
+        click.confirm('Continue?', default=True, abort=True)
+
+        print('Click the "SYNC REPOS" button')
+        click.confirm('Continue?', default=True, abort=True)
+
+        print('Search for the "{}/{}" repository and click its "OFF" button'.format(self.repo_owner, name))
+        click.confirm('Continue?', default=True, abort=True)
+
+        print('Click the details button for the "{}/{}" repository'.format(self.repo_owner, name))
+        click.confirm('Continue?', default=True, abort=True)
+
+        print('Click the "Settings" menu item')
+        click.confirm('Continue?', default=True, abort=True)
+        coveralls_repo_token = click.prompt('Enter the "REPO TOKEN"')
+
+        print('Click the "README BADGE" EMBED" button')
+        click.confirm('Continue?', default=True, abort=True)
+        coveralls_repo_badge_token = click.prompt(
+            'Enter the badge token (token in the URL https://coveralls.io/repos/github/KarrLab/test_a/badge.svg?t=<token>')
 
         # CircleCI
+        # :todo: programmatically create CircleCI build
+        # :todo: programmatically create CircleCI token for status badges
         has_private_dependencies = False
         g = github.Github(github_username, github_password)
         org = g.get_organization('KarrLab')
         for dependency in dependencies:
-            repo = org.get_repo(name)
-            has_private_dependencies = has_private_dependencies or repo.private
+            try:
+                repo = org.get_repo(dependency)
+                has_private_dependencies = has_private_dependencies or repo.private
+            except github.UnknownObjectException:
+                pass
 
-        # :todo: programmatically create CircleCI build
-        # :todo: programmatically create CircleCI token for status badges
-        circleci_repo_token = None
+        print('Visit "https://circleci.com/add-projects/gh/KarrLab"')
+        click.confirm('Continue?', default=True, abort=True)
 
-        # Read the Docs        
+        print('Search for the "{}" repository and click its "Follow project" button'.format(name))
+        click.confirm('Continue?', default=True, abort=True)
+
+        print('Click the "Project settings" icon')
+        click.confirm('Continue?', default=True, abort=True)
+
+        if has_private_dependencies:
+            print('Click the "Checkout SSH keys" button')
+            click.confirm('Continue?', default=True, abort=True)
+
+            print('Click the "Authorize with GitHub" button')
+            click.confirm('Continue?', default=True, abort=True)
+
+            print('Click the "Create and add ... user key" button')
+            click.confirm('Continue?', default=True, abort=True)
+
+        print('Click the "API permissions" menu item')
+        click.confirm('Continue?', default=True, abort=True)
+
+        print('Click the "Create Token" button')
+        click.confirm('Continue?', default=True, abort=True)
+
+        print('Select "All", enter a label, and click the "Add Token" button')
+        click.confirm('Continue?', default=True, abort=True)
+        circleci_repo_token = click.prompt('Enter the new token')
+
+        vars = {
+            'CIRCLECI_API_TOKEN': circleci_api_token,
+            'COVERALLS_REPO_TOKEN': coveralls_repo_token,
+            'CODECLIMATE_REPO_TOKEN': codeclimate_repo_token,
+            'KARR_LAB_DAEMON_GMAIL_PASSWORD': karr_lab_daemon_gmail_password,
+            'TEST_SERVER_TOKEN': test_server_token,
+        }
+        self.set_circleci_environment_variables(vars, repo_name=name, circleci_api_token=circleci_api_token)
+
+        # Read the Docs
         if not private:
             # :todo: programmatically add repo to Read the Docs
-            pass
+            print('Visit "https://readthedocs.org/dashboard/import/?"')
+            click.confirm('Continue?', default=True, abort=True)
+
+            print('Click the "refresh" icon')
+            click.confirm('Continue?', default=True, abort=True)
+
+            print('Find the "{}" repository and click its "+" button'.format(name))
+            click.confirm('Continue?', default=True, abort=True)
+
+            print('Click the "Next" button')
+            click.confirm('Continue?', default=True, abort=True)
+
+            print('Click the "Admin" menu item')
+            click.confirm('Continue?', default=True, abort=True)
+
+            print('Click the "Advanced settings" menu item')
+            click.confirm('Continue?', default=True, abort=True)
+
+            print('Set the "Requirements file" to "docs/requirements.txt"')
+            click.confirm('Continue?', default=True, abort=True)
+
+            print('Set the "Python configuration file" to "docs/conf.py"')
+            click.confirm('Continue?', default=True, abort=True)
+
+            print('Set the "Python interpreter" to "CPython 3.x"')
+            click.confirm('Continue?', default=True, abort=True)
+
+            print('Click the "Maintainers" menu item')
+            click.confirm('Continue?', default=True, abort=True)
+
+            print('Add "jonrkarr" to the maintainers')
+            click.confirm('Continue?', default=True, abort=True)
+
+            print('Click the "Notifications" menu item')
+            click.confirm('Continue?', default=True, abort=True)
+
+            print('Add your email address and click submit')
+            click.confirm('Continue?', default=True, abort=True)
+
+            print('Add "jonrkarr@gmail.com" and click submit')
+            click.confirm('Continue?', default=True, abort=True)
 
         # add package to code.karrlab.org
         with open(pkg_resources.resource_filename('karr_lab_build_utils',
@@ -299,7 +444,7 @@ class BuildHelper(object):
 
         template.stream(**context).dump(local_filename)
 
-        with ftputil.FTPHost(self.code_server_hostname, self.code_server_username, code_server_password) as ftp:
+        with ftputil.FTPHost(self.code_server_hostname, code_server_username, code_server_password) as ftp:
             remote_filename = ftp.path.join(self.code_server_directory, '{}.json'.format(name))
             ftp.upload(local_filename, remote_filename)
 
@@ -316,17 +461,19 @@ class BuildHelper(object):
         for dependency in dependencies:
             downstream_deps_filename = os.path.join(parent_dirname, dependency, '.circleci', 'downstream_dependencies.yml')
 
-            if not os.path.isfile(downstream_deps_filename):
-                warnings.warn(UserWarning, ('Unable to append package to downstream dependency {} because the '
-                                            'downstream dependency is not avaiable').format(dependency))
+            if os.path.isfile(downstream_deps_filename):
+                with open(downstream_deps_filename, 'r') as file:
+                    downstream_deps = yaml.load(file)
 
-            with open(downstream_deps_filename, 'r') as file:
-                downstream_deps = yaml.load(file)
+                downstream_deps.append(name)
 
-            downstream_deps.append(name)
+                with open(downstream_deps_filename, 'w') as file:
+                    yaml.dump(downstream_deps, file, default_flow_style=False)
 
-            with open(downstream_deps_filename, 'w') as file:
-                yaml.dump(downstream_deps, file, default_flow_style=False)
+            else:
+                warnings.warn(('Unable to append package to downstream dependency {} because the '
+                               'downstream dependency is not available').format(dependency),
+                              UserWarning)
 
     def create_repository(self, name, description='', private=True, dirname=None, github_username=None, github_password=None):
         """ Create a Git repository with the default directory structure
@@ -356,7 +503,7 @@ class BuildHelper(object):
         # create GitHub repository
         g = github.Github(github_username, github_password)
         org = g.get_organization('KarrLab')
-        org.create_repo(name=name, description=description, private=private)
+        org.create_repo(name=name, description=description, private=private, auto_init=True)
 
         # initialize Git
         import pygit2
@@ -492,8 +639,8 @@ class BuildHelper(object):
 
         # add checkout key
         if has_private_dependencies:
-            # :todo: add a GitHub SSH key for the Karr Lab machine user to the build            
-            pass
+            # :todo: add a GitHub SSH key for the Karr Lab machine user to the build
+            pass  # pragma: no cover
 
     def get_circleci_environment_variables(self, repo_type=None, repo_owner=None, repo_name=None, circleci_api_token=None):
         """ Get the CircleCI environment variables for a repository and their partial values

@@ -60,40 +60,13 @@ class CreatePackageController(CementBaseController):
         )
         stacked_on = 'base'
         stacked_type = 'nested'
-        arguments = [
-            (['name'], dict(
-                type=str, help='Name of the package')),
-            (['--description'], dict(
-                default='', type=str, help='Description of the package')),
-            (['--keyword'], dict(
-                dest='keywords', default=[], type=str, action='append', help='Keyword for the package')),
-            (['--dependency'], dict(
-                dest='dependencies', default=[], type=str, action='append',
-                help='Karr Lab package that the package depends on')),
-            (['--public'], dict(
-                default=False, action='store_true', help='if set, make the package public')),
-            (['--build-image-version'], dict(
-                default=None, type=str, help='Build image version')),
-            (['--dirname'], dict(
-                default=None, type=str, help='Path for the package')),
-            (['--github-username'], dict(
-                type=str, default=None, help='GitHub username')),
-            (['--github-password'], dict(
-                type=str, default=None, help='GitHub password')),
-            (['--circleci-api-token'], dict(
-                type=str, default=None, help='CircleCI API token')),
-            (['--code-server-password'], dict(
-                type=str, default=None, help='Password for code.karrlab.org')),
-        ]
+        arguments = []
 
     @expose(hide=True)
     def default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
-        buildHelper.create_package(args.name, description=args.description, keywords=args.keywords, dependencies=args.dependencies,
-                                   private=(not args.public), build_image_version=args.build_image_version, dirname=args.dirname,
-                                   github_username=args.github_username, github_password=args.github_password,
-                                   circleci_api_token=args.circleci_api_token, code_server_password=args.code_server_password)
+        buildHelper.create_package()
 
 
 class CreateRepositoryController(CementBaseController):

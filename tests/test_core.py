@@ -133,11 +133,11 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         return build_helper
 
     def test_create_package(self):
-        build_helper = self.construct_build_helper()
+        bh = self.construct_build_helper()
 
         tempdirname = tempfile.mkdtemp()
 
-        g = github.Github(build_helper.github_username, build_helper.github_password)
+        g = github.Github(bh.github_username, bh.github_password)
         org = g.get_organization('KarrLab')
         for name in ['test_a', 'test_b', 'test_c']:
             try:
@@ -147,25 +147,65 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 pass
 
         """ test API """
-        build_helper.create_package('test_a', description='description', keywords=['word_a', 'word_b'], dependencies=[], private=True,
-                                    dirname=os.path.join(tempdirname, 'test_a'))
+        # test_a
+        name = 'test_a'
+        description = 'description_a'
+        keywords = ['word_a', 'word_b']
+        dependencies = ['__undefined__']
+        private = True
+        dirname = os.path.join(tempdirname, 'test_a')
 
-        self.assertTrue(os.path.isdir(os.path.join(tempdirname, 'test_a', '.git')))
-        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'test_a', 'README.md')))
+        confirm_side_effects = 21 * [True]
+        prompt_side_effects = [
+            name, description, ', '.join(keywords), ', '.join(dependencies), dirname, '0.0.1',
+            bh.github_username, '*' * len(bh.github_password), '*' * len(bh.circleci_api_token),
+            '*' * len(bh.test_server_token), '*' * len(bh.karr_lab_daemon_gmail_password),
+            bh.code_server_username, '*' * len(bh.code_server_password),
+            'codeclimate_repo_token', 'codeclimate_repo_id', 'codeclimate_repo_badge_token',
+            'coveralls_repo_token', 'coveralls_repo_badge_token', 'circleci_repo_token',
+        ]
+        with mock.patch('click.confirm', side_effect=confirm_side_effects):
+            with mock.patch('click.prompt', side_effect=prompt_side_effects):
+                with pytest.warns(UserWarning, match='Unable to append package to downstream dependency'):
+                    bh.create_package()
 
-        downstream_deps_filename = os.path.join(tempdirname, 'test_a', '.circleci', 'downstream_dependencies.yml')
+        self.assertTrue(os.path.isdir(os.path.join(tempdirname, name, '.git')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, name, 'README.md')))
+
+        downstream_deps_filename = os.path.join(tempdirname, name, '.circleci', 'downstream_dependencies.yml')
         with open(downstream_deps_filename, 'r') as file:
             self.assertEqual(yaml.load(file), [])
 
-        with ftputil.FTPHost(build_helper.code_server_hostname, build_helper.code_server_username, build_helper.code_server_password) as ftp:
-            remote_filename = ftp.path.join(build_helper.code_server_directory, '{}.json'.format('test_a'))
+        repo = org.get_repo(name)
+        self.assertEqual(repo.description, description)
+
+        with ftputil.FTPHost(bh.code_server_hostname, bh.code_server_username, bh.code_server_password) as ftp:
+            remote_filename = ftp.path.join(bh.code_server_directory, '{}.json'.format(name))
             self.assertTrue(ftp.path.isfile(remote_filename))
 
-        build_helper.create_package('test_b', description='description', keywords=['word_a', 'word_b'], dependencies=['test_a'], private=False,
-                                    dirname=os.path.join(tempdirname, 'test_b'))
+        # test_b
+        name = 'test_b'
+        description = 'description_b'
+        keywords = ['word_a', 'word_b']
+        dependencies = ['test_a', 'karr_lab_website']
+        private = False
+        dirname = os.path.join(tempdirname, 'test_b')
 
-        self.assertTrue(os.path.isdir(os.path.join(tempdirname, 'test_b', '.git')))
-        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'test_b', 'README.md')))
+        confirm_side_effects = [True, False] + 36 * [True]
+        prompt_side_effects = [
+            name, description, ', '.join(keywords), ', '.join(dependencies), dirname, '0.0.1',
+            bh.github_username, bh.github_password, bh.circleci_api_token,
+            bh.test_server_token, bh.karr_lab_daemon_gmail_password,
+            bh.code_server_username, bh.code_server_password,
+            'codeclimate_repo_token', 'codeclimate_repo_id', 'codeclimate_repo_badge_token',
+            'coveralls_repo_token', 'coveralls_repo_badge_token', 'circleci_repo_token',
+        ]
+        with mock.patch('click.confirm', side_effect=confirm_side_effects):
+            with mock.patch('click.prompt', side_effect=prompt_side_effects):
+                bh.create_package()
+
+        self.assertTrue(os.path.isdir(os.path.join(tempdirname, name, '.git')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, name, 'README.md')))
 
         downstream_deps_filename = os.path.join(tempdirname, 'test_a', '.circleci', 'downstream_dependencies.yml')
         with open(downstream_deps_filename, 'r') as file:
@@ -175,52 +215,65 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with open(downstream_deps_filename, 'r') as file:
             self.assertEqual(yaml.load(file), [])
 
-        with ftputil.FTPHost(build_helper.code_server_hostname, build_helper.code_server_username, build_helper.code_server_password) as ftp:
-            remote_filename = ftp.path.join(build_helper.code_server_directory, '{}.json'.format('test_b'))
+        repo = org.get_repo(name)
+        self.assertEqual(repo.description, description)
+
+        with ftputil.FTPHost(bh.code_server_hostname, bh.code_server_username, bh.code_server_password) as ftp:
+            remote_filename = ftp.path.join(bh.code_server_directory, '{}.json'.format(name))
             self.assertTrue(ftp.path.isfile(remote_filename))
 
         """ test CLI """
+        name = 'test_c'
+        description = 'description_c'
+        keywords = ['keyword_a', 'keyword_b']
+        dependencies = ['test_b']        
+        private = False
+        dirname = os.path.join(tempdirname, 'test_c')
+
         with self.construct_environment():
-            with __main__.App(argv=['create-package', 'test_c', 
-                '--description', 'description',
-                '--keyword', 'keyword_a',
-                '--keyword', 'keyword_b',
-                '--dependency', 'test_a',
-                '--dependency', 'test_b',
-                '--dirname', os.path.join(tempdirname, 'test_c'), 
-                '--public',
-                ]) as app:
-                app.run()
+            with __main__.App(argv=['create-package']) as app:
+                confirm_side_effects = [True, False] + 33 * [True]
+                prompt_side_effects = [
+                    name, description, ', '.join(keywords), ', '.join(dependencies), dirname, '0.0.1',
+                    bh.github_username, bh.github_password, bh.circleci_api_token,
+                    bh.test_server_token, bh.karr_lab_daemon_gmail_password,
+                    bh.code_server_username, bh.code_server_password,
+                    'codeclimate_repo_token', 'codeclimate_repo_id', 'codeclimate_repo_badge_token',
+                    'coveralls_repo_token', 'coveralls_repo_badge_token', 'circleci_repo_token',
+                ]
+                with mock.patch('click.confirm', side_effect=confirm_side_effects):
+                    with mock.patch('click.prompt', side_effect=prompt_side_effects):
+                        app.run()
 
-        self.assertEqual(sorted(app.pargs.keywords), ['keyword_a', 'keyword_b'])
-        self.assertEqual(sorted(app.pargs.dependencies), ['test_a', 'test_b'])
+        self.assertTrue(os.path.isdir(os.path.join(tempdirname, name, '.git')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, name, 'README.md')))
 
-        self.assertTrue(os.path.isdir(os.path.join(tempdirname, 'test_c', '.git')))
-        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'test_c', 'README.md')))
-
-        downstream_deps_filename = os.path.join(tempdirname, 'test_c', '.circleci', 'downstream_dependencies.yml')
+        downstream_deps_filename = os.path.join(tempdirname, name, '.circleci', 'downstream_dependencies.yml')
         with open(downstream_deps_filename, 'r') as file:
             self.assertEqual(yaml.load(file), [])
 
-        with ftputil.FTPHost(build_helper.code_server_hostname, build_helper.code_server_username, build_helper.code_server_password) as ftp:
-            remote_filename = ftp.path.join(build_helper.code_server_directory, '{}.json'.format('test_c'))
+        repo = org.get_repo(name)
+        self.assertEqual(repo.description, description)
+
+        with ftputil.FTPHost(bh.code_server_hostname, bh.code_server_username, bh.code_server_password) as ftp:
+            remote_filename = ftp.path.join(bh.code_server_directory, '{}.json'.format(name))
             self.assertTrue(ftp.path.isfile(remote_filename))
 
         """ cleanup """
-        g = github.Github(build_helper.github_username, build_helper.github_password)
+        g = github.Github(bh.github_username, bh.github_password)
         org = g.get_organization('KarrLab')
         for name in ['test_a', 'test_b', 'test_c']:
             repo = org.get_repo(name)
             repo.delete()
 
-        with ftputil.FTPHost(build_helper.code_server_hostname, build_helper.code_server_username, build_helper.code_server_password) as ftp:
-            remote_filename = ftp.path.join(build_helper.code_server_directory, '{}.json'.format('test_a'))
+        with ftputil.FTPHost(bh.code_server_hostname, bh.code_server_username, bh.code_server_password) as ftp:
+            remote_filename = ftp.path.join(bh.code_server_directory, '{}.json'.format('test_a'))
             ftp.remove(remote_filename)
 
-            remote_filename = ftp.path.join(build_helper.code_server_directory, '{}.json'.format('test_b'))
+            remote_filename = ftp.path.join(bh.code_server_directory, '{}.json'.format('test_b'))
             ftp.remove(remote_filename)
 
-            remote_filename = ftp.path.join(build_helper.code_server_directory, '{}.json'.format('test_c'))
+            remote_filename = ftp.path.join(bh.code_server_directory, '{}.json'.format('test_c'))
             ftp.remove(remote_filename)
 
         shutil.rmtree(tempdirname)

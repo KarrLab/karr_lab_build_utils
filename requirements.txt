@@ -2,6 +2,7 @@ abduct
 attrdict
 capturer
 cement
+click
 codeclimate_test_reporter
 coverage < 4.4
 coveralls
