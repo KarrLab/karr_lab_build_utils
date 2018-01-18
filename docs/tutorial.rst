@@ -32,13 +32,7 @@ Creating a new package
 Run this command to create a new package (create local and remote repositories with the proper directory structure and files for our build system, add repository to CircleCI, add package to downstream dependencies of dependencies, etc.). This should be run from the package's desired parent directory, e.g. with a current working directory of ``~/Documents``.::
 
     cd ~/Documents
-    karr_lab_build_utils create-package package_name \
-        --description description \
-        --keyword keyword_1 \
-        --keyword keyword_2 \
-        --dependency dependency_1 \
-        --dependency dependency_2 \
-        --private
+    karr_lab_build_utils create-package
 
 
 Versioning with Git and GitHub
@@ -52,7 +46,7 @@ Run this command to create a new repository (including both local and GitHub ver
     cd ~/Documents
     karr_lab_build_utils create-repository repository_name \
         --description description \
-        --private
+        --public
 
 
 Testing with pytest, coverage, instrumental, Docker, and CircleCI
@@ -177,12 +171,12 @@ Continuous integration with CircleCI
 
 The commands described in this section require a CircleCI API token. Visit `https://circleci.com/account/api <https://circleci.com/account/api>`_ to create a token.
 
-Create a build for a package
+Follow a build for a package
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Run this command to create a CircleCI build for a package instead of using the CirlceCI web interface::
+Run this command to follow a CircleCI build for a package instead of using the CirlceCI web interface::
 
-    karr_lab_build_utils create-circleci-build \
+    karr_lab_build_utils follow-circleci-build \
         --repo-owner <repo_owner> \
         --repo-name <repo_name> \
         --circleci-api-token <token>
