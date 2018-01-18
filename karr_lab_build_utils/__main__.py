@@ -79,7 +79,7 @@ class CreateRepositoryController(CementBaseController):
         stacked_type = 'nested'
         arguments = [
             (['name'], dict(
-                type=str, help='Name of the repository (i.e. KarrLab/<name>)')),
+                type=str, help='Name of the repository (i.e. repo_<name>)')),
             (['--description'], dict(
                 default='', type=str, help='Description of the repository')),
             (['--public'], dict(
@@ -110,7 +110,7 @@ class SetupRepositoryController(CementBaseController):
         stacked_type = 'nested'
         arguments = [
             (['name'], dict(
-                type=str, help='Name of the repository (i.e. KarrLab/<name>)')),
+                type=str, help='Name of the repository (i.e. repo_<name>)')),
             (['--description'], dict(
                 default='', type=str, help='Description of the repository')),
             (['--keyword'], dict(
