@@ -490,7 +490,7 @@ class BuildHelper(object):
 
         # process arguments
         if not re.match('^[a-z][a-z0-9_]*$', name):
-            raise Exception('Repository names should start with a letter and only include lower case letters, numbers, and underscores')
+            raise Exception("'{}' not valid: Repository names should start with a letter and only include lower case letters, numbers, and underscores".format(name))
 
         dirname = dirname or os.path.join('.', name)
 
@@ -540,7 +540,7 @@ class BuildHelper(object):
         """
 
         if not re.match('^[a-z][a-z0-9_]*$', name):
-            raise Exception('Repository names should start with a letter and only include lower case letters, numbers, and underscores')
+            raise Exception("'{}' not valid: Repository names should start with a letter and only include lower case letters, numbers, and underscores".format(name))
 
         keywords = keywords or []
 
