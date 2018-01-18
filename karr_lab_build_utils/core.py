@@ -506,10 +506,18 @@ class BuildHelper(object):
         org.create_repo(name=name, description=description, private=private, auto_init=True)
 
         # initialize Git
+        gitconfig_filename = os.path.expanduser('~/.gitconfig')
+        has_gitconfig = os.path.isfile(gitconfig_filename)
+        if has_gitconfig:
+            os.rename(gitconfig_filename, gitconfig_filename + '.ignore')
+
         import pygit2
         credentials = pygit2.UserPass(github_username, github_password)
         callbacks = pygit2.RemoteCallbacks(credentials=credentials)
         pygit2.clone_repository('https://github.com/KarrLab/{}.git'.format(name), dirname, callbacks=callbacks)
+
+        if has_gitconfig:
+            os.rename(gitconfig_filename + '.ignore', gitconfig_filename)
 
     def setup_repository(self, name, description='', keywords=None, dependencies=None, private=True, build_image_version=None,
                          dirname=None, circleci_repo_token=None, coveralls_repo_badge_token=None, codeclimate_repo_id=None,
