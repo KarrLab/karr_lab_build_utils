@@ -297,8 +297,8 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         build_helper.create_repository('test_a', dirname=os.path.join(tempdirname, 'test_a'))
         build_helper.create_repository('test_a2', dirname=os.path.join(tempdirname, 'test_a2'))
         build_helper.create_repository('test_a_2', dirname=os.path.join(tempdirname, 'test_a_2'))
-        self.assertRaises(Exception, build_helper.create_repository, '2')
-        self.assertRaises(Exception, build_helper.create_repository, 'test-a-')
+        self.assertRaises(core.BuildHelperError, build_helper.create_repository, '2')
+        self.assertRaises(core.BuildHelperError, build_helper.create_repository, 'test-a-')
 
         # check files create correctly
         self.assertTrue(os.path.isdir(os.path.join(tempdirname, 'test_a', '.git')))
@@ -329,8 +329,8 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         build_helper.setup_repository('a', dirname=os.path.join(tempdirname, 'a'), keywords=['abc', 'def'], dependencies=['b', 'c'])
         build_helper.setup_repository('a2', dirname=os.path.join(tempdirname, 'a2'))
         build_helper.setup_repository('a_2', dirname=os.path.join(tempdirname, 'a_2'))
-        self.assertRaises(Exception, build_helper.setup_repository, '2')
-        self.assertRaises(Exception, build_helper.setup_repository, 'a-')
+        self.assertRaises(core.BuildHelperError, build_helper.setup_repository, '2')
+        self.assertRaises(core.BuildHelperError, build_helper.setup_repository, 'a-')
 
         # check files create correctly
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', '.gitignore')))
@@ -677,7 +677,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         build_helper.proj_tests_xml_dir = tempdirname
 
         build_helper.test_runner = 'unsupported_runner'
-        with self.assertRaisesRegexp(Exception, '^Unsupported test runner'):
+        with self.assertRaisesRegexp(core.BuildHelperError, '^Unsupported test runner'):
             build_helper.run_tests(test_path=self.DUMMY_TEST, with_xunit=True)
 
         build_helper.test_runner = 'pytest'
@@ -1526,6 +1526,14 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.assertTrue(os.path.isfile(os.path.join(self.coverage_dirname, '.coverage.1')))
         self.assertTrue(os.path.isfile(os.path.join(self.coverage_dirname, '.coverage.2')))
 
+    def test_combine_coverage_reports_no_files(self):
+        build_helper = self.construct_build_helper()
+
+        self.assertEqual(glob(os.path.join(self.coverage_dirname, '.coverage.*')), [])
+
+        with pytest.warns(UserWarning, match='No coverage files exist to combine'):
+            build_helper.combine_coverage_reports(coverage_dirname=self.coverage_dirname)
+
     def test_archive_coverage_report(self):
         build_helper = self.construct_build_helper()
         build_helper.run_tests(test_path=self.DUMMY_TEST,
@@ -1564,6 +1572,14 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                           ]) as app:
                 app.run()
 
+    def test_upload_coverage_report_to_coveralls_no_coverage_files(self):
+        build_helper = self.construct_build_helper()
+
+        self.assertEqual(glob(os.path.join(self.coverage_dirname, '.coverage')), [])
+
+        with pytest.warns(UserWarning, match='No coverage file exists to upload to Coveralls'):
+            build_helper.upload_coverage_report_to_coveralls(coverage_dirname=self.coverage_dirname)
+
     def test_upload_coverage_report_to_code_climate(self):
         build_helper = self.construct_build_helper()
         build_helper.run_tests(test_path=self.DUMMY_TEST,
@@ -1586,6 +1602,14 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                           ]) as app:
                 with mock.patch.object(CodeClimateRunner, 'run', return_value=0):
                     app.run()
+
+    def test_upload_coverage_report_to_codeclimate_no_coverage_files(self):
+        build_helper = self.construct_build_helper()
+
+        self.assertEqual(glob(os.path.join(self.coverage_dirname, '.coverage')), [])
+
+        with pytest.warns(UserWarning, match='No coverage file exists to upload to Code Climate'):
+            build_helper.upload_coverage_report_to_code_climate(coverage_dirname=self.coverage_dirname)
 
     def test_create_documentation_template(self):
         build_helper = self.construct_build_helper()
@@ -2277,7 +2301,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 self.assertRegexpMatches(context.Exception, 'usage: karr_lab_build_utils')
 
     def test_unsupported_test_runner(self):
-        with self.assertRaisesRegexp(Exception, 'Unsupported test runner'):
+        with self.assertRaisesRegexp(core.BuildHelperError, 'Unsupported test runner'):
             env = EnvironmentVarGuard()
             env.set('TEST_RUNNER', 'unsupported')
             with env:

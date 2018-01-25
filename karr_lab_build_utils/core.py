@@ -160,7 +160,7 @@ class BuildHelper(object):
         # get settings from environment variables
         self.test_runner = os.getenv('TEST_RUNNER', self.DEFAULT_TEST_RUNNER)
         if self.test_runner not in ['pytest', 'nose']:
-            raise Exception('Unsupported test runner {}'.format(self.test_runner))
+            raise BuildHelperError('Unsupported test runner {}'.format(self.test_runner))
 
         self.repo_type = 'github'
         self.repo_name = os.getenv('CIRCLE_PROJECT_REPONAME')
@@ -490,7 +490,8 @@ class BuildHelper(object):
 
         # process arguments
         if not re.match('^[a-z][a-z0-9_]*$', name):
-            raise Exception("'{}' not valid: Repository names should start with a letter and only include lower case letters, numbers, and underscores".format(name))
+            raise BuildHelperError("'{}' not valid: Repository names should start with a letter and only include lower "
+                                   "case letters, numbers, and underscores".format(name))
 
         dirname = dirname or os.path.join('.', name)
 
@@ -540,7 +541,8 @@ class BuildHelper(object):
         """
 
         if not re.match('^[a-z][a-z0-9_]*$', name):
-            raise Exception("'{}' not valid: Repository names should start with a letter and only include lower case letters, numbers, and underscores".format(name))
+            raise BuildHelperError("'{}' not valid: Repository names should start with a letter and only include lower "
+                                   "case letters, numbers, and underscores".format(name))
 
         keywords = keywords or []
 
@@ -1007,7 +1009,7 @@ class BuildHelper(object):
 
             result = int(not nose.run(argv=argv))
         else:
-            raise Exception('Unsupported test runner {}'.format(self.test_runner))
+            raise BuildHelperError('Unsupported test runner {}'.format(self.test_runner))
 
         if with_coverage:
             cov.stop()  # pragma: no cover # this line can't be covered
@@ -1617,6 +1619,11 @@ class BuildHelper(object):
             shutil.copyfile(name, data_path)
             data_paths.append(data_path)
 
+        # stop if there are no files to combine
+        if not data_paths:
+            warnings.warn('No coverage files exist to combine', UserWarning)
+            return
+
         coverage_doc = coverage.coverage(data_file=os.path.join(coverage_dirname, '.coverage'))
         coverage_doc.combine(data_paths=data_paths)
         coverage_doc.save()
@@ -1624,11 +1631,12 @@ class BuildHelper(object):
     def archive_coverage_report(self, coverage_dirname='.', dry_run=False):
         """ Archive coverage report:
 
+        * Upload report to Coveralls 
+        * Upload report to Code Climate
+
         Args:
             coverage_dirname (:obj:`str`, optional): directory to save coverage data
             dry_run (:obj:`bool`, optional): if true, don't upload to the Coveralls and Code Climate servers
-
-        * Upload report to Coveralls and Code Climate
         """
 
         # upload to Coveralls
@@ -1646,6 +1654,11 @@ class BuildHelper(object):
             coverage_dirname (:obj:`str`, optional): directory to save coverage data
             dry_run (:obj:`bool`, optional): if true, don't upload to the Coveralls server
         """
+        # don't upload if there is no coverage file
+        if not os.path.isfile(os.path.join(coverage_dirname, '.coverage')):
+            warnings.warn('No coverage file exists to upload to Coveralls', UserWarning)
+            return
+
         if self.coveralls_token:
             runner = coveralls.Coveralls(True, repo_token=self.coveralls_token,
                                          service_name='circle-ci', service_job_id=self.build_num)
@@ -1670,6 +1683,11 @@ class BuildHelper(object):
         Raises:
             :obj:`BuildHelperError`: If error uploading code coverage to Code Climate
         """
+        # don't upload if there is no coverage file
+        if not os.path.isfile(os.path.join(coverage_dirname, '.coverage')):
+            warnings.warn('No coverage file exists to upload to Code Climate', UserWarning)
+            return
+
         if self.code_climate_token:
             code_climate_runner = CodeClimateRunner([
                 '--token', self.code_climate_token,
