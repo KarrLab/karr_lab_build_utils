@@ -226,7 +226,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         name = 'test_c'
         description = 'description_c'
         keywords = ['keyword_a', 'keyword_b']
-        dependencies = ['test_b']        
+        dependencies = ['test_b']
         private = False
         dirname = os.path.join(tempdirname, 'test_c')
 
@@ -593,7 +593,8 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with mock.patch.object(core.BuildHelper, 'run_method_and_capture_stderr', return_value=None):
                 build_helper = self.construct_build_helper()
                 reqs = build_helper.upgrade_requirements()
-        self.assertEqual(reqs, ['git+https://github.com/KarrLab/pkg3.git#egg=pkg3[all]', 'git+https://github.com/KarrLab/pkg5.git#egg=pkg5[all]'])
+        self.assertEqual(reqs, ['git+https://github.com/KarrLab/pkg3.git#egg=pkg3[all]',
+                                'git+https://github.com/KarrLab/pkg5.git#egg=pkg5[all]'])
 
     def test_upgrade_requirements_pip_error(self):
         build_helper = self.construct_build_helper()
@@ -757,6 +758,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
                                 time.sleep(0.1)
 
+                                self.assertEqual(app.pargs.installation_exit_code, 0)
                                 self.assertEqual(app.pargs.tests_exit_code, 0)
                                 self.assertRegexpMatches(captured.stdout.get_text(), 'No downstream builds were triggered.')
                                 self.assertRegexpMatches(captured.stdout.get_text(), 'No notifications were sent.')
@@ -775,8 +777,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 with mock.patch.object(core.BuildHelper, 'send_email_notifications', return_value=notify_return):
                     with self.construct_environment():
                         with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                            with __main__.App(argv=['do-post-test-tasks', '1', '0']) as app:
+                            with __main__.App(argv=['do-post-test-tasks', '0', '1']) as app:
                                 app.run()
+                                self.assertEqual(app.pargs.installation_exit_code, 0)
                                 self.assertEqual(app.pargs.tests_exit_code, 1)
                                 self.assertRegexpMatches(captured.stdout.get_text(), '2 downstream builds were triggered')
                                 self.assertRegexpMatches(captured.stdout.get_text(), '  pkg_1')
