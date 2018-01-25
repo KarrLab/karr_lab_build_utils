@@ -912,7 +912,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             build_helper = self.construct_build_helper(build_num=1)
             with mock.patch('requests.get', side_effect=[requests_get_1]):
                 with mock.patch('smtplib.SMTP', return_value=smtp):
-                    result = build_helper.send_email_notifications(0, False)
+                    result = build_helper.send_email_notifications(False, False, False)
                     self.assertEqual(result, {
                         'is_fixed': True,
                         'is_new_error': False,
@@ -996,7 +996,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         # test API
         with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2]):
             with mock.patch('smtplib.SMTP', return_value=smtp):
-                result = build_helper.send_email_notifications(0, False)
+                result = build_helper.send_email_notifications(False, False, False)
                 self.assertEqual(result, {
                     'is_fixed': True,
                     'is_new_error': False,
@@ -1069,7 +1069,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         # test API
         with mock.patch('requests.get', side_effect=[requests_get_1]):
             with mock.patch('smtplib.SMTP', return_value=smtp):
-                result = build_helper.send_email_notifications(0, False)
+                result = build_helper.send_email_notifications(False, False, False)
                 self.assertEqual(result, {
                     'is_fixed': False,
                     'is_new_error': True,
@@ -1152,7 +1152,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with mock.patch('smtplib.SMTP', return_value=smtp):
                 with env:
                     build_helper = self.construct_build_helper(build_num=1)
-                    result = build_helper.send_email_notifications(0, False)
+                    result = build_helper.send_email_notifications(False, False, False)
                     self.assertEqual(result, {
                         'is_fixed': False,
                         'is_new_error': True,
@@ -1239,7 +1239,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             build_helper = self.construct_build_helper(build_num=51)
             with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2]):
                 with mock.patch('smtplib.SMTP', return_value=smtp):
-                    result = build_helper.send_email_notifications(0, False)
+                    result = build_helper.send_email_notifications(False, False, False)
                     self.assertEqual(result, {
                         'is_fixed': False,
                         'is_new_error': False,
@@ -1297,7 +1297,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             build_helper = self.construct_build_helper(build_num=51)
             with mock.patch('requests.get', side_effect=[requests_get_1]):
                 with mock.patch('smtplib.SMTP', return_value=smtp):
-                    result = build_helper.send_email_notifications(1, False)
+                    result = build_helper.send_email_notifications(False, True, False)
                     self.assertEqual(result, {
                         'is_fixed': False,
                         'is_new_error': False,
@@ -1393,7 +1393,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             build_helper = self.construct_build_helper(build_num=51)
             with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_3]):
                 with mock.patch('smtplib.SMTP', return_value=smtp):
-                    result = build_helper.send_email_notifications(0, False)
+                    result = build_helper.send_email_notifications(False, False, False)
                     self.assertEqual(result, {
                         'is_fixed': False,
                         'is_new_error': True,
@@ -1413,7 +1413,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         for filename in glob(filename_pattern):
             os.remove(filename)
 
-        result = build_helper.send_email_notifications(0, False, dry_run=True)
+        result = build_helper.send_email_notifications(False, False, False, dry_run=True)
         self.assertEqual(result, {
             'is_fixed': False,
             'is_new_error': False,
