@@ -1326,7 +1326,7 @@ class BuildHelper(object):
 
         return test_results
 
-    def get_test_results_status(self, test_results, build_exit_code, reports_error, dry_run=False):
+    def get_test_results_status(self, test_results, tests_error, other_error, dry_run=False):
         """ Get the status of a set of results
 
         * Old err
@@ -1336,8 +1336,9 @@ class BuildHelper(object):
 
         Args:
             test_results (:obj:`TestResults`): test results
-            build_exit_code (:obj:`int`): Exit code of the build
-            reports_error (:obj:`bool`): :obj:`True` if there was an error generating and/or archiving the reports
+            tests_error (:obj:`bool`): obj:`False` if the tests passes
+            other_error (:obj:`bool`): :obj:`True` if there were other errors during the build such as in generating and/or 
+                archiving the reports
             dry_run (:obj:`bool`, optional): if true, don't upload to the Coveralls and Code Climate servers
 
         Returns:
@@ -1353,7 +1354,7 @@ class BuildHelper(object):
             }
 
         # determine if there is an error
-        if (build_exit_code != 0 or reports_error) and test_results.get_num_tests() == 0:
+        if (tests_error or other_error) and test_results.get_num_tests() == 0:
             is_other_error = True
             is_new_error = False
             is_old_error = False
@@ -1400,7 +1401,7 @@ class BuildHelper(object):
             'is_new_downstream_error': is_new_downstream_error,
         }
 
-    def do_post_test_tasks(self, build_exit_code, dry_run=False):
+    def do_post_test_tasks(self, tests_error, other_error, dry_run=False):
         """ Do all post-test tasks for CircleCI
 
         * Make test and coverage reports
@@ -1410,7 +1411,9 @@ class BuildHelper(object):
         * Notify authors of new failures in downstream packages
 
         Args:
-            build_exit_code (:obj:`int`): Exit code of the build
+            tests_error (:obj:`bool`): obj:`False` if the tests passes
+            other_error (:obj:`bool`): :obj:`True` if there were other errors during the build such as in generating and/or 
+                archiving the reports
             dry_run (:obj:`bool`, optional): if true, don't upload to the Coveralls and Code Climate servers
 
         Returns:
@@ -1419,27 +1422,28 @@ class BuildHelper(object):
         """
         try:
             self.make_and_archive_reports(dry_run=dry_run)
-            reports_error = False
+            other_error = other_error or False
         except Exception as exception:
-            reports_error = True
+            other_error = True
 
         triggered_packages = self.trigger_tests_of_downstream_dependencies(dry_run=dry_run)
-        status = self.send_email_notifications(build_exit_code, reports_error, dry_run=dry_run)
+        status = self.send_email_notifications(tests_error, other_error, dry_run=dry_run)
         return (triggered_packages, status)
 
-    def send_email_notifications(self, build_exit_code, reports_error, dry_run=False):
+    def send_email_notifications(self, tests_error, other_error, dry_run=False):
         """ Send email notifications of failures, fixes, and downstream failures
 
         Args:
-            build_exit_code (:obj:`int`): Exit code of the build
-            reports_error (:obj:`bool`): :obj:`True` if there was an error generating and/or archiving the reports
+            tests_error (:obj:`bool`): obj:`False` if the tests passes
+            other_error (:obj:`bool`): :obj:`True` if there were other errors during the build such as in generating and/or 
+                archiving the reports
             dry_run (:obj:`bool`, optional): if true, don't upload to the Coveralls and Code Climate servers
 
         Returns:
             :obj:`dict`: status of a set of results
         """
         test_results = self.get_test_results()
-        status = self.get_test_results_status(test_results, build_exit_code, reports_error, dry_run=dry_run)
+        status = self.get_test_results_status(test_results, tests_error, other_error, dry_run=dry_run)
 
         # stop if this is a dry run
         if dry_run:

@@ -747,17 +747,17 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 with mock.patch.object(core.BuildHelper, 'send_email_notifications', return_value=notify_return):
                     # test api
                     build_helper = self.construct_build_helper()
-                    build_helper.do_post_test_tasks(0)
+                    build_helper.do_post_test_tasks(False, False)
 
                     # test cli
                     with self.construct_environment():
                         with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                            with __main__.App(argv=['do-post-test-tasks', '0']) as app:
+                            with __main__.App(argv=['do-post-test-tasks', '0', '0']) as app:
                                 app.run()
 
                                 time.sleep(0.1)
 
-                                self.assertEqual(app.pargs.build_exit_code, 0)
+                                self.assertEqual(app.pargs.tests_exit_code, 0)
                                 self.assertRegexpMatches(captured.stdout.get_text(), 'No downstream builds were triggered.')
                                 self.assertRegexpMatches(captured.stdout.get_text(), 'No notifications were sent.')
                                 self.assertEqual(captured.stderr.get_text(), '')
@@ -775,9 +775,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 with mock.patch.object(core.BuildHelper, 'send_email_notifications', return_value=notify_return):
                     with self.construct_environment():
                         with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                            with __main__.App(argv=['do-post-test-tasks', '1']) as app:
+                            with __main__.App(argv=['do-post-test-tasks', '1', '0']) as app:
                                 app.run()
-                                self.assertEqual(app.pargs.build_exit_code, 1)
+                                self.assertEqual(app.pargs.tests_exit_code, 1)
                                 self.assertRegexpMatches(captured.stdout.get_text(), '2 downstream builds were triggered')
                                 self.assertRegexpMatches(captured.stdout.get_text(), '  pkg_1')
                                 self.assertRegexpMatches(captured.stdout.get_text(), '  pkg_2')
@@ -812,7 +812,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     with mock.patch('smtplib.SMTP', return_value=smtp):
                         with self.construct_environment():
                             with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                                with __main__.App(argv=['do-post-test-tasks', '0']) as app:
+                                with __main__.App(argv=['do-post-test-tasks', '0', '0']) as app:
                                     app.run()
                                     self.assertRegexpMatches(captured.stdout.get_text(), '1 notifications were sent')
                                     self.assertRegexpMatches(captured.stdout.get_text(), '  Other error')
@@ -1251,7 +1251,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         # cleanup
         os.remove(filename)
 
-    def test_send_email_notifications_build_exit_code_failure(self):
+    def test_send_email_notifications_tests_exit_code_failure(self):
         build_helper = self.construct_build_helper()
 
         # mock test results

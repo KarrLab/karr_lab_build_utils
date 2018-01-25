@@ -389,8 +389,10 @@ class DoPostTestTasksController(CementBaseController):
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
-            (['build_exit_code'], dict(
-                type=int, help='Exit code of the build')),
+            (['tests_exit_code'], dict(
+                type=int, help='Exit code of the tests')),
+            (['other_exit_code'], dict(
+                type=int, help='Exit code of other tasks (such as package installation)')),
             (['--dry-run'], dict(
                 default=False, dest='dry_run', action='store_true', help='If true, do not send results to Coveralls and Code Climate')),
         ]
@@ -403,7 +405,7 @@ class DoPostTestTasksController(CementBaseController):
         """ Do all post-test tasks for CircleCI """
         buildHelper = BuildHelper()
         triggered_packages, status = buildHelper.do_post_test_tasks(
-            args.build_exit_code, dry_run=dry_run)
+            args.tests_exit_code != 0, args.other_exit_code != 0, dry_run=dry_run)
 
         # downstream triggered tests
         if triggered_packages:
