@@ -817,7 +817,7 @@ class BuildHelper(object):
         self._install_requirements_helper(os.path.join(self.proj_docs_dir, 'requirements.txt'))
 
         # upgrade CircleCI
-        if whichcraft.which('circleci'):
+        if whichcraft.which('docker') and whichcraft.which('circleci'):
             subprocess.check_call(['circleci', 'update'])
 
     def _install_requirements_helper(self, filename, ignore_options=False):
@@ -878,7 +878,7 @@ class BuildHelper(object):
         self.run_method_and_capture_stderr(pip.main, ['install', '-U', '--process-dependency-links'] + reqs)
 
         # upgrade CircleCI
-        if whichcraft.which('circleci'):
+        if whichcraft.which('docker') and whichcraft.which('circleci'):
             subprocess.check_call(['circleci', 'update'])
 
         return reqs
