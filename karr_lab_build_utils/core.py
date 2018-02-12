@@ -10,7 +10,7 @@ from codeclimate_test_reporter.components.runner import Runner as CodeClimateRun
 from datetime import datetime
 from jinja2 import Template
 from pylint import epylint
-from sphinx import build_main as sphinx_build
+from sphinx.cmd.build import build_main as sphinx_build
 from sphinx.apidoc import main as sphinx_apidoc
 from mock import patch
 from six.moves import configparser
@@ -104,7 +104,7 @@ class BuildHelper(object):
         build_image (:obj:`str`): Docker image to use to run tests
 
         coveralls_token (:obj:`str`): Coveralls token
-        code_climate_token (:obj:`str`): Code Climate token        
+        code_climate_token (:obj:`str`): Code Climate token
 
         github_username (obj:`str`): GitHub username
         github_password (obj:`str`): GitHub password
@@ -1340,7 +1340,7 @@ class BuildHelper(object):
             test_results (:obj:`TestResults`): test results
             installation_error (:obj:`bool`): :obj:`True` if there were other errors during the installation
             tests_error (:obj:`bool`): obj:`False` if the tests passes
-            other_error (:obj:`bool`): :obj:`True` if there were other errors during the build such as in generating and/or 
+            other_error (:obj:`bool`): :obj:`True` if there were other errors during the build such as in generating and/or
                 archiving the reports
             dry_run (:obj:`bool`, optional): if true, don't upload to the Coveralls and Code Climate servers
 
@@ -1415,7 +1415,7 @@ class BuildHelper(object):
 
         Args:
             installation_error (:obj:`bool`): :obj:`True` if there were other errors during the installation
-            tests_error (:obj:`bool`): obj:`False` if the tests passes            
+            tests_error (:obj:`bool`): obj:`False` if the tests passes
             dry_run (:obj:`bool`, optional): if true, don't upload to the Coveralls and Code Climate servers
 
         Returns:
@@ -1438,7 +1438,7 @@ class BuildHelper(object):
         Args:
             installation_error (:obj:`bool`): :obj:`True` if there were other errors during the installation
             tests_error (:obj:`bool`): obj:`False` if the tests passes
-            other_error (:obj:`bool`): :obj:`True` if there were other errors during the build such as in generating and/or 
+            other_error (:obj:`bool`): :obj:`True` if there were other errors during the build such as in generating and/or
                 archiving the reports
             dry_run (:obj:`bool`, optional): if true, don't upload to the Coveralls and Code Climate servers
 
@@ -1631,7 +1631,7 @@ class BuildHelper(object):
     def archive_coverage_report(self, coverage_dirname='.', dry_run=False):
         """ Archive coverage report:
 
-        * Upload report to Coveralls 
+        * Upload report to Coveralls
         * Upload report to Code Climate
 
         Args:
