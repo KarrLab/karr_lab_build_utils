@@ -5,9 +5,9 @@
 __pycache__/
 
 #distribution files
-build/
-dist/
-sdists/
+/build/
+/dist/
+/sdists/
 *.egg-info
 
 # test reports
