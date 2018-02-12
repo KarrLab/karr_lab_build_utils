@@ -26,9 +26,10 @@ requests
 robpol86_sphinxcontrib_googleanalytics
 setuptools
 six
-sphinx >= 1.6
+sphinx >= 1.7
 sphinx_rtd_theme
 sphinxcontrib_bibtex
 sphinxcontrib_spelling
 twine
 wheel
+whichcraft

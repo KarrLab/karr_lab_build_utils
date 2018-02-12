@@ -10,7 +10,7 @@ from codeclimate_test_reporter.components.runner import Runner as CodeClimateRun
 from datetime import datetime
 from jinja2 import Template
 from pylint import epylint
-from sphinx.cmd.build import build_main as sphinx_build
+from sphinx.cmd.build import main as sphinx_build
 from sphinx.apidoc import main as sphinx_apidoc
 from mock import patch
 from six.moves import configparser
@@ -60,6 +60,7 @@ import time
 import twine.commands.upload
 import yaml
 import warnings
+import whichcraft
 
 
 class CoverageType(enum.Enum):
@@ -815,6 +816,10 @@ class BuildHelper(object):
         self._install_requirements_helper(os.path.join(self.proj_tests_dir, 'requirements.txt'))
         self._install_requirements_helper(os.path.join(self.proj_docs_dir, 'requirements.txt'))
 
+        # upgrade CircleCI
+        if whichcraft.which('circleci'):
+            subprocess.check_call(['circleci', 'update'])
+
     def _install_requirements_helper(self, filename, ignore_options=False):
         """ Install the packages in a requirements.txt file, including all optional dependencies
 
@@ -854,7 +859,7 @@ class BuildHelper(object):
             :obj:`list` of :obj:`str`: upgraded requirements from the Karr Lab's GitHub organization
         """
 
-        # get requirements
+        # get PyPI requirements
         lines = self.run_method_and_capture_stdout(pip.main, ['freeze'])
         pkgs = []
         for line in lines.split('\n'):
@@ -869,8 +874,12 @@ class BuildHelper(object):
                 url = info.partition('Home-page: ')[2].partition('\n')[0]
                 reqs.append('git+{}.git#egg={}[all]'.format(url, name))
 
-        # ugrade requirements
+        # ugrade PyPI requirements
         self.run_method_and_capture_stderr(pip.main, ['install', '-U', '--process-dependency-links'] + reqs)
+
+        # upgrade CircleCI
+        if whichcraft.which('circleci'):
+            subprocess.check_call(['circleci', 'update'])
 
         return reqs
 
@@ -1761,12 +1770,11 @@ class BuildHelper(object):
             os.mkdir(self.proj_docs_static_dir)
 
         # build HTML documentation
-        self.run_method_and_capture_stderr(sphinx_build, ['sphinx-build', self.proj_docs_dir, self.proj_docs_build_html_dir])
+        self.run_method_and_capture_stderr(sphinx_build, [self.proj_docs_dir, self.proj_docs_build_html_dir])
 
         # run spell check
         if spell_check:
             self.run_method_and_capture_stderr(sphinx_build, [
-                'sphinx-build',
                 '-b', 'spelling',
                 '-d', self.proj_docs_build_doctrees_dir,
                 self.proj_docs_dir,
