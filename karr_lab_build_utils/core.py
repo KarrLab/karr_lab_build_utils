@@ -37,6 +37,7 @@ import json
 import karr_lab_build_utils
 import logging
 import mock
+import natsort
 import networkx
 import nose
 import os
@@ -574,6 +575,7 @@ class BuildHelper(object):
             '.circleci/config.yml',
             '.circleci/downstream_dependencies.yml',
             '.readthedocs.yml',
+            '.karr_lab_build_utils.yml',
             '_package_/__init__.py',
             '_package_/VERSION',
             '_package_/core.py',
@@ -1432,16 +1434,17 @@ class BuildHelper(object):
             :obj:`dict`: status of a set of results
         """
         try:
-            self.make_and_archive_reports(dry_run=dry_run)
+            static_analyses = self.make_and_archive_reports(dry_run=dry_run)
             other_error = False
         except Exception as exception:
+            static_analyses = {'missing_requirements': [], 'unused_requirements': []}
             other_error = True
 
         triggered_packages = self.trigger_tests_of_downstream_dependencies(dry_run=dry_run)
-        status = self.send_email_notifications(installation_error, tests_error, other_error, dry_run=dry_run)
+        status = self.send_email_notifications(installation_error, tests_error, other_error, static_analyses, dry_run=dry_run)
         return (triggered_packages, status)
 
-    def send_email_notifications(self, installation_error, tests_error, other_error, dry_run=False):
+    def send_email_notifications(self, installation_error, tests_error, other_error, static_analyses, dry_run=False):
         """ Send email notifications of failures, fixes, and downstream failures
 
         Args:
@@ -1449,7 +1452,8 @@ class BuildHelper(object):
             tests_error (:obj:`bool`): obj:`False` if the tests passes
             other_error (:obj:`bool`): :obj:`True` if there were other errors during the build such as in generating and/or
                 archiving the reports
-            dry_run (:obj:`bool`, optional): if true, don't upload to the Coveralls and Code Climate servers
+            static_analyses (:obj:`dict`): analyses of missing and unused requirements
+            dry_run (:obj:`bool`, optional): if true, don't upload to the Coveralls and Code Climate servers            
 
         Returns:
             :obj:`dict`: status of a set of results
@@ -1473,6 +1477,7 @@ class BuildHelper(object):
             'build_num': self.build_num,
             'build_url': result['build_url'],
             'test_results': test_results,
+            'static_analyses': static_analyses,
         }
 
         if status['is_new_downstream_error']:
@@ -1540,6 +1545,9 @@ class BuildHelper(object):
         msg.add_header('Content-Type', 'text/html')
         msg.set_payload(body)
 
+        with open('test.html', 'w') as file:
+            file.write(body)
+
         if not dry_run:
             smtp = smtplib.SMTP('smtp.gmail.com:587')
             smtp.ehlo()
@@ -1557,7 +1565,11 @@ class BuildHelper(object):
         Args:
             coverage_dirname (:obj:`str`, optional): directory to merge coverage files
             dry_run (:obj:`bool`, optional): if true, don't upload to the Coveralls and Code Climate servers
+
+        Returns:
+            :obj:`dict`: analyses of missing and unused requirements
         """
+        errors = []
 
         """ test reports """
         # Upload test report to history server
@@ -1570,8 +1582,31 @@ class BuildHelper(object):
         self.combine_coverage_reports(coverage_dirname=coverage_dirname)
         self.archive_coverage_report(coverage_dirname=coverage_dirname, dry_run=dry_run)
 
+        """ static analysis """
+        config = self.get_config()
+        ignore_files = config.get('static_analyses', {}).get('ignore_files', [])
+
+        missing_reqs = self.find_missing_requirements(self.repo_name, ignore_files=ignore_files)
+        if missing_reqs:
+            errors.append('The following requirements are missing:\n  {}'.format(
+                '\n  '.join(missing_req[0] for missing_req in missing_reqs)))
+
+        unused_reqs = self.find_unused_requirements(self.repo_name, ignore_files=ignore_files)
+        if unused_reqs:
+            msg = 'The following requirements appear to be unused:\n  {}'.format('\n  '.join(unused_reqs))
+            warnings.warn(msg, UserWarning)
+
         """ documentation """
         self.make_documentation()
+
+        """ Throw error """
+        if errors:
+            raise BuildHelperError('\n\n'.join(errors))
+
+        return {
+            'missing_requirements': missing_reqs,
+            'unused_requirements': unused_reqs,
+            }
 
     ########################
     # Test reports
@@ -2115,6 +2150,9 @@ class BuildHelper(object):
                 all_deps += opt_deps
         missing = list(filter(lambda m: m[0].replace('-', '_') not in all_deps, missing))
 
+        # sort missing
+        missing.sort(key=natsort.natsort_keygen(key=lambda m: m[0], alg=natsort.IGNORECASE))
+
         return missing
 
     def find_unused_requirements(self, package_name, dirname='.', ignore_files=None):
@@ -2162,6 +2200,9 @@ class BuildHelper(object):
 
         # return canonical names
         unuseds = [unused.replace('-', '_') for unused in unuseds]
+
+        # sort unuseds
+        unuseds.sort(key=natsort.natsort_keygen(alg=natsort.IGNORECASE))
 
         return unuseds
 
@@ -2236,6 +2277,15 @@ class BuildHelper(object):
         response = request_method(url, json=data)
         response.raise_for_status()
         return response.json()
+
+    def get_config(self):
+        """ Get build configuration
+
+        Returns:
+            :obj:`dict`: build configuration
+        """
+        with open('.karr_lab_build_utils.yml', 'r') as file:
+            return yaml.load(file)
 
 
 class TestResults(object):

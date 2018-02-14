@@ -1,0 +1,3 @@
+static_analyses:
+  ignore_files:
+      - karr_lab_build_utils/templates/*

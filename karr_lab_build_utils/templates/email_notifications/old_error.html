@@ -36,5 +36,24 @@
             {% endfor %}
             </ul>
         </p>
+
+        <p>Static analyses:
+            <ul>
+                <li>Missing requirements: {% if not static_analyses.missing_requirements %}None{% endif %}
+                    <ul>
+                        {% for req in static_analyses.missing_requirements %}
+                        <li>{{ req[0] }}</li>
+                        {% endfor %}
+                    </ul>
+                </li>
+                <li>Unused requirements: {% if not static_analyses.unused_requirements %}None{% endif %}
+                    <ul>
+                        {% for req in static_analyses.unused_requirements %}
+                        <li>{{ req }}</li>
+                        {% endfor %}
+                    </ul>
+                </li>
+            </ul>
+        </p>
     </body>
 </html>

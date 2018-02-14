@@ -12,6 +12,7 @@ graphviz
 # instrumental
 jinja2
 mock
+natsort
 networkx
 nose
 pip

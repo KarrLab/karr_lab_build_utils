@@ -355,6 +355,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', '.circleci', 'config.yml')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', '.circleci', 'downstream_dependencies.yml')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', '.readthedocs.yml')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', '.karr_lab_build_utils.yml')))
 
         """ test CLI """
         with self.construct_environment():
@@ -389,6 +390,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', '.circleci', 'config.yml')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', '.circleci', 'downstream_dependencies.yml')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', '.readthedocs.yml')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', '.karr_lab_build_utils.yml')))
 
         """ cleanup """
         shutil.rmtree(tempdirname)
@@ -412,6 +414,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
             def raise_for_status(self):
                 return
+
             def json(self):
                 return {'following': False}
 
@@ -911,11 +914,16 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         })
 
         # test API
+        static_analyses = {
+            'missing_requirements': [('missing_1',), ('missing_2',)],
+            'unused_requirements': ['unused_1', 'unused_2'],
+        }
+
         with self.construct_environment(build_num=1):
             build_helper = self.construct_build_helper(build_num=1)
             with mock.patch('requests.get', side_effect=[requests_get_1]):
                 with mock.patch('smtplib.SMTP', return_value=smtp):
-                    result = build_helper.send_email_notifications(False, False, False)
+                    result = build_helper.send_email_notifications(False, False, False, static_analyses)
                     self.assertEqual(result, {
                         'is_fixed': True,
                         'is_new_error': False,
@@ -997,9 +1005,14 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         })
 
         # test API
+        static_analyses = {
+            'missing_requirements': [('missing_1',), ('missing_2',)],
+            'unused_requirements': ['unused_1', 'unused_2'],
+        }
+
         with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2]):
             with mock.patch('smtplib.SMTP', return_value=smtp):
-                result = build_helper.send_email_notifications(False, False, False)
+                result = build_helper.send_email_notifications(False, False, False, static_analyses)
                 self.assertEqual(result, {
                     'is_fixed': True,
                     'is_new_error': False,
@@ -1070,9 +1083,14 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         })
 
         # test API
+        static_analyses = {
+            'missing_requirements': [('missing_1',), ('missing_2',)],
+            'unused_requirements': ['unused_1', 'unused_2'],
+        }
+
         with mock.patch('requests.get', side_effect=[requests_get_1]):
             with mock.patch('smtplib.SMTP', return_value=smtp):
-                result = build_helper.send_email_notifications(False, False, False)
+                result = build_helper.send_email_notifications(False, False, False, static_analyses)
                 self.assertEqual(result, {
                     'is_fixed': False,
                     'is_new_error': True,
@@ -1151,11 +1169,16 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         env.set('UPSTREAM_BUILD_NUM', '101')
 
         # test API
+        static_analyses = {
+            'missing_requirements': [('missing_1',), ('missing_2',)],
+            'unused_requirements': ['unused_1', 'unused_2'],
+        }
+
         with mock.patch('requests.get', side_effect=[requests_get_1]):
             with mock.patch('smtplib.SMTP', return_value=smtp):
                 with env:
                     build_helper = self.construct_build_helper(build_num=1)
-                    result = build_helper.send_email_notifications(False, False, False)
+                    result = build_helper.send_email_notifications(False, False, False, static_analyses)
                     self.assertEqual(result, {
                         'is_fixed': False,
                         'is_new_error': True,
@@ -1238,11 +1261,16 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         env.set('UPSTREAM_BUILD_NUM', '101')
 
         # test API
+        static_analyses = {
+            'missing_requirements': [('missing_1',), ('missing_2',)],
+            'unused_requirements': [],
+        }
+
         with env:
             build_helper = self.construct_build_helper(build_num=51)
             with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2]):
                 with mock.patch('smtplib.SMTP', return_value=smtp):
-                    result = build_helper.send_email_notifications(False, False, False)
+                    result = build_helper.send_email_notifications(False, False, False, static_analyses)
                     self.assertEqual(result, {
                         'is_fixed': False,
                         'is_new_error': False,
@@ -1296,11 +1324,16 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         env.set('UPSTREAM_BUILD_NUM', '101')
 
         # test API
+        static_analyses = {
+            'missing_requirements': [('missing_1',), ('missing_2',)],
+            'unused_requirements': ['unused_1', 'unused_2'],
+        }
+
         with env:
             build_helper = self.construct_build_helper(build_num=51)
             with mock.patch('requests.get', side_effect=[requests_get_1]):
                 with mock.patch('smtplib.SMTP', return_value=smtp):
-                    result = build_helper.send_email_notifications(False, True, False)
+                    result = build_helper.send_email_notifications(False, True, False, static_analyses)
                     self.assertEqual(result, {
                         'is_fixed': False,
                         'is_new_error': False,
@@ -1392,11 +1425,16 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             'quit': lambda: None,
         })
 
+        static_analyses = {
+            'missing_requirements': [('missing_1',), ('missing_2',)],
+            'unused_requirements': ['unused_1', 'unused_2'],
+        }
+
         with env:
             build_helper = self.construct_build_helper(build_num=51)
             with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_3]):
                 with mock.patch('smtplib.SMTP', return_value=smtp):
-                    result = build_helper.send_email_notifications(False, False, False)
+                    result = build_helper.send_email_notifications(False, False, False, static_analyses)
                     self.assertEqual(result, {
                         'is_fixed': False,
                         'is_new_error': True,
@@ -1416,7 +1454,11 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         for filename in glob(filename_pattern):
             os.remove(filename)
 
-        result = build_helper.send_email_notifications(False, False, False, dry_run=True)
+        static_analyses = {
+            'missing_requirements': [('missing_1',), ('missing_2',)],
+            'unused_requirements': ['unused_1', 'unused_2'],
+        }
+        result = build_helper.send_email_notifications(False, False, False, static_analyses, dry_run=True)
         self.assertEqual(result, {
             'is_fixed': False,
             'is_new_error': False,
@@ -1450,6 +1492,36 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with self.construct_environment():
             with __main__.App(argv=['make-and-archive-reports', '--coverage-dirname', self.coverage_dirname, '--dry-run']) as app:
                 app.run()
+
+    def test_make_and_archive_reports_with_missing_req(self):
+        build_helper = self.construct_build_helper()
+        build_helper.run_tests(test_path=self.DUMMY_TEST,
+                               with_xunit=True,
+                               with_coverage=True, coverage_dirname=self.coverage_dirname)
+
+        py_v = build_helper.get_python_version()
+        shutil.copyfile(
+            os.path.join(build_helper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
+                build_helper.proj_tests_xml_latest_filename, py_v)),
+            os.path.join(build_helper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(10000000000000001, py_v))
+        )
+        shutil.copyfile(
+            os.path.join(build_helper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
+                build_helper.proj_tests_xml_latest_filename, py_v)),
+            os.path.join(build_helper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(10000000000000002, py_v))
+        )
+
+        shutil.copy('requirements.optional.txt', 'requirements.optional.txt.save')
+        with open('requirements.optional.txt', 'w') as file:
+            pass
+
+        with self.assertRaisesRegexp(core.BuildHelperError, 'The following requirements are missing:\n  '):
+            warning = 'The following requirements appear to be unused:\n  robpol86_sphinxcontrib_googleanalytics'
+            with pytest.warns(UserWarning, match=warning):
+                build_helper.make_and_archive_reports(coverage_dirname=self.coverage_dirname, dry_run=True)
+
+        os.remove('requirements.optional.txt')
+        os.rename('requirements.optional.txt.save', 'requirements.optional.txt')
 
     def test_archive_test_report(self):
         build_helper = self.construct_build_helper()
