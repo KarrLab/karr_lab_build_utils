@@ -1,5 +1,5 @@
 [//]: # ( [![PyPI package](https://img.shields.io/pypi/v/{{ name }}.svg)](https://pypi.python.org/pypi/{{ name }}) )
-{% if private %}[![Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](http://code.karrlab.org){% else %}[![Documentation](https://readthedocs.org/projects/{{ name }}/badge/?version=latest)](http://{{ name }}.readthedocs.org){% endif %}
+{% if private %}[![Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](http://code.karrlab.org/view_docs.php?package={{ name }}){% else %}[![Documentation](https://readthedocs.org/projects/{{ name }}/badge/?version=latest)](http://{{ name }}.readthedocs.org){% endif %}
 [![Test results](https://circleci.com/gh/KarrLab/{{ name }}.svg?style=shield&circle-token={{ circleci_repo_token }})](https://circleci.com/gh/KarrLab/{{ name }})
 [![Test coverage](https://coveralls.io/repos/github/KarrLab/{{ name }}/badge.svg?t={{ coveralls_repo_badge_token }})](https://coveralls.io/github/KarrLab/{{ name }})
 [![Code analysis](https://api.codeclimate.com/v1/badges/{{ codeclimate_repo_badge_token }}/maintainability)]({% if private %}https://codeclimate.com/repos/{{ codeclimate_repo_id }}){% else %}https://codeclimate.com/github/KarrLab/{{ name }}{% endif %})
@@ -21,7 +21,7 @@ Write an overview
 Please see the [API documentation](http://{{ name }}.readthedocs.io).
 
 ## License
-The build utilities are released under the [MIT license](LICENSE).
+The package is released under the [MIT license](LICENSE).
 
 ## Development team
 This package was developed by the [Karr Lab](http://www.karrlab.org) at the Icahn School of Medicine at Mount Sinai in New York, USA.
