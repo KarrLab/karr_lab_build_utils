@@ -602,8 +602,8 @@ class CompileDownstreamDependenciesController(CementBaseController):
                 type=str, default='.', help='Path to package')),
             (['--packages-parent-dir'], dict(
                 type=str, default='..', help='Path to the parent directory of the other packages')),
-            (['--downstream-dependencies-filename'], dict(
-                type=str, default=None, help='Path to save the downstream dependencies in YAML format')),
+            (['--config-filename'], dict(
+                type=str, default=None, help='Path to save the configuration including downstream dependencies in YAML format')),
         ]
 
     @expose(hide=True)
@@ -613,7 +613,7 @@ class CompileDownstreamDependenciesController(CementBaseController):
         packages = buildHelper.compile_downstream_dependencies(
             dirname=args.dirname,
             packages_parent_dir=args.packages_parent_dir,
-            downstream_dependencies_filename=args.downstream_dependencies_filename)
+            config_filename=args.config_filename)
 
         if packages:
             print('The following downstream dependencies were found:')
@@ -677,8 +677,8 @@ class TriggerTestsOfDownstreamDependenciesController(CementBaseController):
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
-            (['--downstream-dependencies-filename'], dict(
-                type=str, default='.circleci/downstream_dependencies.yml', help='Path to YAML-formatted list of downstream dependencies')),
+            (['--config-filename'], dict(type=str, default='.circleci/downstream_dependencies.yml', 
+                help='Path to YAML-formatted configuration including list of downstream dependencies')),
         ]
 
     @expose(hide=True)
@@ -686,7 +686,7 @@ class TriggerTestsOfDownstreamDependenciesController(CementBaseController):
         args = self.app.pargs
         buildHelper = BuildHelper()
         packages = buildHelper.trigger_tests_of_downstream_dependencies(
-            downstream_dependencies_filename=args.downstream_dependencies_filename)
+            config_filename=args.config_filename)
         if packages:
             print('{} dependent builds were triggered'.format(len(packages)))
             for package in packages:

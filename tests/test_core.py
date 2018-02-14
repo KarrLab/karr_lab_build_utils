@@ -172,9 +172,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.assertTrue(os.path.isdir(os.path.join(tempdirname, name, '.git')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, name, 'README.md')))
 
-        downstream_deps_filename = os.path.join(tempdirname, name, '.circleci', 'downstream_dependencies.yml')
-        with open(downstream_deps_filename, 'r') as file:
-            self.assertEqual(yaml.load(file), [])
+        config_filename = os.path.join(tempdirname, name, '.karr_lab_build_utils.yml')
+        with open(config_filename, 'r') as file:
+            self.assertEqual(yaml.load(file)['downstream_dependencies'], [])
 
         repo = org.get_repo(name)
         self.assertEqual(repo.description, description)
@@ -200,6 +200,11 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             'codeclimate_repo_token', 'codeclimate_repo_id', 'codeclimate_repo_badge_token',
             'coveralls_repo_token', 'coveralls_repo_badge_token', 'circleci_repo_token',
         ]
+
+        config_filename = os.path.join(tempdirname, 'test_a', '.karr_lab_build_utils.yml')
+        with open(config_filename, 'w') as file:
+            file.write('{}')
+
         with mock.patch('click.confirm', side_effect=confirm_side_effects):
             with mock.patch('click.prompt', side_effect=prompt_side_effects):
                 bh.create_package()
@@ -207,13 +212,13 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.assertTrue(os.path.isdir(os.path.join(tempdirname, name, '.git')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, name, 'README.md')))
 
-        downstream_deps_filename = os.path.join(tempdirname, 'test_a', '.circleci', 'downstream_dependencies.yml')
-        with open(downstream_deps_filename, 'r') as file:
-            self.assertEqual(yaml.load(file), ['test_b'])
+        config_filename = os.path.join(tempdirname, 'test_a', '.karr_lab_build_utils.yml')
+        with open(config_filename, 'r') as file:
+            self.assertEqual(yaml.load(file)['downstream_dependencies'], ['test_b'])
 
-        downstream_deps_filename = os.path.join(tempdirname, 'test_b', '.circleci', 'downstream_dependencies.yml')
-        with open(downstream_deps_filename, 'r') as file:
-            self.assertEqual(yaml.load(file), [])
+        config_filename = os.path.join(tempdirname, 'test_b', '.karr_lab_build_utils.yml')
+        with open(config_filename, 'r') as file:
+            self.assertEqual(yaml.load(file)['downstream_dependencies'], [])
 
         repo = org.get_repo(name)
         self.assertEqual(repo.description, description)
@@ -248,9 +253,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.assertTrue(os.path.isdir(os.path.join(tempdirname, name, '.git')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, name, 'README.md')))
 
-        downstream_deps_filename = os.path.join(tempdirname, name, '.circleci', 'downstream_dependencies.yml')
-        with open(downstream_deps_filename, 'r') as file:
-            self.assertEqual(yaml.load(file), [])
+        config_filename = os.path.join(tempdirname, name, '.karr_lab_build_utils.yml')
+        with open(config_filename, 'r') as file:
+            self.assertEqual(yaml.load(file)['downstream_dependencies'], [])
 
         repo = org.get_repo(name)
         self.assertEqual(repo.description, description)
@@ -353,7 +358,6 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'docs', 'conda.environment.yml')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'docs', 'spelling_wordlist.txt')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', '.circleci', 'config.yml')))
-        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', '.circleci', 'downstream_dependencies.yml')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', '.readthedocs.yml')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', '.karr_lab_build_utils.yml')))
 
@@ -388,7 +392,6 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'docs', 'conda.environment.yml')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'docs', 'spelling_wordlist.txt')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', '.circleci', 'config.yml')))
-        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', '.circleci', 'downstream_dependencies.yml')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', '.readthedocs.yml')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', '.karr_lab_build_utils.yml')))
 
@@ -1784,19 +1787,20 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             file.write('git+https://github.com/KarrLab/karr_lab_build_utils.git#egg=karr_lab_build_utils-0.0.1\n')
 
         # create temp filename to save dependencies
-        tmp_file, downstream_dependencies_filename = tempfile.mkstemp(suffix='.yml')
+        tmp_file, config_filename = tempfile.mkstemp(suffix='.yml')
         os.close(tmp_file)
-        os.remove(downstream_dependencies_filename)
+        with open(config_filename, 'w') as file:
+            file.write('downstream_dependencies: []\n')
 
         # test api
         build_helper = core.BuildHelper()
         deps = build_helper.compile_downstream_dependencies(
             packages_parent_dir=packages_parent_dir,
-            downstream_dependencies_filename=downstream_dependencies_filename)
+            config_filename=config_filename)
         self.assertEqual(sorted(deps), ['pkg_1', 'pkg_3'])
 
-        with open(downstream_dependencies_filename, 'r') as file:
-            self.assertEqual(sorted(yaml.load(file.read())), ['pkg_1', 'pkg_3'])
+        with open(config_filename, 'r') as file:
+            self.assertEqual(sorted(yaml.load(file.read())['downstream_dependencies']), ['pkg_1', 'pkg_3'])
 
         with open(os.path.join(packages_parent_dir, 'pkg_1', 'setup.cfg'), 'w') as file:
             file.write('[coverage:run]\n')
@@ -1807,7 +1811,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             deps = build_helper.compile_downstream_dependencies(
                 dirname=os.path.join(packages_parent_dir, 'pkg_1'),
                 packages_parent_dir=packages_parent_dir,
-                downstream_dependencies_filename=downstream_dependencies_filename)
+                config_filename=config_filename)
 
         # test cli
         with self.construct_environment():
@@ -1827,7 +1831,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         # cleanup
         shutil.rmtree(packages_parent_dir)
-        os.remove(downstream_dependencies_filename)
+        os.remove(config_filename)
 
     def test_are_package_dependencies_acyclic(self):
         packages_parent_dir = tempfile.mkdtemp()
@@ -1843,12 +1847,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             pass
         with open(os.path.join(packages_parent_dir, 'pkg_3', '.circleci', 'config.yml'), 'w') as file:
             pass
-        with open(os.path.join(packages_parent_dir, 'pkg_1', '.circleci', 'downstream_dependencies.yml'), 'w') as file:
-            file.write('- pkg_2\n')
-        with open(os.path.join(packages_parent_dir, 'pkg_2', '.circleci', 'downstream_dependencies.yml'), 'w') as file:
-            file.write('- pkg_3\n')
-        with open(os.path.join(packages_parent_dir, 'pkg_3', '.circleci', 'downstream_dependencies.yml'), 'w') as file:
-            file.write('[]\n')
+        with open(os.path.join(packages_parent_dir, 'pkg_1', '.karr_lab_build_utils.yml'), 'w') as file:
+            file.write('downstream_dependencies:\n  - pkg_2\n')
+        with open(os.path.join(packages_parent_dir, 'pkg_2', '.karr_lab_build_utils.yml'), 'w') as file:
+            file.write('downstream_dependencies:\n  - pkg_3\n')
+        with open(os.path.join(packages_parent_dir, 'pkg_3', '.karr_lab_build_utils.yml'), 'w') as file:
+            file.write('downstream_dependencies: []\n')
 
         """ Acyclic """
 
@@ -1868,8 +1872,8 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ cyclic """
 
-        with open(os.path.join(packages_parent_dir, 'pkg_3', '.circleci', 'downstream_dependencies.yml'), 'w') as file:
-            file.write('- pkg_1\n')
+        with open(os.path.join(packages_parent_dir, 'pkg_3', '.karr_lab_build_utils.yml'), 'w') as file:
+            file.write('downstream_dependencies:\n  - pkg_1\n')
 
         # test api
         build_helper = core.BuildHelper()
@@ -1902,12 +1906,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             pass
         with open(os.path.join(packages_parent_dir, 'pkg_3', '.circleci', 'config.yml'), 'w') as file:
             pass
-        with open(os.path.join(packages_parent_dir, 'pkg_1', '.circleci', 'downstream_dependencies.yml'), 'w') as file:
-            file.write('- pkg_2\n')
-        with open(os.path.join(packages_parent_dir, 'pkg_2', '.circleci', 'downstream_dependencies.yml'), 'w') as file:
-            file.write('- pkg_3\n')
-        with open(os.path.join(packages_parent_dir, 'pkg_3', '.circleci', 'downstream_dependencies.yml'), 'w') as file:
-            file.write('- pkg_1\n')
+        with open(os.path.join(packages_parent_dir, 'pkg_1', '.karr_lab_build_utils.yml'), 'w') as file:
+            file.write('downstream_dependencies:\n  - pkg_2\n')
+        with open(os.path.join(packages_parent_dir, 'pkg_2', '.karr_lab_build_utils.yml'), 'w') as file:
+            file.write('downstream_dependencies:\n  - pkg_3\n')
+        with open(os.path.join(packages_parent_dir, 'pkg_3', '.karr_lab_build_utils.yml'), 'w') as file:
+            file.write('downstream_dependencies:\n  - pkg_1\n')
 
         tmp_file, out_filename = tempfile.mkstemp(suffix='.pdf')
         os.close(tmp_file)
@@ -1971,14 +1975,14 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         for filename in glob(filename_pattern):
             os.remove(filename)
 
-        tmp_file, downstream_dependencies_filename = tempfile.mkstemp(suffix='.yml')
+        tmp_file, config_filename = tempfile.mkstemp(suffix='.yml')
         os.close(tmp_file)
-        with open(downstream_dependencies_filename, 'w') as file:
-            yaml.dump([], file)
+        with open(config_filename, 'w') as file:
+            yaml.dump({'downstream_dependencies': []}, file)
 
         build_helper = self.construct_build_helper()
         deps = build_helper.trigger_tests_of_downstream_dependencies(
-            downstream_dependencies_filename=downstream_dependencies_filename)
+            config_filename=config_filename)
         self.assertEqual(deps, [])
 
     def test_trigger_tests_of_downstream_dependencies_no_upstream(self):
@@ -1988,10 +1992,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         for filename in glob(filename_pattern):
             os.remove(filename)
 
-        tmp_file, downstream_dependencies_filename = tempfile.mkstemp(suffix='.yml')
+        tmp_file, config_filename = tempfile.mkstemp(suffix='.yml')
         os.close(tmp_file)
-        with open(downstream_dependencies_filename, 'w') as file:
-            yaml.dump(['dep_1', 'dep_2'], file)
+        with open(config_filename, 'w') as file:
+            yaml.dump({'downstream_dependencies': ['dep_1', 'dep_2']}, file)
 
         requests_get_1 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
@@ -2014,20 +2018,20 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_2]):
                     build_helper = core.BuildHelper()
                     deps = build_helper.trigger_tests_of_downstream_dependencies(
-                        downstream_dependencies_filename=downstream_dependencies_filename)
+                        config_filename=config_filename)
                     self.assertEqual(deps, ['dep_1', 'dep_2'])
 
                 # test cli
                 with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_2]):
                     with __main__.App(argv=['trigger-tests-of-downstream-dependencies',
-                                            '--downstream-dependencies-filename', downstream_dependencies_filename]) as app:
+                                            '--config-filename', config_filename]) as app:
                         with capturer.CaptureOutput(merged=False, relay=False) as captured:
                             app.run()
                     self.assertRegexpMatches(captured.stdout.get_text(), '2 dependent builds were triggered')
                     self.assertEqual(captured.stderr.get_text(), '')
 
         # cleanup
-        os.remove(downstream_dependencies_filename)
+        os.remove(config_filename)
 
     def test_trigger_tests_of_downstream_dependencies_with_upstream(self):
         build_helper = core.BuildHelper()
@@ -2036,10 +2040,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         for filename in glob(filename_pattern):
             os.remove(filename)
 
-        tmp_file, downstream_dependencies_filename = tempfile.mkstemp(suffix='.yml')
+        tmp_file, config_filename = tempfile.mkstemp(suffix='.yml')
         os.close(tmp_file)
-        with open(downstream_dependencies_filename, 'w') as file:
-            yaml.dump(['dep_1', 'dep_2'], file)
+        with open(config_filename, 'w') as file:
+            yaml.dump({'downstream_dependencies': ['dep_1', 'dep_2']}, file)
 
         requests_get_1 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
@@ -2073,20 +2077,20 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_2]):
                     build_helper = core.BuildHelper()
                     deps = build_helper.trigger_tests_of_downstream_dependencies(
-                        downstream_dependencies_filename=downstream_dependencies_filename)
+                        config_filename=config_filename)
                     self.assertEqual(deps, [])
 
                 # test cli
                 with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_2]):
                     with __main__.App(argv=['trigger-tests-of-downstream-dependencies',
-                                            '--downstream-dependencies-filename', downstream_dependencies_filename]) as app:
+                                            '--config-filename', config_filename]) as app:
                         with capturer.CaptureOutput(merged=False, relay=False) as captured:
                             app.run()
                     self.assertRegexpMatches(captured.stdout.get_text(), 'No dependent builds were triggered.')
                     self.assertEqual(captured.stderr.get_text(), '')
 
         # cleanup
-        os.remove(downstream_dependencies_filename)
+        os.remove(config_filename)
 
     def test_trigger_tests_of_downstream_dependencies_trigger_original_upstream(self):
         build_helper = core.BuildHelper()
@@ -2095,10 +2099,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         for filename in glob(filename_pattern):
             os.remove(filename)
 
-        tmp_file, downstream_dependencies_filename = tempfile.mkstemp(suffix='.yml')
+        tmp_file, config_filename = tempfile.mkstemp(suffix='.yml')
         os.close(tmp_file)
-        with open(downstream_dependencies_filename, 'w') as file:
-            yaml.dump(['dep_1'], file)
+        with open(config_filename, 'w') as file:
+            yaml.dump({'downstream_dependencies': ['dep_1']}, file)
 
         requests_get_1 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
@@ -2135,11 +2139,11 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     # test api
                     build_helper = core.BuildHelper()
                     deps = build_helper.trigger_tests_of_downstream_dependencies(
-                        downstream_dependencies_filename=downstream_dependencies_filename)
+                        config_filename=config_filename)
                     self.assertEqual(deps, [])
 
         # cleanup
-        os.remove(downstream_dependencies_filename)
+        os.remove(config_filename)
 
     def test_trigger_tests_of_downstream_dependencies_already_queued(self):
         build_helper = core.BuildHelper()
@@ -2148,10 +2152,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         for filename in glob(filename_pattern):
             os.remove(filename)
 
-        tmp_file, downstream_dependencies_filename = tempfile.mkstemp(suffix='.yml')
+        tmp_file, config_filename = tempfile.mkstemp(suffix='.yml')
         os.close(tmp_file)
-        with open(downstream_dependencies_filename, 'w') as file:
-            yaml.dump(['pkg_2'], file)
+        with open(config_filename, 'w') as file:
+            yaml.dump({'downstream_dependencies': ['pkg_2']}, file)
 
         requests_get_1 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
@@ -2181,7 +2185,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     # test api
                     build_helper = core.BuildHelper()
                     deps = build_helper.trigger_tests_of_downstream_dependencies(
-                        downstream_dependencies_filename=downstream_dependencies_filename)
+                        config_filename=config_filename)
                     self.assertEqual(deps, [])
 
         requests_get_1 = attrdict.AttrDict({
@@ -2194,11 +2198,11 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     # test api
                     build_helper = core.BuildHelper()
                     deps = build_helper.trigger_tests_of_downstream_dependencies(
-                        downstream_dependencies_filename=downstream_dependencies_filename)
+                        config_filename=config_filename)
                     self.assertEqual(deps, ['pkg_2'])
 
         # cleanup
-        os.remove(downstream_dependencies_filename)
+        os.remove(config_filename)
 
     def test_trigger_tests_of_downstream_dependencies_dry_run(self):
         build_helper = core.BuildHelper()

@@ -220,7 +220,7 @@ class BuildHelper(object):
             * Add JSON-formatted file to ``ssh://code.karrlab.org:/home/karrlab_code/code.karrlab.org/repo/{{ name }}.json``
 
         * Add badges for Code Climate, Coveralls, CircleCI, and Read the Docs to README.md
-        * Add package name to ``.circleci/downstream_dependencies.yml`` files of all dependencies
+        * Add package name to ``downstream_dependencies`` key in ``.karr_lab_build_utils.yml``
         """
         # print introductory message
         print('This program will guide you through creating a new package.')
@@ -461,16 +461,18 @@ class BuildHelper(object):
         # append package to downstream dependencies of dependencies
         parent_dirname = os.path.dirname(dirname)
         for dependency in dependencies:
-            downstream_deps_filename = os.path.join(parent_dirname, dependency, '.circleci', 'downstream_dependencies.yml')
+            config_filename = os.path.join(parent_dirname, dependency, '.karr_lab_build_utils.yml')
 
-            if os.path.isfile(downstream_deps_filename):
-                with open(downstream_deps_filename, 'r') as file:
-                    downstream_deps = yaml.load(file)
+            if os.path.isfile(config_filename):
+                with open(config_filename, 'r') as file:
+                    config = yaml.load(file)
 
-                downstream_deps.append(name)
+                if 'downstream_dependencies' not in config:
+                    config['downstream_dependencies'] = []
+                config['downstream_dependencies'].append(name)
 
-                with open(downstream_deps_filename, 'w') as file:
-                    yaml.dump(downstream_deps, file, default_flow_style=False)
+                with open(config_filename, 'w') as file:
+                    yaml.dump(config, file, default_flow_style=False)
 
             else:
                 warnings.warn(('Unable to append package to downstream dependency {} because the '
@@ -573,7 +575,6 @@ class BuildHelper(object):
             'tests/test_core.py',
             'tests/test_main.py',
             '.circleci/config.yml',
-            '.circleci/downstream_dependencies.yml',
             '.readthedocs.yml',
             '.karr_lab_build_utils.yml',
             '_package_/__init__.py',
@@ -1545,9 +1546,6 @@ class BuildHelper(object):
         msg.add_header('Content-Type', 'text/html')
         msg.set_payload(body)
 
-        with open('test.html', 'w') as file:
-            file.write(body)
-
         if not dry_run:
             smtp = smtplib.SMTP('smtp.gmail.com:587')
             smtp.ehlo()
@@ -1606,7 +1604,7 @@ class BuildHelper(object):
         return {
             'missing_requirements': missing_reqs,
             'unused_requirements': unused_reqs,
-            }
+        }
 
     ########################
     # Test reports
@@ -1816,13 +1814,14 @@ class BuildHelper(object):
                 self.proj_docs_build_spelling_dir,
             ])
 
-    def compile_downstream_dependencies(self, dirname='.', packages_parent_dir='..', downstream_dependencies_filename=None):
-        """ Compile the downstream dependencies of a package and save them to :obj:`downstream_dependencies_filename`
+    def compile_downstream_dependencies(self, dirname='.', packages_parent_dir='..', config_filename=None):
+        """ Compile the downstream dependencies of a package and save them to :obj:`config_filename`
 
         Args:
             dirname (:obj:`str`, optional): path to package
             packages_parent_dir (:obj:`str`, optional): path to the parent directory of the packages
-            downstream_dependencies_filename (:obj:`str`, optional): path to save list of downstream dependencies in YAML format
+            config_filename (:obj:`str`, optional): path to save configuration with list of downstream dependencies 
+                in YAML format
 
         Returns:
             :obj:`list` of :obj:`str`: downstream dependencies
@@ -1856,9 +1855,16 @@ class BuildHelper(object):
                     downstream_dependencies.append(other_pkg_name)
 
         # save the downstream dependencies to a file
-        if downstream_dependencies_filename:
-            with open(downstream_dependencies_filename, 'w') as file:
-                yaml.dump(downstream_dependencies, file, default_flow_style=False)
+        if config_filename:
+            config = {}
+            if os.path.isfile(config_filename):
+                with open(config_filename, 'r') as file:
+                    config = yaml.load(file)
+
+            config['downstream_dependencies'] = downstream_dependencies
+
+            with open(config_filename, 'w') as file:
+                yaml.dump(config, file, default_flow_style=False)
 
         # return the downstream dependencies
         return downstream_dependencies
@@ -1883,10 +1889,11 @@ class BuildHelper(object):
                 graph.add_node(pkg)
 
                 # create edges for dependencies
-                dep_filename = os.path.join(dirname, '.circleci/downstream_dependencies.yml')
-                if os.path.isfile(dep_filename):
-                    with open(dep_filename, 'r') as file:
-                        deps = yaml.load(file)
+                config_filename = os.path.join(dirname, '.karr_lab_build_utils.yml')
+                if os.path.isfile(config_filename):
+                    with open(config_filename, 'r') as file:
+                        config = yaml.load(file)
+                    deps = config.get('downstream_dependencies', [])
                     for other_pkg in deps:
                         graph.add_edge(pkg, other_pkg)
 
@@ -1916,21 +1923,23 @@ class BuildHelper(object):
                 dot.node(pkg, pkg)
 
                 # create edges for dependencies
-                dep_filename = os.path.join(dirname, '.circleci/downstream_dependencies.yml')
-                if os.path.isfile(dep_filename):
-                    with open(dep_filename, 'r') as file:
-                        deps = yaml.load(file)
+                config_filename = os.path.join(dirname, '.karr_lab_build_utils.yml')
+                if os.path.isfile(config_filename):
+                    with open(config_filename, 'r') as file:
+                        config = yaml.load(file)
+                    deps = config.get('downstream_dependencies', [])
                     for other_pkg in deps:
                         dot.edge(pkg, other_pkg)
 
         dot.render(filename=basename, cleanup=True)
 
-    def trigger_tests_of_downstream_dependencies(self, downstream_dependencies_filename='.circleci/downstream_dependencies.yml',
+    def trigger_tests_of_downstream_dependencies(self, config_filename='.karr_lab_build_utils.yml',
                                                  dry_run=False):
-        """ Trigger CircleCI to test downstream dependencies listed in :obj:`downstream_dependencies_filename`
+        """ Trigger CircleCI to test downstream dependencies listed in :obj:`config_filename`
 
         Args:
-            downstream_dependencies_filename (:obj:`str`, optional): path to YAML file which contains a list of downstream dependencies
+            config_filename (:obj:`str`, optional): path to YAML configuration file which contains a list of 
+                downstream dependencies
             dry_run (:obj:`bool`, optional): if true, don't upload to the Coveralls and Code Climate servers
 
         Returns:
@@ -1949,8 +1958,9 @@ class BuildHelper(object):
             return []
 
         # read downstream dependencies
-        with open(downstream_dependencies_filename, 'r') as file:
-            packages = yaml.load(file)
+        with open(config_filename, 'r') as file:
+            config = yaml.load(file)
+            packages = config.get('downstream_dependencies', [])
 
         # stop if there are no downstream dependencies
         if not packages:
