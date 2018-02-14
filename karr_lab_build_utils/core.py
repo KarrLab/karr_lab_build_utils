@@ -300,12 +300,12 @@ class BuildHelper(object):
 
         print('Cick the "Test coverage" menu item')
         click.confirm('Continue?', default=True, abort=True)
-        codeclimate_repo_token = click.prompt('Enter the "test reporter id"')
+        code_climate_repo_token = click.prompt('Enter the "test reporter id"')
 
         print('Cick the "Badges" menu item')
         click.confirm('Continue?', default=True, abort=True)
-        codeclimate_repo_id = click.prompt('Enter the repository ID (ID in the URL https://codeclimate.com/repos/<id>/maintainability)')
-        codeclimate_repo_badge_token = click.prompt(
+        code_climate_repo_id = click.prompt('Enter the repository ID (ID in the URL https://codeclimate.com/repos/<id>/maintainability)')
+        code_climate_repo_badge_token = click.prompt(
             'Enter the badge token (token in the URL https://api.codeclimate.com/v1/badges/<token>/maintainability)')
 
         # Coveralls
@@ -376,7 +376,7 @@ class BuildHelper(object):
         vars = {
             'CIRCLECI_API_TOKEN': circleci_api_token,
             'COVERALLS_REPO_TOKEN': coveralls_repo_token,
-            'CODECLIMATE_REPO_TOKEN': codeclimate_repo_token,
+            'CODECLIMATE_REPO_TOKEN': code_climate_repo_token,
             'KARR_LAB_DAEMON_GMAIL_PASSWORD': karr_lab_daemon_gmail_password,
             'TEST_SERVER_TOKEN': test_server_token,
         }
@@ -441,7 +441,7 @@ class BuildHelper(object):
             'private': private,
             'circleci_repo_token': circleci_repo_token,
             'coveralls_repo_token': coveralls_repo_token,
-            'codeclimate_repo_id': codeclimate_repo_id,
+            'code_climate_repo_id': code_climate_repo_id,
         }
 
         template.stream(**context).dump(local_filename)
@@ -456,7 +456,7 @@ class BuildHelper(object):
         self.setup_repository(name, description=description, keywords=keywords, dependencies=dependencies,
                               private=private, build_image_version=build_image_version, dirname=dirname,
                               circleci_repo_token=circleci_repo_token, coveralls_repo_badge_token=coveralls_repo_badge_token,
-                              codeclimate_repo_id=codeclimate_repo_id, codeclimate_repo_badge_token=codeclimate_repo_badge_token)
+                              code_climate_repo_id=code_climate_repo_id, code_climate_repo_badge_token=code_climate_repo_badge_token)
 
         # append package to downstream dependencies of dependencies
         parent_dirname = os.path.dirname(dirname)
@@ -525,8 +525,8 @@ class BuildHelper(object):
             os.rename(gitconfig_filename + '.ignore', gitconfig_filename)
 
     def setup_repository(self, name, description='', keywords=None, dependencies=None, private=True, build_image_version=None,
-                         dirname=None, circleci_repo_token=None, coveralls_repo_badge_token=None, codeclimate_repo_id=None,
-                         codeclimate_repo_badge_token=None):
+                         dirname=None, circleci_repo_token=None, coveralls_repo_badge_token=None, code_climate_repo_id=None,
+                         code_climate_repo_badge_token=None):
         """ Setup Git repository with the default directory structure
 
         Args:
@@ -540,8 +540,8 @@ class BuildHelper(object):
             dirname (:obj:`str`, optional): directory name
             circleci_repo_token (:obj:`str`, optional): CircleCI API token (e.g. for badges) for the repository
             coveralls_repo_badge_token (:obj:`str`, optional): Coveralls badge token for the repository
-            codeclimate_repo_id (:obj:`str`, optional): Code Climate ID for the repository
-            codeclimate_repo_badge_token (:obj:`str`, optional): Code Climate for the repository
+            code_climate_repo_id (:obj:`str`, optional): Code Climate ID for the repository
+            code_climate_repo_badge_token (:obj:`str`, optional): Code Climate for the repository
         """
 
         if not re.match('^[a-z][a-z0-9_]*$', name):
@@ -596,8 +596,8 @@ class BuildHelper(object):
             'private': private,
             'circleci_repo_token': circleci_repo_token,
             'coveralls_repo_badge_token': coveralls_repo_badge_token,
-            'codeclimate_repo_id': codeclimate_repo_id,
-            'codeclimate_repo_badge_token': codeclimate_repo_badge_token,
+            'code_climate_repo_id': code_climate_repo_id,
+            'code_climate_repo_badge_token': code_climate_repo_badge_token,
         }
 
         for filename in filenames:
@@ -754,7 +754,7 @@ class BuildHelper(object):
                               method='delete', repo_type=repo_type, repo_owner=repo_owner, repo_name=repo_name,
                               circleci_api_token=circleci_api_token)
 
-    def create_codeclimate_github_webhook(self, repo_type=None, repo_owner=None, repo_name=None,
+    def create_code_climate_github_webhook(self, repo_type=None, repo_owner=None, repo_name=None,
                                           github_username=None, github_password=None):
         """ Create GitHub webhook for Code Climate
 
@@ -890,7 +890,7 @@ class BuildHelper(object):
     # Running tests
     ########################
     def run_tests(self, dirname='.', test_path='tests', verbose=False, with_xunit=False, with_coverage=False, coverage_dirname='.',
-                  coverage_type=CoverageType.statement, environment=Environment.local, exit_on_failure=True,
+                  coverage_type=CoverageType.branch, environment=Environment.local, exit_on_failure=True,
                   ssh_key_filename='~/.ssh/id_rsa'):
         """ Run unit tests located at `test_path`.
 
@@ -930,7 +930,7 @@ class BuildHelper(object):
             raise BuildHelperError('Unsupported environment: {}'.format(environment))
 
     def _run_tests_local(self, dirname='.', test_path='tests', verbose=False, with_xunit=False, with_coverage=False, coverage_dirname='.',
-                         coverage_type=CoverageType.statement, exit_on_failure=True):
+                         coverage_type=CoverageType.branch, exit_on_failure=True):
         """ Run unit tests located at `test_path` locally
 
         Optionally, generate a coverage report.
@@ -1031,7 +1031,7 @@ class BuildHelper(object):
             sys.exit(1)
 
     def _run_tests_docker(self, dirname='.', test_path='tests', verbose=False, with_xunit=False, with_coverage=False, coverage_dirname='.',
-                          coverage_type=CoverageType.statement, ssh_key_filename='~/.ssh/id_rsa'):
+                          coverage_type=CoverageType.branch, ssh_key_filename='~/.ssh/id_rsa'):
         """ Run unit tests located at `test_path` using a Docker image:
 
         #. Create a container based on the build image (e.g, karrlab/build:latest)

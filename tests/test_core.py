@@ -161,7 +161,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             bh.github_username, '*' * len(bh.github_password), '*' * len(bh.circleci_api_token),
             '*' * len(bh.test_server_token), '*' * len(bh.karr_lab_daemon_gmail_password),
             bh.code_server_username, '*' * len(bh.code_server_password),
-            'codeclimate_repo_token', 'codeclimate_repo_id', 'codeclimate_repo_badge_token',
+            'code_climate_repo_token', 'code_climate_repo_id', 'code_climate_repo_badge_token',
             'coveralls_repo_token', 'coveralls_repo_badge_token', 'circleci_repo_token',
         ]
         with mock.patch('click.confirm', side_effect=confirm_side_effects):
@@ -197,7 +197,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             bh.github_username, bh.github_password, bh.circleci_api_token,
             bh.test_server_token, bh.karr_lab_daemon_gmail_password,
             bh.code_server_username, bh.code_server_password,
-            'codeclimate_repo_token', 'codeclimate_repo_id', 'codeclimate_repo_badge_token',
+            'code_climate_repo_token', 'code_climate_repo_id', 'code_climate_repo_badge_token',
             'coveralls_repo_token', 'coveralls_repo_badge_token', 'circleci_repo_token',
         ]
 
@@ -243,7 +243,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     bh.github_username, bh.github_password, bh.circleci_api_token,
                     bh.test_server_token, bh.karr_lab_daemon_gmail_password,
                     bh.code_server_username, bh.code_server_password,
-                    'codeclimate_repo_token', 'codeclimate_repo_id', 'codeclimate_repo_badge_token',
+                    'code_climate_repo_token', 'code_climate_repo_id', 'code_climate_repo_badge_token',
                     'coveralls_repo_token', 'coveralls_repo_badge_token', 'circleci_repo_token',
                 ]
                 with mock.patch('click.confirm', side_effect=confirm_side_effects):
@@ -513,24 +513,24 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         vars = build_helper.get_circleci_environment_variables()
         self.assertTrue('__TEST1__' not in vars)
 
-    def test_create_codeclimate_github_webhook(self):
+    def test_create_code_climate_github_webhook(self):
         build_helper = self.construct_build_helper()
 
         """ test API """
         try:
-            build_helper.create_codeclimate_github_webhook()
+            build_helper.create_code_climate_github_webhook()
         except ValueError as err:
             pass
 
         """ test CLI """
         with self.construct_environment():
-            with __main__.App(argv=['create-codeclimate-github-webhook']) as app:
+            with __main__.App(argv=['create-code-climate-github-webhook']) as app:
                 try:
                     app.run()
                 except ValueError as err:
                     pass
 
-    def test_create_codeclimate_github_webhook_error(self):
+    def test_create_code_climate_github_webhook_error(self):
         build_helper = self.construct_build_helper()
 
         class Result(object):
@@ -543,7 +543,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         with mock.patch.object(requests, 'post', return_value=Result()):
             with self.assertRaisesRegexp(ValueError, '^Unable to create webhook for'):
-                build_helper.create_codeclimate_github_webhook()
+                build_helper.create_code_climate_github_webhook()
 
     def test_install_requirements(self):
         build_helper = self.construct_build_helper()
@@ -1678,7 +1678,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 with mock.patch.object(CodeClimateRunner, 'run', return_value=0):
                     app.run()
 
-    def test_upload_coverage_report_to_codeclimate_no_coverage_files(self):
+    def test_upload_coverage_report_to_code_climate_no_coverage_files(self):
         build_helper = self.construct_build_helper()
 
         self.assertEqual(glob(os.path.join(self.coverage_dirname, '.coverage')), [])

@@ -127,9 +127,9 @@ class SetupRepositoryController(CementBaseController):
                 default=None, type=str, help='CircleCI API token for thre repository')),
             (['--coveralls-repo-badge-token'], dict(
                 default=None, type=str, help='Coveralls badge token for the repository')),
-            (['--codeclimate-repo-id'], dict(
+            (['--code-climate-repo-id'], dict(
                 default=None, type=str, help='Code Climate ID the repository')),
-            (['--codeclimate-repo-badge-token'], dict(
+            (['--code-climate-repo-badge-token'], dict(
                 default=None, type=str, help='Code Climate badge token for the repository')),
         ]
 
@@ -141,7 +141,7 @@ class SetupRepositoryController(CementBaseController):
             args.name, description=args.description, keywords=args.keywords, dependencies=args.dependencies,
             private=(not args.public), build_image_version=args.build_image_version, dirname=args.dirname,
             circleci_repo_token=args.circleci_repo_token, coveralls_repo_badge_token=args.coveralls_repo_badge_token,
-            codeclimate_repo_id=args.codeclimate_repo_id, codeclimate_repo_badge_token=args.codeclimate_repo_badge_token)
+            code_climate_repo_id=args.code_climate_repo_id, code_climate_repo_badge_token=args.code_climate_repo_badge_token)
 
 
 class CreateDocumentationTemplateController(CementBaseController):
@@ -193,7 +193,7 @@ class RunTestsController(CementBaseController):
             (['--coverage-dirname'], dict(
                 type=str, default='.', help='Directory to store coverage data')),
             (['--coverage-type'], dict(
-                type=str, default='statement',
+                type=str, default='branch',
                 help='Type of coverage analysis to run {statement, branch, or multiple-decision}')),
             (['--environment'], dict(
                 type=str, default='local',
@@ -351,10 +351,10 @@ class DeleteCircleciEnvironmentVariableController(CementBaseController):
                                                          repo_name=args.repo_name, circleci_api_token=args.circleci_api_token)
 
 
-class CreateCodeclimateGithubWebhookController(CementBaseController):
+class CreateCodeClimateGithubWebhookController(CementBaseController):
     """ Create Code Climate GitHub webhook for the current repository """
     class Meta:
-        label = 'create-codeclimate-github-webhook'
+        label = 'create-code-climate-github-webhook'
         description = 'Create Code Climate GitHub webhook for the current repository'
         stacked_on = 'base'
         stacked_type = 'nested'
@@ -375,7 +375,7 @@ class CreateCodeclimateGithubWebhookController(CementBaseController):
     def default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
-        buildHelper.create_codeclimate_github_webhook(
+        buildHelper.create_code_climate_github_webhook(
             repo_type=args.repo_type, repo_owner=args.repo_owner, repo_name=args.repo_name,
             github_username=args.github_username, github_password=args.github_password)
 
@@ -833,7 +833,7 @@ class App(CementApp):
             GetCircleciEnvironmentVariablesController,
             SetCircleciEnvironmentVariableController,
             DeleteCircleciEnvironmentVariableController,
-            CreateCodeclimateGithubWebhookController,
+            CreateCodeClimateGithubWebhookController,
             DoPostTestTasksController,
             MakeAndArchiveReportsController,
             CombineCoverageReportsController,
