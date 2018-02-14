@@ -1496,7 +1496,8 @@ class BuildHelper(object):
                 'build_url': result['build_url'],
             }
 
-        recipients = [{'name': 'Whole-Cell Modeling Developers', 'email': 'wholecell-developers@googlegroups.com'}]
+        config = self.get_build_config()
+        recipients = config.get('email_notifications', [])
 
         # send notifications
         if status['is_fixed']:
@@ -1513,7 +1514,7 @@ class BuildHelper(object):
             self._send_notification_email(recipients, subject, 'other_error.html', context)
 
         if status['is_new_downstream_error']:
-            recipients.append({'name': context['upstream']['committer_name'], 'email': context['upstream']['committer_email']})
+            recipients.append('wholecell-developers@googlegroups.com')
             subject = '[Builds] [{1}] commit {0} to {1} may have broken {2}'.format(
                 context['upstream']['commit'], context['upstream']['repo_name'], context['repo_name'])
             self._send_notification_email(recipients, subject, 'new_downstream_error.html', context)
@@ -1524,7 +1525,7 @@ class BuildHelper(object):
         """ Send an email notification of test results
 
         Args:
-            recipients (:obj:`list` of :obj:`dict`): recipient names and email addresses
+            recipients (:obj:`list` of :obj:`str`): recipient email addresses
             subject (:obj:`str`): subject
             template_filename (obj:`str`): path to template
             context (obj:`dict`): context for template
@@ -1540,7 +1541,7 @@ class BuildHelper(object):
         msg['From'] = email.utils.formataddr((str(email.header.Header('Karr Lab Build System', 'utf-8')), 'noreply@karrlab.org'))
         tos = []
         for recipient in recipients:
-            tos.append(email.utils.formataddr((str(email.header.Header(recipient['name'], 'utf-8')), recipient['email'])))
+            tos.append(email.utils.formataddr((None, recipient)))
         msg['To'] = ', '.join(tos)
         msg['Subject'] = subject
         msg.add_header('Content-Type', 'text/html')
@@ -1551,7 +1552,7 @@ class BuildHelper(object):
             smtp.ehlo()
             smtp.starttls()
             smtp.login('karr.lab.daemon', os.getenv('KARR_LAB_DAEMON_GMAIL_PASSWORD'))
-            smtp.sendmail('noreply@karrlab.org', [recipient['email'] for recipient in recipients], msg.as_string())
+            smtp.sendmail('noreply@karrlab.org', recipients, msg.as_string())
             smtp.quit()
 
     def make_and_archive_reports(self, coverage_dirname='.', dry_run=False):
@@ -1581,7 +1582,7 @@ class BuildHelper(object):
         self.archive_coverage_report(coverage_dirname=coverage_dirname, dry_run=dry_run)
 
         """ static analysis """
-        config = self.get_config()
+        config = self.get_build_config()
         ignore_files = config.get('static_analyses', {}).get('ignore_files', [])
 
         missing_reqs = self.find_missing_requirements(self.repo_name, ignore_files=ignore_files)
@@ -2288,7 +2289,7 @@ class BuildHelper(object):
         response.raise_for_status()
         return response.json()
 
-    def get_config(self):
+    def get_build_config(self):
         """ Get build configuration
 
         Returns:
