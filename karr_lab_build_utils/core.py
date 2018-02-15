@@ -959,11 +959,11 @@ class BuildHelper(object):
 
         if with_coverage:
             if coverage_type == CoverageType.statement:
-                cov = coverage.coverage(data_file=os.path.join(coverage_dirname, '.coverage'),
+                cov = coverage.Coverage(data_file=os.path.join(coverage_dirname, '.coverage'),
                                         data_suffix=py_v, config_file=True)
                 cov.start()
             elif coverage_type == CoverageType.branch:
-                cov = coverage.coverage(data_file=os.path.join(coverage_dirname, '.coverage'),
+                cov = coverage.Coverage(data_file=os.path.join(coverage_dirname, '.coverage'),
                                         data_suffix=py_v, config_file=True, branch=True)
                 cov.start()
             # elif coverage_type == CoverageType.multiple_condition:
@@ -1666,7 +1666,7 @@ class BuildHelper(object):
             warnings.warn('No coverage files exist to combine', UserWarning)
             return
 
-        coverage_doc = coverage.coverage(data_file=os.path.join(coverage_dirname, '.coverage'))
+        coverage_doc = coverage.Coverage(data_file=os.path.join(coverage_dirname, '.coverage'))
         coverage_doc.combine(data_paths=data_paths)
         coverage_doc.save()
 
@@ -1706,7 +1706,7 @@ class BuildHelper(object):
                                          service_name='circle-ci', service_job_id=self.build_num)
 
             def get_coverage():
-                workman = coverage.coverage(data_file=os.path.join(coverage_dirname, '.coverage'))
+                workman = coverage.Coverage(data_file=os.path.join(coverage_dirname, '.coverage'))
                 workman.load()
                 workman.get_data()
 
@@ -1729,6 +1729,14 @@ class BuildHelper(object):
         if not os.path.isfile(os.path.join(coverage_dirname, '.coverage')):
             warnings.warn('No coverage file exists to upload to Code Climate', UserWarning)
             return
+
+        # save coverage data to xml
+        xml_cov_filename = 'coverage.xml'
+
+        workman = coverage.Coverage(data_file=os.path.join(coverage_dirname, '.coverage'))
+        workman.load()
+        workman.get_data()
+        workman.xml_report(outfile=xml_cov_filename)
 
         # download the Code Climate test reporter
         response = requests.get('https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64')
