@@ -755,7 +755,7 @@ class BuildHelper(object):
                               circleci_api_token=circleci_api_token)
 
     def create_code_climate_github_webhook(self, repo_type=None, repo_owner=None, repo_name=None,
-                                          github_username=None, github_password=None):
+                                           github_username=None, github_password=None):
         """ Create GitHub webhook for Code Climate
 
         Args:
@@ -1731,13 +1731,18 @@ class BuildHelper(object):
             warnings.warn('No coverage file exists to upload to Code Climate', UserWarning)
             return
 
-        if self.code_climate_token:
-            code_climate_runner = CodeClimateRunner([
-                '--token', self.code_climate_token,
-                '--file', os.path.join(coverage_dirname, '.coverage'),
-            ])
-            if not dry_run:
-                self.run_method_and_capture_stderr(code_climate_runner.run)
+        # download the Code Climate test reporter
+        response = requests.get('https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64')
+        response.raise_for_status()
+        cc_path = os.path.expanduser('~/cc-test-reporter')
+        with open(cc_path, 'w') as file:
+            file.write(response.content)
+        os.chmod(cc_path, 0o755)
+
+        # run the reporter
+        if not dry_run:
+            subprocess.check_call([cc_path, 'before-build'])
+            subprocess.check_call([cc_path, 'after-build', '-t', 'coverage.py'])
 
     ########################
     # Documentation

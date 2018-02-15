@@ -4,7 +4,7 @@ capturer
 cement
 click
 codeclimate_test_reporter
-coverage < 4.4
+coverage
 coveralls
 enum34
 ftputil

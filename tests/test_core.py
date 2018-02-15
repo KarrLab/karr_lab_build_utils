@@ -609,12 +609,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 build_helper.upgrade_requirements()
 
     def test_run_tests(self):
-        self.help_run('pytest', coverage_type=core.CoverageType.statement)
+        self.help_run('pytest', coverage_type=core.CoverageType.branch)
         self.help_run('nose', coverage_type=core.CoverageType.branch)
         with self.assertRaisesRegexp(core.BuildHelperError, '^Unsupported coverage type: '):
             self.help_run('pytest', coverage_type=core.CoverageType.multiple_condition)
 
-    def help_run(self, test_runner, coverage_type=core.CoverageType.statement):
+    def help_run(self, test_runner, coverage_type=core.CoverageType.branch):
         build_helper = self.construct_build_helper()
         build_helper.test_runner = test_runner
         py_v = build_helper.get_python_version()
@@ -1666,7 +1666,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             os.path.join(self.coverage_dirname, '.coverage'))
 
         """ test API """
-        with mock.patch.object(CodeClimateRunner, 'run', return_value=0):
+        with mock.patch('subprocess.check_call', return_value=None):
             build_helper.upload_coverage_report_to_code_climate(coverage_dirname=self.coverage_dirname)
 
         """ test CLI """
@@ -1675,7 +1675,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     argv=['upload-coverage-report-to-code-climate',
                           '--coverage-dirname', self.coverage_dirname,
                           ]) as app:
-                with mock.patch.object(CodeClimateRunner, 'run', return_value=0):
+                with mock.patch('subprocess.check_call', return_value=None):
                     app.run()
 
     def test_upload_coverage_report_to_code_climate_no_coverage_files(self):
