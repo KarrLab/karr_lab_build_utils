@@ -1735,7 +1735,7 @@ class BuildHelper(object):
         response = requests.get('https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64')
         response.raise_for_status()
         cc_path = os.path.expanduser('~/cc-test-reporter')
-        with open(cc_path, 'w') as file:
+        with open(cc_path, 'wb') as file:
             file.write(response.content)
         os.chmod(cc_path, 0o755)
 
