@@ -6,7 +6,6 @@
 :License: MIT
 """
 
-from codeclimate_test_reporter.components.runner import Runner as CodeClimateRunner
 from datetime import datetime
 from jinja2 import Template
 from pylint import epylint

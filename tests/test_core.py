@@ -26,7 +26,6 @@
               :obj:`karr_lab_build_utils.core.BuildHelper._run_tests_docker` to ``.circleci/config.yml``.
 """
 
-from codeclimate_test_reporter.components.runner import Runner as CodeClimateRunner
 from glob import glob
 from jinja2 import Template
 from karr_lab_build_utils import __main__

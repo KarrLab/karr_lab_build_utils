@@ -3,7 +3,6 @@ attrdict
 capturer
 cement
 click
-codeclimate_test_reporter
 coverage
 coveralls
 enum34
