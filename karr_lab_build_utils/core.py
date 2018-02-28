@@ -6,6 +6,7 @@
 :License: MIT
 """
 
+from cryptography import fernet
 from datetime import datetime
 from jinja2 import Template
 from pylint import epylint
@@ -104,6 +105,9 @@ class BuildHelper(object):
         proj_docs_build_spelling_dir (:obj:`str`): local directory where spell check results should be saved
         build_image (:obj:`str`): Docker image to use to run tests
 
+        passwords_filename (:obj:`str`): path for key/value pairs for environment variables
+        passwords_key (:obj:`bytes`): encryption key for values in :obj:`passwords_filename`
+
         coveralls_token (:obj:`str`): Coveralls token
         code_climate_token (:obj:`str`): Code Climate token
 
@@ -111,7 +115,7 @@ class BuildHelper(object):
         github_password (obj:`str`): GitHub password
         circleci_api_token (:obj:`str`): CircleCI API token
         test_server_token (:obj:`str`): test history report server token
-        karr_lab_daemon_gmail_password (:obj:`obj:`str`): password for karr.lab.daemon@gmail.com
+        email_password (:obj:`obj:`str`): password for karr.lab.daemon@gmail.com
 
         INITIAL_PACKAGE_VERSION (:obj:`str`): initial package version
         DEFAULT_BUILD_IMAGE_VERSION (:obj:`str`): default build image version
@@ -184,17 +188,19 @@ class BuildHelper(object):
         self.proj_docs_build_spelling_dir = self.DEFAULT_PROJ_DOCS_BUILD_SPELLING_DIR
         self.build_image = self.DEFAULT_BUILD_IMAGE
 
+        self.passwords_filename = pkg_resources.resource_filename('karr_lab_build_utils', 'passwords.txt')
+        self.passwords_key = os.getenv('PASSWORDS_KEY', '').encode() or None
         self.coveralls_token = os.getenv('COVERALLS_REPO_TOKEN')
         self.code_climate_token = os.getenv('CODECLIMATE_REPO_TOKEN')
 
-        self.github_username = os.getenv('GITHUB_USERNAME')
-        self.github_password = os.getenv('GITHUB_PASSWORD')
-        self.circleci_api_token = os.getenv('CIRCLECI_API_TOKEN')
-        self.test_server_token = os.getenv('TEST_SERVER_TOKEN')
-        self.karr_lab_daemon_gmail_password = os.getenv('KARR_LAB_DAEMON_GMAIL_PASSWORD')
+        self.github_username = 'karr-lab-daemon'
+        self.github_password = self.get_password('GITHUB_PASSWORD')
+        self.circleci_api_token = self.get_password('CIRCLECI_API_TOKEN')
+        self.test_server_token = self.get_password('TEST_SERVER_TOKEN')
+        self.email_password = self.get_password('EMAIL_PASSWORD')
         self.code_server_hostname = 'code.karrlab.org'
         self.code_server_username = 'karrlab_code'
-        self.code_server_password = os.getenv('CODE_SERVER_PASSWORD')
+        self.code_server_password = self.get_password('CODE_SERVER_PASSWORD')
         self.code_server_directory = '/code.karrlab.org/repo'
 
     #####################
@@ -260,11 +266,11 @@ class BuildHelper(object):
         if test_server_token == '*' * len(self.test_server_token or ''):
             test_server_token = self.test_server_token
 
-        karr_lab_daemon_gmail_password = click.prompt('Enter the password for karr.lab.daemon@gmail.com',
-                                                      type=str, hide_input=True,
-                                                      default='*' * len(self.karr_lab_daemon_gmail_password or ''))
-        if karr_lab_daemon_gmail_password == '*' * len(self.karr_lab_daemon_gmail_password or ''):
-            karr_lab_daemon_gmail_password = self.karr_lab_daemon_gmail_password
+        email_password = click.prompt('Enter the password for karr.lab.daemon@gmail.com',
+                                      type=str, hide_input=True,
+                                      default='*' * len(self.email_password or ''))
+        if email_password == '*' * len(self.email_password or ''):
+            email_password = self.email_password
 
         code_server_username = click.prompt('Enter your username for ftp://' + self.code_server_hostname,
                                             type=str, default=self.code_server_username)
@@ -376,7 +382,7 @@ class BuildHelper(object):
             'CIRCLECI_API_TOKEN': circleci_api_token,
             'COVERALLS_REPO_TOKEN': coveralls_repo_token,
             'CODECLIMATE_REPO_TOKEN': code_climate_repo_token,
-            'KARR_LAB_DAEMON_GMAIL_PASSWORD': karr_lab_daemon_gmail_password,
+            'EMAIL_PASSWORD': email_password,
             'TEST_SERVER_TOKEN': test_server_token,
         }
         self.set_circleci_environment_variables(vars, repo_name=name, circleci_api_token=circleci_api_token)
@@ -953,6 +959,8 @@ class BuildHelper(object):
             :obj:`BuildHelperError`: If the package directory not set
         """
 
+        self.load_passwords_to_env_vars()
+
         py_v = self.get_python_version()
         abs_xml_latest_filename = os.path.join(
             self.proj_tests_xml_dir, '{0}.{1}.xml'.format(self.proj_tests_xml_latest_filename, py_v))
@@ -1145,7 +1153,10 @@ class BuildHelper(object):
         if verbose:
             options.append('--verbose')
 
-        self._run_docker_command(['exec', container, 'bash', '-c',
+        self._run_docker_command(['exec',
+                                  '--env', 'PASSWORDS_KEY={}'.format(self.passwords_key.decode()),
+                                  container,
+                                  'bash', '-c',
                                   'cd /root/project && karr_lab_build_utils{} run-tests {}'.format(py_v, ' '.join(options))],
                                  raise_error=False)
 
@@ -1260,6 +1271,7 @@ class BuildHelper(object):
                                         '--env', 'test_path={}'.format(test_path),
                                         '--env', 'verbose={:d}'.format(verbose),
                                         '--env', 'dry_run=1',
+                                        '--env', 'PASSWORDS_KEY={}'.format(self.passwords_key.decode()),
                                         'build'], cwd=dirname)
             while process.poll() is None:
                 time.sleep(0.5)
@@ -1453,7 +1465,7 @@ class BuildHelper(object):
             other_error (:obj:`bool`): :obj:`True` if there were other errors during the build such as in generating and/or
                 archiving the reports
             static_analyses (:obj:`dict`): analyses of missing and unused requirements
-            dry_run (:obj:`bool`, optional): if true, don't upload to the Coveralls and Code Climate servers            
+            dry_run (:obj:`bool`, optional): if true, don't upload to the Coveralls and Code Climate servers
 
         Returns:
             :obj:`dict`: status of a set of results
@@ -1550,7 +1562,7 @@ class BuildHelper(object):
             smtp = smtplib.SMTP('smtp.gmail.com:587')
             smtp.ehlo()
             smtp.starttls()
-            smtp.login('karr.lab.daemon', os.getenv('KARR_LAB_DAEMON_GMAIL_PASSWORD'))
+            smtp.login('karr.lab.daemon', self.email_password)
             smtp.sendmail('noreply@karrlab.org', recipients, msg.as_string())
             smtp.quit()
 
@@ -1749,7 +1761,10 @@ class BuildHelper(object):
         # run the reporter
         if not dry_run:
             subprocess.check_call([cc_path, 'before-build'])
-            subprocess.check_call([cc_path, 'after-build', '-t', 'coverage.py'])
+            subprocess.check_call([cc_path, 'after-build',
+                                   '-t', 'coverage.py',
+                                   '-r', self.code_climate_token,
+                                   ])
 
     ########################
     # Documentation
@@ -1833,7 +1848,7 @@ class BuildHelper(object):
         Args:
             dirname (:obj:`str`, optional): path to package
             packages_parent_dir (:obj:`str`, optional): path to the parent directory of the packages
-            config_filename (:obj:`str`, optional): path to save configuration with list of downstream dependencies 
+            config_filename (:obj:`str`, optional): path to save configuration with list of downstream dependencies
                 in YAML format
 
         Returns:
@@ -1951,7 +1966,7 @@ class BuildHelper(object):
         """ Trigger CircleCI to test downstream dependencies listed in :obj:`config_filename`
 
         Args:
-            config_filename (:obj:`str`, optional): path to YAML configuration file which contains a list of 
+            config_filename (:obj:`str`, optional): path to YAML configuration file which contains a list of
                 downstream dependencies
             dry_run (:obj:`bool`, optional): if true, don't upload to the Coveralls and Code Climate servers
 
@@ -2309,6 +2324,110 @@ class BuildHelper(object):
         """
         with open('.karr_lab_build_utils.yml', 'r') as file:
             return yaml.load(file)
+
+    def set_password(self, name, value, filename=None, key=None):
+        """ Add a key/value pair to :obj:`filename`
+
+        Args:
+            name (:obj:`str`): name
+            value (:obj:`str`): value
+            filename (:obj:`str`, optional): path to save key/value pair
+            key (:obj:`bytes`, optional): encryption key
+
+        Raises:
+            :obj:`BuildHelperError`: if :obj:`name` is :obj:`None` or composed of letters, numbers, and underscores
+        """
+        filename = filename or self.passwords_filename
+        key = key or self.passwords_key
+
+        # get current vars
+        vars = {}
+        if os.path.isfile(filename):
+            with open(filename, 'rb') as file:
+                for line in file:
+                    line = line.rstrip(b'\n')
+                    if line:
+                        n, _, v = line.partition(b'=')
+                        vars[n.decode()] = v
+
+        # add new var
+        if not re.match('^[a-z0-9_]+$', name, re.IGNORECASE):
+            raise BuildHelperError('Password name cannot be empty and can only contain letters, numbers, and underscores')
+
+        cipher = fernet.Fernet(key)
+        vars[name] = cipher.encrypt(value.encode())
+
+        # save vars
+        with open(filename, 'wb') as file:
+            for n in sorted(vars.keys()):
+                file.write(n.encode())
+                file.write(b'=')
+                file.write(vars[n])
+                file.write(b'\n')
+
+    def del_password(self, name, filename=None):
+        """ Remove a key/value pair from :obj:`filename`
+
+        Args:
+            name (:obj:`str`): name
+            filename (:obj:`str`, optional): path to get key/value pair
+        """
+        filename = filename or self.passwords_filename
+
+        lines = []
+
+        with open(filename, 'rb') as file:
+            for line in file:
+                n, _, _ = line.partition(b'=')
+                if n.decode() != name:
+                    lines.append(line)
+
+        with open(filename, 'wb') as file:
+            file.writelines(lines)
+
+    def get_password(self, name, filename=None, key=None):
+        """ Read a key/value pair from :obj:`filename`
+
+        Args:
+            name (:obj:`str`): name
+            filename (:obj:`str`, optional): path to get key/value pair
+            key (:obj:`bytes`, optional): encryption key
+
+        Returns:
+            :obj:`str`: value
+        """
+        filename = filename or self.passwords_filename
+        key = key or self.passwords_key
+
+        if os.path.isfile(filename) and key:
+            with open(filename, 'rb') as file:
+                cipher = fernet.Fernet(key)
+                for line in file:
+                    line = line.rstrip(b'\n')
+                    n, _, v = line.partition(b'=')
+                    if n.decode() == name:
+                        return cipher.decrypt(v).decode()
+                return None
+        else:
+            return None
+
+    def load_passwords_to_env_vars(self, filename=None, key=None):
+        """ Create OS environment variables based on the key/value pairs in :obj:`filename`
+
+        Args:
+            filename (:obj:`str`, optional): path to get key/value pairs
+            key (:obj:`bytes`, optional): encryption key
+        """
+        filename = filename or self.passwords_filename
+        key = key or self.passwords_key
+
+        with open(filename, 'rb') as file:
+            cipher = fernet.Fernet(key)
+            for line in file:
+                line = line.rstrip(b'\n')
+                if line:
+                    n, _, v = line.partition(b'=')
+                    os.environ[n.decode()] = cipher.decrypt(v).decode()
 
 
 class TestResults(object):

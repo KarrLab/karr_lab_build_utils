@@ -26,6 +26,7 @@
               :obj:`karr_lab_build_utils.core.BuildHelper._run_tests_docker` to ``.circleci/config.yml``.
 """
 
+from cryptography import fernet
 from glob import glob
 from jinja2 import Template
 from karr_lab_build_utils import __main__
@@ -34,6 +35,7 @@ from pkg_resources import resource_filename
 from six.moves import configparser
 import abduct
 import attrdict
+import base64
 import capturer
 import ftputil
 import github
@@ -75,10 +77,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         ':TestKarrLabBuildUtils.test_dummy_test'
 
     def setUp(self):
-        self.coverage_dirname = tempfile.mkdtemp()
+        self.tmp_dirname = tempfile.mkdtemp()
 
     def tearDown(self):
-        shutil.rmtree(self.coverage_dirname)
+        shutil.rmtree(self.tmp_dirname)
 
     @staticmethod
     def construct_environment(build_num=0):
@@ -98,29 +100,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with open('tests/fixtures/CIRCLE_PROJECT_USERNAME', 'r') as file:
                 env.set('CIRCLE_PROJECT_USERNAME', file.read().rstrip())
 
-        if not os.getenv('GITHUB_USERNAME'):
-            with open('tests/fixtures/secret/GITHUB_USERNAME', 'r') as file:
-                env.set('GITHUB_USERNAME', file.read().rstrip())
-
-        if not os.getenv('GITHUB_PASSWORD'):
-            with open('tests/fixtures/secret/GITHUB_PASSWORD', 'r') as file:
-                env.set('GITHUB_PASSWORD', file.read().rstrip())
-
-        if not os.getenv('CIRCLECI_API_TOKEN'):
-            with open('tests/fixtures/secret/CIRCLECI_API_TOKEN', 'r') as file:
-                env.set('CIRCLECI_API_TOKEN', file.read().rstrip())
-
-        if not os.getenv('TEST_SERVER_TOKEN'):
-            with open('tests/fixtures/secret/TEST_SERVER_TOKEN', 'r') as file:
-                env.set('TEST_SERVER_TOKEN', file.read().rstrip())
-
-        if not os.getenv('KARR_LAB_DAEMON_GMAIL_PASSWORD'):
-            with open('tests/fixtures/secret/KARR_LAB_DAEMON_GMAIL_PASSWORD', 'r') as file:
-                env.set('KARR_LAB_DAEMON_GMAIL_PASSWORD', file.read().rstrip())
-
-        if not os.getenv('CODE_SERVER_PASSWORD'):
-            with open('tests/fixtures/secret/CODE_SERVER_PASSWORD', 'r') as file:
-                env.set('CODE_SERVER_PASSWORD', file.read().rstrip())
+        if not os.getenv('passwords_key'):
+            with open('tests/fixtures/secret/PASSWORDS_KEY', 'r') as file:
+                env.set('PASSWORDS_KEY', file.read().rstrip())
 
         return env
 
@@ -158,7 +140,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         prompt_side_effects = [
             name, description, ', '.join(keywords), ', '.join(dependencies), dirname, '0.0.1',
             bh.github_username, '*' * len(bh.github_password), '*' * len(bh.circleci_api_token),
-            '*' * len(bh.test_server_token), '*' * len(bh.karr_lab_daemon_gmail_password),
+            '*' * len(bh.test_server_token), '*' * len(bh.email_password),
             bh.code_server_username, '*' * len(bh.code_server_password),
             'code_climate_repo_token', 'code_climate_repo_id', 'code_climate_repo_badge_token',
             'coveralls_repo_token', 'coveralls_repo_badge_token', 'circleci_repo_token',
@@ -194,7 +176,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         prompt_side_effects = [
             name, description, ', '.join(keywords), ', '.join(dependencies), dirname, '0.0.1',
             bh.github_username, bh.github_password, bh.circleci_api_token,
-            bh.test_server_token, bh.karr_lab_daemon_gmail_password,
+            bh.test_server_token, bh.email_password,
             bh.code_server_username, bh.code_server_password,
             'code_climate_repo_token', 'code_climate_repo_id', 'code_climate_repo_badge_token',
             'coveralls_repo_token', 'coveralls_repo_badge_token', 'circleci_repo_token',
@@ -240,7 +222,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 prompt_side_effects = [
                     name, description, ', '.join(keywords), ', '.join(dependencies), dirname, '0.0.1',
                     bh.github_username, bh.github_password, bh.circleci_api_token,
-                    bh.test_server_token, bh.karr_lab_daemon_gmail_password,
+                    bh.test_server_token, bh.email_password,
                     bh.code_server_username, bh.code_server_password,
                     'code_climate_repo_token', 'code_climate_repo_id', 'code_climate_repo_badge_token',
                     'coveralls_repo_token', 'coveralls_repo_badge_token', 'circleci_repo_token',
@@ -625,7 +607,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         """ test API """
         latest_results_filename = os.path.join(build_helper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
             build_helper.proj_tests_xml_latest_filename, py_v))
-        lastest_cov_filename = os.path.join(self.coverage_dirname, '.coverage.{}'.format(py_v))
+        lastest_cov_filename = os.path.join(self.tmp_dirname, '.coverage.{}'.format(py_v))
         if os.path.isdir(build_helper.proj_tests_xml_dir):
             shutil.rmtree(build_helper.proj_tests_xml_dir)
         if os.path.isfile(latest_results_filename):
@@ -635,7 +617,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         build_helper.run_tests(test_path=self.DUMMY_TEST,
                                with_xunit=True,
-                               with_coverage=True, coverage_dirname=self.coverage_dirname,
+                               with_coverage=True, coverage_dirname=self.tmp_dirname,
                                coverage_type=coverage_type)
 
         self.assertTrue(os.path.isfile(latest_results_filename))
@@ -702,28 +684,23 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         'See installation instructions at `https://intro-to-wc-modeling.readthedocs.io/en/latest/installation.html`'
     ))
     def test_run_tests_docker(self):
-        tmp_dirname = tempfile.mkdtemp()
-
         if not os.path.isdir('tests/__pycache__'):
             os.mkdir(os.path.join('tests/__pycache__'))
 
         build_helper = self.construct_build_helper()
-        build_helper.proj_tests_xml_dir = tmp_dirname
+        build_helper.proj_tests_xml_dir = self.tmp_dirname
 
         # test success
         build_helper.run_tests(test_path=self.DUMMY_TEST,
-                               with_xunit=True, with_coverage=True, coverage_dirname=tmp_dirname,
+                               with_xunit=True, with_coverage=True, coverage_dirname=self.tmp_dirname,
                                environment=core.Environment.docker, verbose=True)
 
         py_v = '{}.{}'.format(sys.version_info[0], sys.version_info[1])
-        self.assertEqual(len(list(glob(os.path.join(tmp_dirname, '.coverage.{}.*'.format(py_v))))), 1)
-        self.assertEqual(len(list(glob(os.path.join(tmp_dirname,
+        self.assertEqual(len(list(glob(os.path.join(self.tmp_dirname, '.coverage.{}.*'.format(py_v))))), 1)
+        self.assertEqual(len(list(glob(os.path.join(self.tmp_dirname,
                                                     '{}.{}.*.xml'.format(build_helper.proj_tests_xml_latest_filename, py_v))))), 1)
 
         # :todo: test failure
-
-        # cleanup
-        shutil.rmtree(tmp_dirname)
 
     @unittest.skipIf(whichcraft.which('docker') is None, (
         'Test requires Docker and Docker isn''t installed. '
@@ -783,7 +760,8 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     with self.construct_environment():
                         with capturer.CaptureOutput(merged=False, relay=False) as captured:
                             with __main__.App(argv=['do-post-test-tasks', '0', '1']) as app:
-                                app.run()
+                                with self.assertRaisesRegexp(core.BuildHelperError, 'Post-test tasks were not successful'):
+                                    app.run()
                                 self.assertEqual(app.pargs.installation_exit_code, 0)
                                 self.assertEqual(app.pargs.tests_exit_code, 1)
                                 self.assertRegexpMatches(captured.stdout.get_text(), '2 downstream builds were triggered')
@@ -821,7 +799,8 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                         with self.construct_environment():
                             with capturer.CaptureOutput(merged=False, relay=False) as captured:
                                 with __main__.App(argv=['do-post-test-tasks', '0', '0']) as app:
-                                    app.run()
+                                    with self.assertRaisesRegexp(core.BuildHelperError, 'Post-test tasks were not successful'):
+                                        app.run()
                                     self.assertRegexpMatches(captured.stdout.get_text(), '1 notifications were sent')
                                     self.assertRegexpMatches(captured.stdout.get_text(), '  Other error')
                                     self.assertEqual(captured.stderr.get_text(), '')
@@ -1473,7 +1452,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         build_helper = self.construct_build_helper()
         build_helper.run_tests(test_path=self.DUMMY_TEST,
                                with_xunit=True,
-                               with_coverage=True, coverage_dirname=self.coverage_dirname)
+                               with_coverage=True, coverage_dirname=self.tmp_dirname)
 
         py_v = build_helper.get_python_version()
         shutil.copyfile(
@@ -1488,18 +1467,18 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         )
 
         """ test API """
-        build_helper.make_and_archive_reports(coverage_dirname=self.coverage_dirname, dry_run=True)
+        build_helper.make_and_archive_reports(coverage_dirname=self.tmp_dirname, dry_run=True)
 
         """ test CLI """
         with self.construct_environment():
-            with __main__.App(argv=['make-and-archive-reports', '--coverage-dirname', self.coverage_dirname, '--dry-run']) as app:
+            with __main__.App(argv=['make-and-archive-reports', '--coverage-dirname', self.tmp_dirname, '--dry-run']) as app:
                 app.run()
 
     def test_make_and_archive_reports_with_missing_req(self):
         build_helper = self.construct_build_helper()
         build_helper.run_tests(test_path=self.DUMMY_TEST,
                                with_xunit=True,
-                               with_coverage=True, coverage_dirname=self.coverage_dirname)
+                               with_coverage=True, coverage_dirname=self.tmp_dirname)
 
         py_v = build_helper.get_python_version()
         shutil.copyfile(
@@ -1520,7 +1499,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with self.assertRaisesRegexp(core.BuildHelperError, 'The following requirements are missing:\n  '):
             warning = 'The following requirements appear to be unused:\n  robpol86_sphinxcontrib_googleanalytics'
             with pytest.warns(UserWarning, match=warning):
-                build_helper.make_and_archive_reports(coverage_dirname=self.coverage_dirname, dry_run=True)
+                build_helper.make_and_archive_reports(coverage_dirname=self.tmp_dirname, dry_run=True)
 
         os.remove('requirements.optional.txt')
         os.rename('requirements.optional.txt.save', 'requirements.optional.txt')
@@ -1529,7 +1508,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         build_helper = self.construct_build_helper()
         build_helper.run_tests(test_path=self.DUMMY_TEST,
                                with_xunit=True,
-                               with_coverage=True, coverage_dirname=self.coverage_dirname)
+                               with_coverage=True, coverage_dirname=self.tmp_dirname)
 
         """ test API """
         build_helper.archive_test_report()
@@ -1548,7 +1527,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         build_helper = self.construct_build_helper()
         build_helper.run_tests(test_path=self.DUMMY_TEST,
                                with_xunit=True,
-                               with_coverage=True, coverage_dirname=self.coverage_dirname)
+                               with_coverage=True, coverage_dirname=self.tmp_dirname)
 
         class Result(object):
 
@@ -1566,82 +1545,82 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         build_helper = self.construct_build_helper()
         build_helper.run_tests(test_path=self.DUMMY_TEST,
                                with_xunit=True,
-                               with_coverage=True, coverage_dirname=self.coverage_dirname)
+                               with_coverage=True, coverage_dirname=self.tmp_dirname)
         shutil.move(
-            os.path.join(self.coverage_dirname, '.coverage.{}'.format(build_helper.get_python_version())),
-            os.path.join(self.coverage_dirname, '.coverage.1'))
+            os.path.join(self.tmp_dirname, '.coverage.{}'.format(build_helper.get_python_version())),
+            os.path.join(self.tmp_dirname, '.coverage.1'))
         shutil.copyfile(
-            os.path.join(self.coverage_dirname, '.coverage.1'),
-            os.path.join(self.coverage_dirname, '.coverage.2'))
+            os.path.join(self.tmp_dirname, '.coverage.1'),
+            os.path.join(self.tmp_dirname, '.coverage.2'))
 
         """ test API """
-        if os.path.isfile(os.path.join(self.coverage_dirname, '.coverage')):
-            os.remove(os.path.join(self.coverage_dirname, '.coverage'))
-        self.assertTrue(os.path.isfile(os.path.join(self.coverage_dirname, '.coverage.1')))
-        self.assertTrue(os.path.isfile(os.path.join(self.coverage_dirname, '.coverage.2')))
+        if os.path.isfile(os.path.join(self.tmp_dirname, '.coverage')):
+            os.remove(os.path.join(self.tmp_dirname, '.coverage'))
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage.1')))
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage.2')))
 
-        build_helper.combine_coverage_reports(coverage_dirname=self.coverage_dirname)
+        build_helper.combine_coverage_reports(coverage_dirname=self.tmp_dirname)
 
-        self.assertTrue(os.path.isfile(os.path.join(self.coverage_dirname, '.coverage')))
-        self.assertTrue(os.path.isfile(os.path.join(self.coverage_dirname, '.coverage.1')))
-        self.assertTrue(os.path.isfile(os.path.join(self.coverage_dirname, '.coverage.2')))
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage')))
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage.1')))
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage.2')))
 
         """ test CLI """
-        if os.path.isfile(os.path.join(self.coverage_dirname, '.coverage')):
-            os.remove(os.path.join(self.coverage_dirname, '.coverage'))
-        self.assertTrue(os.path.isfile(os.path.join(self.coverage_dirname, '.coverage.1')))
-        self.assertTrue(os.path.isfile(os.path.join(self.coverage_dirname, '.coverage.2')))
+        if os.path.isfile(os.path.join(self.tmp_dirname, '.coverage')):
+            os.remove(os.path.join(self.tmp_dirname, '.coverage'))
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage.1')))
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage.2')))
 
         with self.construct_environment():
-            with __main__.App(argv=['combine-coverage-reports', '--coverage-dirname', self.coverage_dirname]) as app:
+            with __main__.App(argv=['combine-coverage-reports', '--coverage-dirname', self.tmp_dirname]) as app:
                 app.run()
 
-        self.assertTrue(os.path.isfile(os.path.join(self.coverage_dirname, '.coverage')))
-        self.assertTrue(os.path.isfile(os.path.join(self.coverage_dirname, '.coverage.1')))
-        self.assertTrue(os.path.isfile(os.path.join(self.coverage_dirname, '.coverage.2')))
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage')))
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage.1')))
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage.2')))
 
     def test_combine_coverage_reports_no_files(self):
         build_helper = self.construct_build_helper()
 
-        self.assertEqual(glob(os.path.join(self.coverage_dirname, '.coverage.*')), [])
+        self.assertEqual(glob(os.path.join(self.tmp_dirname, '.coverage.*')), [])
 
         with pytest.warns(UserWarning, match='No coverage files exist to combine'):
-            build_helper.combine_coverage_reports(coverage_dirname=self.coverage_dirname)
+            build_helper.combine_coverage_reports(coverage_dirname=self.tmp_dirname)
 
     def test_archive_coverage_report(self):
         build_helper = self.construct_build_helper()
         build_helper.run_tests(test_path=self.DUMMY_TEST,
                                with_xunit=True,
-                               with_coverage=True, coverage_dirname=self.coverage_dirname)
+                               with_coverage=True, coverage_dirname=self.tmp_dirname)
 
-        build_helper.combine_coverage_reports(coverage_dirname=self.coverage_dirname)
+        build_helper.combine_coverage_reports(coverage_dirname=self.tmp_dirname)
 
         """ test API """
-        build_helper.archive_coverage_report(coverage_dirname=self.coverage_dirname, dry_run=True)
+        build_helper.archive_coverage_report(coverage_dirname=self.tmp_dirname, dry_run=True)
 
         """ test CLI """
         with self.construct_environment():
-            with __main__.App(argv=['archive-coverage-report', '--coverage-dirname', self.coverage_dirname, '--dry-run']) as app:
+            with __main__.App(argv=['archive-coverage-report', '--coverage-dirname', self.tmp_dirname, '--dry-run']) as app:
                 app.run()
 
     def test_upload_coverage_report_to_coveralls(self):
         build_helper = self.construct_build_helper()
         build_helper.run_tests(test_path=self.DUMMY_TEST,
                                with_xunit=True,
-                               with_coverage=True, coverage_dirname=self.coverage_dirname)
+                               with_coverage=True, coverage_dirname=self.tmp_dirname)
 
         shutil.move(
-            os.path.join(self.coverage_dirname, '.coverage.{}'.format(build_helper.get_python_version())),
-            os.path.join(self.coverage_dirname, '.coverage'))
+            os.path.join(self.tmp_dirname, '.coverage.{}'.format(build_helper.get_python_version())),
+            os.path.join(self.tmp_dirname, '.coverage'))
 
         """ test API """
-        build_helper.upload_coverage_report_to_coveralls(coverage_dirname=self.coverage_dirname, dry_run=True)
+        build_helper.upload_coverage_report_to_coveralls(coverage_dirname=self.tmp_dirname, dry_run=True)
 
         """ test CLI """
         with self.construct_environment():
             with __main__.App(
                     argv=['upload-coverage-report-to-coveralls',
-                          '--coverage-dirname', self.coverage_dirname,
+                          '--coverage-dirname', self.tmp_dirname,
                           '--dry-run'
                           ]) as app:
                 app.run()
@@ -1649,30 +1628,30 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     def test_upload_coverage_report_to_coveralls_no_coverage_files(self):
         build_helper = self.construct_build_helper()
 
-        self.assertEqual(glob(os.path.join(self.coverage_dirname, '.coverage')), [])
+        self.assertEqual(glob(os.path.join(self.tmp_dirname, '.coverage')), [])
 
         with pytest.warns(UserWarning, match='No coverage file exists to upload to Coveralls'):
-            build_helper.upload_coverage_report_to_coveralls(coverage_dirname=self.coverage_dirname)
+            build_helper.upload_coverage_report_to_coveralls(coverage_dirname=self.tmp_dirname)
 
     def test_upload_coverage_report_to_code_climate(self):
         build_helper = self.construct_build_helper()
         build_helper.run_tests(test_path=self.DUMMY_TEST,
                                with_xunit=True,
-                               with_coverage=True, coverage_dirname=self.coverage_dirname)
+                               with_coverage=True, coverage_dirname=self.tmp_dirname)
 
         shutil.move(
-            os.path.join(self.coverage_dirname, '.coverage.{}'.format(build_helper.get_python_version())),
-            os.path.join(self.coverage_dirname, '.coverage'))
+            os.path.join(self.tmp_dirname, '.coverage.{}'.format(build_helper.get_python_version())),
+            os.path.join(self.tmp_dirname, '.coverage'))
 
         """ test API """
         with mock.patch('subprocess.check_call', return_value=None):
-            build_helper.upload_coverage_report_to_code_climate(coverage_dirname=self.coverage_dirname)
+            build_helper.upload_coverage_report_to_code_climate(coverage_dirname=self.tmp_dirname)
 
         """ test CLI """
         with self.construct_environment():
             with __main__.App(
                     argv=['upload-coverage-report-to-code-climate',
-                          '--coverage-dirname', self.coverage_dirname,
+                          '--coverage-dirname', self.tmp_dirname,
                           ]) as app:
                 with mock.patch('subprocess.check_call', return_value=None):
                     app.run()
@@ -1680,10 +1659,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     def test_upload_coverage_report_to_code_climate_no_coverage_files(self):
         build_helper = self.construct_build_helper()
 
-        self.assertEqual(glob(os.path.join(self.coverage_dirname, '.coverage')), [])
+        self.assertEqual(glob(os.path.join(self.tmp_dirname, '.coverage')), [])
 
         with pytest.warns(UserWarning, match='No coverage file exists to upload to Code Climate'):
-            build_helper.upload_coverage_report_to_code_climate(coverage_dirname=self.coverage_dirname)
+            build_helper.upload_coverage_report_to_code_climate(coverage_dirname=self.tmp_dirname)
 
     def test_create_documentation_template(self):
         build_helper = self.construct_build_helper()
@@ -1737,7 +1716,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with self.assertRaisesRegexp(ValueError, '^Sphinx configuration auto-generation only supports'):
             build_helper.create_documentation_template(tempdirname)
 
-        # shutil.rmtree(tempdirname)
+        shutil.rmtree(tempdirname)
 
     def test_make_documentation(self):
         build_helper = self.construct_build_helper()
@@ -2304,19 +2283,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         dirname = 'tests/fixtures/karr_lab_build_utils_test_package'
 
         # get username and password
-        filename = 'tests/fixtures/secret/TEST_PYPI_USERNAME'
-        if os.path.isfile(filename):
-            with open(filename, 'r') as file:
-                username = file.read()
-        else:
-            username = os.getenv('TEST_PYPI_USERNAME')
-
-        filename = 'tests/fixtures/secret/TEST_PYPI_PASSWORD'
-        if os.path.isfile(filename):
-            with open(filename, 'r') as file:
-                password = file.read()
-        else:
-            password = os.getenv('TEST_PYPI_PASSWORD')
+        username = 'jonrkarr'
+        build_helper = self.construct_build_helper()
+        password = build_helper.get_password('TEST_PYPI_PASSWORD')
 
         if not os.path.isdir('tests/fixtures/secret'):
             os.makedirs('tests/fixtures/secret')
@@ -2354,6 +2323,65 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     app.run()
                     self.assertRegexpMatches(captured.stdout.get_text(), 'Uploading distributions to https://test\.pypi\.org/legacy/')
                     self.assertEqual(captured.stderr.get_text().strip(), '')
+
+    def test_passwords_with_test_passwords_file(self):
+        key = fernet.Fernet.generate_key()
+
+        with EnvironmentVarGuard() as env:
+            build_helper = core.BuildHelper()
+            filename = os.path.join(self.tmp_dirname, 'vault.yml')
+
+            # add passwords
+            build_helper.set_password('key1', 'val1', filename=filename, key=key)
+            build_helper.set_password('key2', 'val2', filename=filename, key=key)
+            build_helper.set_password('key3', 'val3', filename=filename, key=key)
+            with __main__.App(argv=['passwords', 'set', 'key4', 'val4', '--filename', filename, '--key', key.decode()]) as app:
+                app.run()
+
+            # check password values
+            self.assertEqual(build_helper.get_password('key1', filename=filename, key=key), 'val1')
+            self.assertEqual(build_helper.get_password('key2', filename=filename, key=key), 'val2')
+            self.assertEqual(build_helper.get_password('key3', filename=filename, key=key), 'val3')
+            self.assertEqual(build_helper.get_password('key4', filename=filename, key=key), 'val4')
+            with __main__.App(argv=['passwords', 'get', 'key3', '--filename', filename, '--key', key.decode()]) as app:
+                with abduct.captured(abduct.out()) as stdout:
+                    app.run()
+                    self.assertEqual(stdout.getvalue(), 'val3\n')
+            with __main__.App(argv=['passwords', 'get', 'key4', '--filename', filename, '--key', key.decode()]) as app:
+                with abduct.captured(abduct.out()) as stdout:
+                    app.run()
+                    self.assertEqual(stdout.getvalue(), 'val4\n')
+
+            # remove passwords
+            build_helper.del_password('key1', filename=filename)
+            with __main__.App(argv=['passwords', 'del', 'key3', '--filename', filename]) as app:
+                app.run()
+
+            # check password values
+            self.assertEqual(build_helper.get_password('key1', filename=filename, key=key), None)
+            self.assertEqual(build_helper.get_password('key2', filename=filename, key=key), 'val2')
+            self.assertEqual(build_helper.get_password('key3', filename=filename, key=key), None)
+            self.assertEqual(build_helper.get_password('key4', filename=filename, key=key), 'val4')
+
+            # assign environment variable for passwords
+            with EnvironmentVarGuard():
+                build_helper.load_passwords_to_env_vars(filename=filename, key=key)
+                self.assertEqual(os.getenv('key2'), 'val2')
+                self.assertEqual(os.getenv('key4'), 'val4')
+
+            with EnvironmentVarGuard():
+                with __main__.App(argv=['passwords', 'load-to-env-vars', '--filename', filename, '--key', key.decode()]) as app:
+                    app.run()
+                    self.assertEqual(os.getenv('key2'), 'val2')
+                    self.assertEqual(os.getenv('key4'), 'val4')
+
+    def test_passwords_with_real_passwords_file(self):
+        build_helper = self.construct_build_helper()
+        self.assertNotEqual(build_helper.get_password('GITHUB_PASSWORD'), None)
+        self.assertNotEqual(build_helper.get_password('CIRCLECI_API_TOKEN'), None)
+        self.assertNotEqual(build_helper.get_password('TEST_SERVER_TOKEN'), None)
+        self.assertNotEqual(build_helper.get_password('EMAIL_PASSWORD'), None)
+        self.assertEqual(build_helper.get_password('__undefined__'), None)
 
     def test_get_version(self):
         self.assertIsInstance(karr_lab_build_utils.__init__.__version__, str)
