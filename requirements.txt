@@ -5,6 +5,7 @@ cement
 click
 coverage
 coveralls
+encryptedfile
 enum34
 ftputil
 graphviz

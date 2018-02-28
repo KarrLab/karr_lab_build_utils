@@ -9,8 +9,9 @@ dist/
 # test reports
 tests/reports
 
-# coverage file
+# coverage files
 .coverage*
+coverage.xml
 htmlcov/
 .instrumental.cov
 
