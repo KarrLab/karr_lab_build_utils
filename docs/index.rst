@@ -34,6 +34,8 @@ This package performs several aspects of the Karr Lab's build system:
   * Creates CircleCI builds for packages
   * Gets, sets, and deletes environment variables
   * Triggers CircleCI to test downstream dependencies
+  * Manages passwords used in CircleCI
+  * Email notifications
 
 * Test analysis with our `test history server <https://tests.karrlab.org>`_
 
@@ -72,6 +74,7 @@ Contents
    :numbered:
 
    installation.rst
-   tutorial.rst
+   tutorial_developers.rst
+   tutorial_admins.rst   
    API documentation <source/modules.rst>
    about.rst
