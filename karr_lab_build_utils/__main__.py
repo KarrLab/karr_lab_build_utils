@@ -820,99 +820,6 @@ class UploadPackageToPypiController(CementBaseController):
             pypi_config_filename=args.pypi_config_filename)
 
 
-class PasswordController(CementBaseController):
-    """ Utilities for managing key/value pairs in the password vault """
-
-    class Meta:
-        label = 'passwords'
-        description = 'Utilities for managing key/value pairs in the password vault'
-        stacked_on = 'base'
-        stacked_type = 'nested'
-
-
-class SetPasswordController(CementBaseController):
-    """ Add key/value pair to password vault """
-
-    class Meta:
-        label = 'set'
-        description = 'Add key/value pair to password vault'
-        stacked_on = 'passwords'
-        stacked_type = 'nested'
-        arguments = [
-            (['name'], dict(type=str, help='Name')),
-            (['value'], dict(type=str, help='Value')),
-            (['--filename'], dict(type=str, default=None, help='Path to vault')),
-            (['--key'], dict(type=str, default=None, help='Encryption key')),
-        ]
-
-    @expose(hide=True)
-    def default(self):
-        args = self.app.pargs
-        buildHelper = BuildHelper()
-        buildHelper.set_password(args.name, args.value, filename=args.filename, key=args.key.encode())
-
-
-class DelPasswordController(CementBaseController):
-    """ Remove key/value pair from password vault """
-
-    class Meta:
-        label = 'del'
-        description = 'Remove key/value pair from password vault'
-        stacked_on = 'passwords'
-        stacked_type = 'nested'
-        arguments = [
-            (['name'], dict(type=str, help='Name')),
-            (['--filename'], dict(type=str, default=None, help='Path to vault')),
-        ]
-
-    @expose(hide=True)
-    def default(self):
-        args = self.app.pargs
-        buildHelper = BuildHelper()
-        buildHelper.del_password(args.name, filename=args.filename)
-
-
-class GetPasswordController(CementBaseController):
-    """ Get key/value pair from the password vault """
-
-    class Meta:
-        label = 'get'
-        description = 'Get key/value pair from the password vault'
-        stacked_on = 'passwords'
-        stacked_type = 'nested'
-        arguments = [
-            (['name'], dict(type=str, help='Name')),
-            (['--filename'], dict(type=str, default=None, help='Path to vault')),
-            (['--key'], dict(type=str, default=None, help='Encryption key')),
-        ]
-
-    @expose(hide=True)
-    def default(self):
-        args = self.app.pargs
-        buildHelper = BuildHelper()
-        print(buildHelper.get_password(args.name, filename=args.filename, key=args.key.encode()))
-
-
-class LoadToEnvVarsPasswordsController(CementBaseController):
-    """ Set environment variables based on the key/value pairs in the password vault """
-
-    class Meta:
-        label = 'load-to-env-vars'
-        description = 'Set environment variables based on the key/value pairs in the password vault'
-        stacked_on = 'passwords'
-        stacked_type = 'nested'
-        arguments = [
-            (['--filename'], dict(type=str, default=None, help='Path to vault')),
-            (['--key'], dict(type=str, default=None, help='Encryption key')),
-        ]
-
-    @expose(hide=True)
-    def default(self):
-        args = self.app.pargs
-        buildHelper = BuildHelper()
-        buildHelper.load_passwords_to_env_vars(filename=args.filename, key=args.key.encode())
-
-
 class App(CementApp):
     """ Command line application """
     class Meta:
@@ -945,11 +852,6 @@ class App(CementApp):
             FindMissingRequirementsController,
             FindUnusedRequirementsController,
             UploadPackageToPypiController,
-            PasswordController,
-            SetPasswordController,
-            DelPasswordController,
-            GetPasswordController,
-            LoadToEnvVarsPasswordsController,
         ]
 
 

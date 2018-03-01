@@ -6,7 +6,6 @@
 :License: MIT
 """
 
-from cryptography import fernet
 from datetime import datetime
 from jinja2 import Template
 from pylint import epylint
@@ -53,6 +52,7 @@ import pytest
 import re
 import requests
 import shutil
+import six
 import smtplib
 import subprocess
 import sys
@@ -105,8 +105,10 @@ class BuildHelper(object):
         proj_docs_build_spelling_dir (:obj:`str`): local directory where spell check results should be saved
         build_image (:obj:`str`): Docker image to use to run tests
 
-        passwords_filename (:obj:`str`): path for key/value pairs for environment variables
-        passwords_key (:obj:`bytes`): encryption key for values in :obj:`passwords_filename`
+        passwords_repo_url (:obj:`str`): URL to Git repository with passwords
+        passwords_repo_username (:obj:`str`): username for Git repository with passwords
+        passwords_repo_password (:obj:`str`): password for Git repository with passwords
+        passwords_repo_path (:obj:`str`): path to clone Git repository with passwords
 
         coveralls_token (:obj:`str`): Coveralls token
         code_climate_token (:obj:`str`): Code Climate token
@@ -188,19 +190,22 @@ class BuildHelper(object):
         self.proj_docs_build_spelling_dir = self.DEFAULT_PROJ_DOCS_BUILD_SPELLING_DIR
         self.build_image = self.DEFAULT_BUILD_IMAGE
 
-        self.passwords_filename = pkg_resources.resource_filename('karr_lab_build_utils', 'passwords.txt')
-        self.passwords_key = os.getenv('PASSWORDS_KEY', '').encode() or None
+        self.passwords_repo_url = 'git@github.com:KarrLab/karr_lab_passwords.git'
+        self.passwords_repo_username = 'karr-lab-daemon-public'
+        self.passwords_repo_password = os.getenv('PASSWORDS_REPO_PASSWORD')
+        self.passwords_repo_path = os.path.expanduser(os.path.join('~', '.wc', 'karr_lab_passwords'))
+        self.download_passwords(pull=True)
+
         self.coveralls_token = os.getenv('COVERALLS_REPO_TOKEN')
         self.code_climate_token = os.getenv('CODECLIMATE_REPO_TOKEN')
-
         self.github_username = 'karr-lab-daemon'
-        self.github_password = self.get_password('GITHUB_PASSWORD')
-        self.circleci_api_token = self.get_password('CIRCLECI_API_TOKEN')
-        self.test_server_token = self.get_password('TEST_SERVER_TOKEN')
-        self.email_password = self.get_password('EMAIL_PASSWORD')
+        self.github_password = self.get_passwords().get('GITHUB_PASSWORD', None)
+        self.circleci_api_token = self.get_passwords().get('CIRCLECI_API_TOKEN', None)
+        self.test_server_token = self.get_passwords().get('TEST_SERVER_TOKEN', None)
+        self.email_password = self.get_passwords().get('EMAIL_PASSWORD', None)
         self.code_server_hostname = 'code.karrlab.org'
         self.code_server_username = 'karrlab_code'
-        self.code_server_password = self.get_password('CODE_SERVER_PASSWORD')
+        self.code_server_password = self.get_passwords().get('CODE_SERVER_PASSWORD', None)
         self.code_server_directory = '/code.karrlab.org/repo'
 
     #####################
@@ -803,10 +808,11 @@ class BuildHelper(object):
         })
         if response.status_code != 201:
             if 'errors' in response.json():
-                msg = response.json()['errors'][0]['message']
+                msg = '\n  '.join(err['message'] for err in response.json()['errors'])
+                raise ValueError('Unable to create webhook for {}/{}:\n  {}'.format(repo_owner, repo_name, msg))
             else:
                 msg = response.json()['message']
-            raise ValueError('Unable to create webhook for {}/{}: {}'.format(repo_owner, repo_name, msg))
+                raise ValueError('Unable to create webhook for {}/{}: {}'.format(repo_owner, repo_name, msg))
 
     #########################
     # Installing dependencies
@@ -959,7 +965,7 @@ class BuildHelper(object):
             :obj:`BuildHelperError`: If the package directory not set
         """
 
-        self.load_passwords_to_env_vars()
+        self.set_env_vars_from_passwords()
 
         py_v = self.get_python_version()
         abs_xml_latest_filename = os.path.join(
@@ -1154,7 +1160,7 @@ class BuildHelper(object):
             options.append('--verbose')
 
         self._run_docker_command(['exec',
-                                  '--env', 'PASSWORDS_KEY={}'.format(self.passwords_key.decode()),
+                                  '--env', 'PASSWORDS_REPO_PASSWORD={}'.format(self.passwords_repo_password),
                                   container,
                                   'bash', '-c',
                                   'cd /root/project && karr_lab_build_utils{} run-tests {}'.format(py_v, ' '.join(options))],
@@ -1271,7 +1277,7 @@ class BuildHelper(object):
                                         '--env', 'test_path={}'.format(test_path),
                                         '--env', 'verbose={:d}'.format(verbose),
                                         '--env', 'dry_run=1',
-                                        '--env', 'PASSWORDS_KEY={}'.format(self.passwords_key.decode()),
+                                        '--env', 'PASSWORDS_REPO_PASSWORD={}'.format(self.passwords_repo_password),
                                         'build'], cwd=dirname)
             while process.poll() is None:
                 time.sleep(0.5)
@@ -2325,109 +2331,49 @@ class BuildHelper(object):
         with open('.karr_lab_build_utils.yml', 'r') as file:
             return yaml.load(file)
 
-    def set_password(self, name, value, filename=None, key=None):
-        """ Add a key/value pair to :obj:`filename`
+    def download_passwords(self, pull=False):
+        """ Download passwords repository 
 
         Args:
-            name (:obj:`str`): name
-            value (:obj:`str`): value
-            filename (:obj:`str`, optional): path to save key/value pair
-            key (:obj:`bytes`, optional): encryption key
-
-        Raises:
-            :obj:`BuildHelperError`: if :obj:`name` is :obj:`None` or composed of letters, numbers, and underscores
+            pull (:obj:`bool`, optional): if :obj:`True`, pull the passwords
         """
-        filename = filename or self.passwords_filename
-        key = key or self.passwords_key
+        if six.PY3:
+            devnull = subprocess.DEVNULL
+        else:
+            devnull = open(os.devnull, 'wb')
 
-        # get current vars
-        vars = {}
-        if os.path.isfile(filename):
-            with open(filename, 'rb') as file:
-                for line in file:
-                    line = line.rstrip(b'\n')
-                    if line:
-                        n, _, v = line.partition(b'=')
-                        vars[n.decode()] = v
+        if os.path.isdir(self.passwords_repo_path):
+            if pull:
+                subprocess.check_call(['git', 'pull'], cwd=self.passwords_repo_path,
+                                      stdout=devnull, stderr=devnull)
+        else:
+            url = self.passwords_repo_url.replace('://', '://{}:{}@'.format(
+                self.passwords_repo_username, self.passwords_repo_password))
+            subprocess.check_call(['git', 'clone', url, self.passwords_repo_path],
+                                  stdout=devnull, stderr=devnull)
 
-        # add new var
-        if not re.match('^[a-z0-9_]+$', name, re.IGNORECASE):
-            raise BuildHelperError('Password name cannot be empty and can only contain letters, numbers, and underscores')
-
-        cipher = fernet.Fernet(key)
-        vars[name] = cipher.encrypt(value.encode())
-
-        # save vars
-        with open(filename, 'wb') as file:
-            for n in sorted(vars.keys()):
-                file.write(n.encode())
-                file.write(b'=')
-                file.write(vars[n])
-                file.write(b'\n')
-
-    def del_password(self, name, filename=None):
-        """ Remove a key/value pair from :obj:`filename`
+    def get_passwords(self, pull=False):
+        """ Read key/value pairs from the passwords repository
 
         Args:
-            name (:obj:`str`): name
-            filename (:obj:`str`, optional): path to get key/value pair
-        """
-        filename = filename or self.passwords_filename
-
-        lines = []
-
-        with open(filename, 'rb') as file:
-            for line in file:
-                n, _, _ = line.partition(b'=')
-                if n.decode() != name:
-                    lines.append(line)
-
-        with open(filename, 'wb') as file:
-            file.writelines(lines)
-
-    def get_password(self, name, filename=None, key=None):
-        """ Read a key/value pair from :obj:`filename`
-
-        Args:
-            name (:obj:`str`): name
-            filename (:obj:`str`, optional): path to get key/value pair
-            key (:obj:`bytes`, optional): encryption key
+            pull (:obj:`bool`, optional): if :obj:`True`, pull the passwords
 
         Returns:
-            :obj:`str`: value
+            :obj:`dict`: key/value pairs
         """
-        filename = filename or self.passwords_filename
-        key = key or self.passwords_key
+        self.download_passwords(pull=pull)
+        with open(os.path.join(self.passwords_repo_path, 'passwords.yml'), 'r') as file:
+            return yaml.load(file)
 
-        if os.path.isfile(filename) and key:
-            with open(filename, 'rb') as file:
-                cipher = fernet.Fernet(key)
-                for line in file:
-                    line = line.rstrip(b'\n')
-                    n, _, v = line.partition(b'=')
-                    if n.decode() == name:
-                        return cipher.decrypt(v).decode()
-                return None
-        else:
-            return None
-
-    def load_passwords_to_env_vars(self, filename=None, key=None):
-        """ Create OS environment variables based on the key/value pairs in :obj:`filename`
+    def set_env_vars_from_passwords(self, pull=False):
+        """ Create OS environment variables based on the key/value pairs in the passwords repository 
 
         Args:
-            filename (:obj:`str`, optional): path to get key/value pairs
-            key (:obj:`bytes`, optional): encryption key
+            pull (:obj:`bool`, optional): if :obj:`True`, pull the passwords
         """
-        filename = filename or self.passwords_filename
-        key = key or self.passwords_key
-
-        with open(filename, 'rb') as file:
-            cipher = fernet.Fernet(key)
-            for line in file:
-                line = line.rstrip(b'\n')
-                if line:
-                    n, _, v = line.partition(b'=')
-                    os.environ[n.decode()] = cipher.decrypt(v).decode()
+        passwords = self.get_passwords(pull=pull)
+        for name, val in passwords.items():
+            os.environ[name] = val
 
 
 class TestResults(object):

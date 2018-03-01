@@ -26,7 +26,6 @@
               :obj:`karr_lab_build_utils.core.BuildHelper._run_tests_docker` to ``.circleci/config.yml``.
 """
 
-from cryptography import fernet
 from glob import glob
 from jinja2 import Template
 from karr_lab_build_utils import __main__
@@ -100,9 +99,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with open('tests/fixtures/CIRCLE_PROJECT_USERNAME', 'r') as file:
                 env.set('CIRCLE_PROJECT_USERNAME', file.read().rstrip())
 
-        if not os.getenv('passwords_key'):
-            with open('tests/fixtures/secret/PASSWORDS_KEY', 'r') as file:
-                env.set('PASSWORDS_KEY', file.read().rstrip())
+        if not os.getenv('PASSWORDS_REPO_PASSWORD'):
+            with open('tests/fixtures/secret/PASSWORDS_REPO_PASSWORD', 'r') as file:
+                env.set('PASSWORDS_REPO_PASSWORD', file.read().rstrip())
 
         return env
 
@@ -511,7 +510,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 except ValueError as err:
                     pass
 
-    def test_create_code_climate_github_webhook_error(self):
+    def test_create_code_climate_github_webhook_one_error(self):
         build_helper = self.construct_build_helper()
 
         class Result(object):
@@ -521,6 +520,21 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
             def json(self):
                 return {'message': 'Error!'}
+
+        with mock.patch.object(requests, 'post', return_value=Result()):
+            with self.assertRaisesRegexp(ValueError, '^Unable to create webhook for'):
+                build_helper.create_code_climate_github_webhook()
+
+    def test_create_code_climate_github_webhook_multiple_errors(self):
+        build_helper = self.construct_build_helper()
+
+        class Result(object):
+
+            def __init__(self):
+                self.status_code = 0
+
+            def json(self):
+                return {'errors': [{'message': 'Error 1!'}, {'message': 'Error 2!'}]}
 
         with mock.patch.object(requests, 'post', return_value=Result()):
             with self.assertRaisesRegexp(ValueError, '^Unable to create webhook for'):
@@ -2285,7 +2299,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         # get username and password
         username = 'jonrkarr'
         build_helper = self.construct_build_helper()
-        password = build_helper.get_password('TEST_PYPI_PASSWORD')
+        password = build_helper.get_passwords()['TEST_PYPI_PASSWORD']
 
         if not os.path.isdir('tests/fixtures/secret'):
             os.makedirs('tests/fixtures/secret')
@@ -2324,64 +2338,38 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     self.assertRegexpMatches(captured.stdout.get_text(), 'Uploading distributions to https://test\.pypi\.org/legacy/')
                     self.assertEqual(captured.stderr.get_text().strip(), '')
 
-    def test_passwords_with_test_passwords_file(self):
-        key = fernet.Fernet.generate_key()
-
-        with EnvironmentVarGuard() as env:
-            build_helper = core.BuildHelper()
-            filename = os.path.join(self.tmp_dirname, 'vault.yml')
-
-            # add passwords
-            build_helper.set_password('key1', 'val1', filename=filename, key=key)
-            build_helper.set_password('key2', 'val2', filename=filename, key=key)
-            build_helper.set_password('key3', 'val3', filename=filename, key=key)
-            with __main__.App(argv=['passwords', 'set', 'key4', 'val4', '--filename', filename, '--key', key.decode()]) as app:
-                app.run()
-
-            # check password values
-            self.assertEqual(build_helper.get_password('key1', filename=filename, key=key), 'val1')
-            self.assertEqual(build_helper.get_password('key2', filename=filename, key=key), 'val2')
-            self.assertEqual(build_helper.get_password('key3', filename=filename, key=key), 'val3')
-            self.assertEqual(build_helper.get_password('key4', filename=filename, key=key), 'val4')
-            with __main__.App(argv=['passwords', 'get', 'key3', '--filename', filename, '--key', key.decode()]) as app:
-                with abduct.captured(abduct.out()) as stdout:
-                    app.run()
-                    self.assertEqual(stdout.getvalue(), 'val3\n')
-            with __main__.App(argv=['passwords', 'get', 'key4', '--filename', filename, '--key', key.decode()]) as app:
-                with abduct.captured(abduct.out()) as stdout:
-                    app.run()
-                    self.assertEqual(stdout.getvalue(), 'val4\n')
-
-            # remove passwords
-            build_helper.del_password('key1', filename=filename)
-            with __main__.App(argv=['passwords', 'del', 'key3', '--filename', filename]) as app:
-                app.run()
-
-            # check password values
-            self.assertEqual(build_helper.get_password('key1', filename=filename, key=key), None)
-            self.assertEqual(build_helper.get_password('key2', filename=filename, key=key), 'val2')
-            self.assertEqual(build_helper.get_password('key3', filename=filename, key=key), None)
-            self.assertEqual(build_helper.get_password('key4', filename=filename, key=key), 'val4')
-
-            # assign environment variable for passwords
-            with EnvironmentVarGuard():
-                build_helper.load_passwords_to_env_vars(filename=filename, key=key)
-                self.assertEqual(os.getenv('key2'), 'val2')
-                self.assertEqual(os.getenv('key4'), 'val4')
-
-            with EnvironmentVarGuard():
-                with __main__.App(argv=['passwords', 'load-to-env-vars', '--filename', filename, '--key', key.decode()]) as app:
-                    app.run()
-                    self.assertEqual(os.getenv('key2'), 'val2')
-                    self.assertEqual(os.getenv('key4'), 'val4')
-
-    def test_passwords_with_real_passwords_file(self):
+    def test_download_passwords(self):
         build_helper = self.construct_build_helper()
-        self.assertNotEqual(build_helper.get_password('GITHUB_PASSWORD'), None)
-        self.assertNotEqual(build_helper.get_password('CIRCLECI_API_TOKEN'), None)
-        self.assertNotEqual(build_helper.get_password('TEST_SERVER_TOKEN'), None)
-        self.assertNotEqual(build_helper.get_password('EMAIL_PASSWORD'), None)
-        self.assertEqual(build_helper.get_password('__undefined__'), None)
+        build_helper.passwords_repo_path = tempfile.mkdtemp()
+        shutil.rmtree(build_helper.passwords_repo_path)
+
+        # download passwords
+        build_helper.download_passwords()
+        self.assertTrue(os.path.isdir(build_helper.passwords_repo_path))
+
+        # update passwords
+        build_helper.download_passwords(pull=True)
+
+        # cleanup
+        shutil.rmtree(build_helper.passwords_repo_path)
+
+    def test_get_passwords(self):
+        build_helper = self.construct_build_helper()
+        self.assertIn('GITHUB_PASSWORD', build_helper.get_passwords())
+        self.assertIn('CIRCLECI_API_TOKEN', build_helper.get_passwords())
+        self.assertIn('TEST_SERVER_TOKEN', build_helper.get_passwords())
+        self.assertIn('EMAIL_PASSWORD', build_helper.get_passwords())
+        self.assertNotIn('__undefined__', build_helper.get_passwords())
+
+    def test_set_env_vars_from_passwords(self):
+        build_helper = self.construct_build_helper()
+        with EnvironmentVarGuard():
+            build_helper.set_env_vars_from_passwords()
+            self.assertIn('GITHUB_PASSWORD', os.environ)
+            self.assertIn('CIRCLECI_API_TOKEN', os.environ)
+            self.assertIn('TEST_SERVER_TOKEN', os.environ)
+            self.assertIn('EMAIL_PASSWORD', os.environ)
+            self.assertNotIn('__undefined__', os.environ)
 
     def test_get_version(self):
         self.assertIsInstance(karr_lab_build_utils.__init__.__version__, str)
