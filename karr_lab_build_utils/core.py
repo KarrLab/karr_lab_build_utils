@@ -190,7 +190,7 @@ class BuildHelper(object):
         self.proj_docs_build_spelling_dir = self.DEFAULT_PROJ_DOCS_BUILD_SPELLING_DIR
         self.build_image = self.DEFAULT_BUILD_IMAGE
 
-        self.passwords_repo_url = 'git@github.com:KarrLab/karr_lab_passwords.git'
+        self.passwords_repo_url = 'https://github.com/KarrLab/karr_lab_passwords.git'
         self.passwords_repo_username = 'karr-lab-daemon-public'
         self.passwords_repo_password = os.getenv('PASSWORDS_REPO_PASSWORD')
         self.passwords_repo_path = os.path.expanduser(os.path.join('~', '.wc', 'karr_lab_passwords'))
@@ -1113,7 +1113,10 @@ class BuildHelper(object):
         print('=====================================')
         print('== Install dependencies')
         print('=====================================')
-        self._run_docker_command(['exec', container, 'bash', '-c',
+        self._run_docker_command(['exec',
+                                  '--env', 'PASSWORDS_REPO_PASSWORD={}'.format(self.passwords_repo_password),
+                                  container,
+                                  'bash', '-c',
                                   'cd /root/project && karr_lab_build_utils{} upgrade-requirements'.format(py_v)])
 
         # test package in container
