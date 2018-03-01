@@ -138,9 +138,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         confirm_side_effects = 21 * [True]
         prompt_side_effects = [
             name, description, ', '.join(keywords), ', '.join(dependencies), dirname, '0.0.1',
-            bh.github_username, '*' * len(bh.github_password), '*' * len(bh.circleci_api_token),
-            '*' * len(bh.test_server_token), '*' * len(bh.email_password),
-            bh.code_server_username, '*' * len(bh.code_server_password),
+            bh.github_username, '*' * len(bh.github_password),
             'code_climate_repo_token', 'code_climate_repo_id', 'code_climate_repo_badge_token',
             'coveralls_repo_token', 'coveralls_repo_badge_token', 'circleci_repo_token',
         ]
@@ -174,9 +172,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         confirm_side_effects = [True, False] + 36 * [True]
         prompt_side_effects = [
             name, description, ', '.join(keywords), ', '.join(dependencies), dirname, '0.0.1',
-            bh.github_username, bh.github_password, bh.circleci_api_token,
-            bh.test_server_token, bh.email_password,
-            bh.code_server_username, bh.code_server_password,
+            bh.github_username, bh.github_password,
             'code_climate_repo_token', 'code_climate_repo_id', 'code_climate_repo_badge_token',
             'coveralls_repo_token', 'coveralls_repo_badge_token', 'circleci_repo_token',
         ]
@@ -220,9 +216,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 confirm_side_effects = [True, False] + 33 * [True]
                 prompt_side_effects = [
                     name, description, ', '.join(keywords), ', '.join(dependencies), dirname, '0.0.1',
-                    bh.github_username, bh.github_password, bh.circleci_api_token,
-                    bh.test_server_token, bh.email_password,
-                    bh.code_server_username, bh.code_server_password,
+                    bh.github_username, bh.github_password,
                     'code_climate_repo_token', 'code_climate_repo_id', 'code_climate_repo_badge_token',
                     'coveralls_repo_token', 'coveralls_repo_badge_token', 'circleci_repo_token',
                 ]

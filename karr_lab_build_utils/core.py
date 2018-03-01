@@ -141,7 +141,7 @@ class BuildHelper(object):
     """
 
     INITIAL_PACKAGE_VERSION = '0.0.1'
-    DEFAULT_BUILD_IMAGE_VERSION = '0.0.19'
+    DEFAULT_BUILD_IMAGE_VERSION = '0.0.22'
 
     DEFAULT_TEST_RUNNER = 'pytest'
     DEFAULT_PROJ_TESTS_DIR = 'tests'
@@ -261,29 +261,6 @@ class BuildHelper(object):
         if github_password == '*' * len(self.github_password or ''):
             github_password = self.github_password
 
-        circleci_api_token = click.prompt('Enter the CircleCI API token for the karr-lab-daemon GitHub account',
-                                          type=str, hide_input=True, default='*' * len(self.circleci_api_token or ''))
-        if circleci_api_token == '*' * len(self.circleci_api_token or ''):
-            circleci_api_token = self.circleci_api_token
-
-        test_server_token = click.prompt('Enter the token for tests.karrlab.org', type=str,
-                                         hide_input=True, default='*' * len(self.test_server_token or ''))
-        if test_server_token == '*' * len(self.test_server_token or ''):
-            test_server_token = self.test_server_token
-
-        email_password = click.prompt('Enter the password for karr.lab.daemon@gmail.com',
-                                      type=str, hide_input=True,
-                                      default='*' * len(self.email_password or ''))
-        if email_password == '*' * len(self.email_password or ''):
-            email_password = self.email_password
-
-        code_server_username = click.prompt('Enter your username for ftp://' + self.code_server_hostname,
-                                            type=str, default=self.code_server_username)
-        code_server_password = click.prompt('Enter your password for ftp://' + self.code_server_hostname,
-                                            type=str, hide_input=True, default='*' * len(self.code_server_password or ''))
-        if code_server_password == '*' * len(self.code_server_password or ''):
-            code_server_password = self.code_server_password
-
         # create local and GitHub Git repositories
         print('Creating {} remote Git repository "{}/{}" on GitHub and cloning this repository to "{}"'.format(
             'private' if private else 'public', self.repo_owner, name, dirname))
@@ -384,13 +361,11 @@ class BuildHelper(object):
         circleci_repo_token = click.prompt('Enter the new token')
 
         vars = {
-            'CIRCLECI_API_TOKEN': circleci_api_token,
             'COVERALLS_REPO_TOKEN': coveralls_repo_token,
             'CODECLIMATE_REPO_TOKEN': code_climate_repo_token,
-            'EMAIL_PASSWORD': email_password,
-            'TEST_SERVER_TOKEN': test_server_token,
+            'PASSWORDS_REPO_PASSWORD': self.passwords_repo_password,
         }
-        self.set_circleci_environment_variables(vars, repo_name=name, circleci_api_token=circleci_api_token)
+        self.set_circleci_environment_variables(vars, repo_name=name)
 
         # Read the Docs
         if not private:
@@ -456,7 +431,7 @@ class BuildHelper(object):
 
         template.stream(**context).dump(local_filename)
 
-        with ftputil.FTPHost(self.code_server_hostname, code_server_username, code_server_password) as ftp:
+        with ftputil.FTPHost(self.code_server_hostname, self.code_server_username, self.code_server_password) as ftp:
             remote_filename = ftp.path.join(self.code_server_directory, '{}.json'.format(name))
             ftp.upload(local_filename, remote_filename)
 
