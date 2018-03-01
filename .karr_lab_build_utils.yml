@@ -13,6 +13,7 @@ downstream_dependencies:
   - nose2unitth
   - obj_model
   - pkg_utils
+  - random_wc_model_generator
   - unitth
   - wc_analysis
   - wc_kb
