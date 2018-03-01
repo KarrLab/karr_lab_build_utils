@@ -405,7 +405,6 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             build_helper = self.construct_build_helper()
 
         vars = build_helper.get_circleci_environment_variables()
-        self.assertTrue('TEST_SERVER_TOKEN' in vars)
         self.assertTrue('COVERALLS_REPO_TOKEN' in vars)
         self.assertTrue('CODECLIMATE_REPO_TOKEN' in vars)
 
