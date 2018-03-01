@@ -2341,7 +2341,10 @@ class BuildHelper(object):
         """
         self.download_passwords(pull=pull)
         with open(os.path.join(self.passwords_repo_path, 'passwords.yml'), 'r') as file:
-            return yaml.load(file)
+            all_passwords = yaml.load(file)
+        passwords = all_passwords['global']
+        passwords.update(all_passwords['local'].get(self.repo_name, {}))
+        return passwords
 
     def set_env_vars_from_passwords(self, pull=False):
         """ Create OS environment variables based on the key/value pairs in the passwords repository 

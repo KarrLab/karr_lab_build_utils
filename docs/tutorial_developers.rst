@@ -27,3 +27,20 @@ The ``email_notifications`` key of ``/path/to/repo/.karr_lab_build_utils.yml`` s
     
     email_notifications:
       - jonrkarr@gmail.com
+
+
+Configuring build passwords
+---------------------------
+
+The ``passwords.yml`` file in the ``karr_lab_passwords`` repository should contain all of the global and repository-specific passwords needed to run your tests. The file should follow this format::
+
+    global:
+      key_1: val_1
+      key_2: val_2
+      ...
+    local:
+      package_1:
+        key_1: val_1
+        key_2: val_
+        ...
+      ...
