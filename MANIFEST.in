@@ -11,5 +11,8 @@ include LICENSE
 include requirements.txt
 include requirements.optional.txt
 
+# configuration files
+recursive-include karr_lab_build_utils *.cfg
+
 # templates
 graft karr_lab_build_utils/templates

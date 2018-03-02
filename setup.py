@@ -15,6 +15,7 @@ package_data = {
         'VERSION',
         'templates/*',
         'templates/**/*',
+        'config/*.cfg',
     ],
 }
 
