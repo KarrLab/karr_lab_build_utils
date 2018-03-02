@@ -32,4 +32,4 @@ The ``email_notifications`` key of ``/path/to/repo/.karr_lab_build_utils.yml`` s
 Configuring packages
 ---------------------------
 
-The ``karr_lab_build_configs`` repository should contain all of the configuration (.cfg) files needed to run your tests. This should include all usernames, passwords, and tokens needed to run your tests.
+The ``karr_lab_config`` repository should contain all of the configuration (.cfg) files needed to run your tests. This should include all usernames, passwords, and tokens needed to run your tests.
