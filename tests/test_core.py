@@ -41,6 +41,7 @@ import github
 import imp
 import karr_lab_build_utils
 import karr_lab_build_utils.__init__
+import karr_lab_build_utils.config.core
 import mock
 import nose
 import os
@@ -61,6 +62,7 @@ import yaml
 imp.reload(core)
 imp.reload(karr_lab_build_utils)
 imp.reload(karr_lab_build_utils.__init__)
+imp.reload(karr_lab_build_utils.config.core)
 imp.reload(__main__)
 
 if sys.version_info >= (3, 0, 0):
@@ -2382,6 +2384,11 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
     def test_dummy_test(self):
         pass
+
+    def test_get_config(self):
+        config = karr_lab_build_utils.config.core.get_config()
+        self.assertIn('karr_lab_build_utils', config)
+        self.assertIn('email_password', config['karr_lab_build_utils'])
 
 
 @unittest.skipIf(whichcraft.which('docker') is None or whichcraft.which('circleci') is None, (
