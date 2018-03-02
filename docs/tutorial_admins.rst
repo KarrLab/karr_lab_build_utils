@@ -173,8 +173,7 @@ Run this command to follow a CircleCI build for a package instead of using the C
 
     karr_lab_build_utils follow-circleci-build \
         --repo-owner <repo_owner> \
-        --repo-name <repo_name> \
-        --circleci-api-token <token>
+        --repo-name <repo_name>
 
 
 Getting the environment variables for a package
@@ -184,8 +183,7 @@ Run this command to get the CircleCI environment variables for a package::
 
     karr_lab_build_utils get-circleci-environment-variables \
         --repo-owner <repo_owner> \
-        --repo-name <repo_name> \
-        --circleci-api-token <token>
+        --repo-name <repo_name>
 
 
 Setting a environment variable for a package
@@ -195,8 +193,7 @@ Run this command to set a CircleCI environment variable for a package::
 
     karr_lab_build_utils set-circleci-environment-variable <name> <value> \
         --repo-owner <repo_owner> \
-        --repo-name <repo_name> \
-        --circleci-api-token <token>
+        --repo-name <repo_name>
 
 
 Deleting a environment variable for a package
@@ -206,8 +203,7 @@ Run this command to delete a CircleCI environment variable for a package::
 
     karr_lab_build_utils delete-circleci-environment-variable <name> \
         --repo-owner <repo_owner> \
-        --repo-name <repo_name> \
-        --circleci-api-token <token>
+        --repo-name <repo_name>
 
 
 Triggering testing downstream dependencies of a package
@@ -233,9 +229,7 @@ Run this command to create a Code Climate build for a package instead of using t
 
     karr_lab_build_utils create-codeclimate-github-webhook \
         --repo-owner <repo_owner> \
-        --repo-name <repo_name> \
-        --github-username <username> \
-        --github-password <password>
+        --repo-name <repo_name>
 
 Distributing packages with PyPI
 -------------------------------
