@@ -86,18 +86,13 @@ class CreateRepositoryController(CementBaseController):
                 default=False, action='store_true', help='if set, make the repository public')),
             (['--dirname'], dict(
                 default=None, type=str, help='Path for the repository')),
-            (['--github-username'], dict(
-                type=str, default=None, help='GitHub username')),
-            (['--github-password'], dict(
-                type=str, default=None, help='GitHub password')),
         ]
 
     @expose(hide=True)
     def default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
-        buildHelper.create_repository(args.name, description=args.description, private=(not args.public), dirname=args.dirname,
-                                      github_username=args.github_username, github_password=args.github_password)
+        buildHelper.create_repository(args.name, description=args.description, private=(not args.public), dirname=args.dirname)
 
 
 class SetupRepositoryController(CementBaseController):
@@ -123,8 +118,6 @@ class SetupRepositoryController(CementBaseController):
                 default=None, type=str, help='Build image version')),
             (['--dirname'], dict(
                 default=None, type=str, help='Path for the repository')),
-            (['--circleci-repo-token'], dict(
-                default=None, type=str, help='CircleCI API token for thre repository')),
             (['--coveralls-repo-badge-token'], dict(
                 default=None, type=str, help='Coveralls badge token for the repository')),
             (['--code-climate-repo-id'], dict(
@@ -140,7 +133,7 @@ class SetupRepositoryController(CementBaseController):
         buildHelper.setup_repository(
             args.name, description=args.description, keywords=args.keywords, dependencies=args.dependencies,
             private=(not args.public), build_image_version=args.build_image_version, dirname=args.dirname,
-            circleci_repo_token=args.circleci_repo_token, coveralls_repo_badge_token=args.coveralls_repo_badge_token,
+            coveralls_repo_badge_token=args.coveralls_repo_badge_token,
             code_climate_repo_id=args.code_climate_repo_id, code_climate_repo_badge_token=args.code_climate_repo_badge_token)
 
 
@@ -243,8 +236,6 @@ class FollowCircleciBuildController(CementBaseController):
                 type=str, default=None, help='Repository owner')),
             (['--repo-name'], dict(
                 type=str, default=None, help='Name of the repository to build. This defaults to the name of the current repository.')),
-            (['--circleci-api-token'], dict(
-                type=str, default=None, help='CircleCI API token')),
             (['--has-private-dependencies'], dict(
                 default=False, action='store_true',
                 help=('Set if the build requires an SSH key for the Karr Lab machine user because the repository depends on '
@@ -257,7 +248,7 @@ class FollowCircleciBuildController(CementBaseController):
         buildHelper = BuildHelper()
         buildHelper.follow_circleci_build(
             repo_type=args.repo_type, repo_owner=args.repo_owner,
-            repo_name=args.repo_name, circleci_api_token=args.circleci_api_token,
+            repo_name=args.repo_name,
             has_private_dependencies=args.has_private_dependencies)
 
 
@@ -275,8 +266,6 @@ class GetCircleciEnvironmentVariablesController(CementBaseController):
                 type=str, default=None, help='Repository owner')),
             (['--repo-name'], dict(
                 type=str, default=None, help='Name of the repository to build. This defaults to the name of the current repository.')),
-            (['--circleci-api-token'], dict(
-                type=str, default=None, help='CircleCI API token')),
         ]
 
     @expose(hide=True)
@@ -285,7 +274,7 @@ class GetCircleciEnvironmentVariablesController(CementBaseController):
         buildHelper = BuildHelper()
         vars = buildHelper.get_circleci_environment_variables(
             repo_type=args.repo_type, repo_owner=args.repo_owner,
-            repo_name=args.repo_name, circleci_api_token=args.circleci_api_token)
+            repo_name=args.repo_name)
         for key, val in vars.items():
             print('{}={}'.format(key, val))
 
@@ -308,8 +297,6 @@ class SetCircleciEnvironmentVariableController(CementBaseController):
                 type=str, default=None, help='Repository owner')),
             (['--repo-name'], dict(
                 type=str, default=None, help='Name of the repository to build. This defaults to the name of the current repository.')),
-            (['--circleci-api-token'], dict(
-                type=str, default=None, help='CircleCI API token')),
         ]
 
     @expose(hide=True)
@@ -319,7 +306,7 @@ class SetCircleciEnvironmentVariableController(CementBaseController):
         buildHelper.set_circleci_environment_variables(
             {args.name: args.value},
             repo_type=args.repo_type, repo_owner=args.repo_owner,
-            repo_name=args.repo_name, circleci_api_token=args.circleci_api_token)
+            repo_name=args.repo_name)
 
 
 class DeleteCircleciEnvironmentVariableController(CementBaseController):
@@ -338,8 +325,6 @@ class DeleteCircleciEnvironmentVariableController(CementBaseController):
                 type=str, default=None, help='Repository owner')),
             (['--repo-name'], dict(
                 type=str, default=None, help='Name of the repository to build. This defaults to the name of the current repository.')),
-            (['--circleci-api-token'], dict(
-                type=str, default=None, help='CircleCI API token')),
         ]
 
     @expose(hide=True)
@@ -348,7 +333,7 @@ class DeleteCircleciEnvironmentVariableController(CementBaseController):
         buildHelper = BuildHelper()
         buildHelper.delete_circleci_environment_variable(args.name,
                                                          repo_type=args.repo_type, repo_owner=args.repo_owner,
-                                                         repo_name=args.repo_name, circleci_api_token=args.circleci_api_token)
+                                                         repo_name=args.repo_name)
 
 
 class CreateCodeClimateGithubWebhookController(CementBaseController):
@@ -365,10 +350,6 @@ class CreateCodeClimateGithubWebhookController(CementBaseController):
                 type=str, default=None, help='Repository owner')),
             (['--repo-name'], dict(
                 type=str, default=None, help='Name of the repository to build. This defaults to the name of the current repository.')),
-            (['--github-username'], dict(
-                type=str, default=None, help='GitHub username')),
-            (['--github-password'], dict(
-                type=str, default=None, help='GitHub password')),
         ]
 
     @expose(hide=True)
@@ -376,8 +357,7 @@ class CreateCodeClimateGithubWebhookController(CementBaseController):
         args = self.app.pargs
         buildHelper = BuildHelper()
         buildHelper.create_code_climate_github_webhook(
-            repo_type=args.repo_type, repo_owner=args.repo_owner, repo_name=args.repo_name,
-            github_username=args.github_username, github_password=args.github_password)
+            repo_type=args.repo_type, repo_owner=args.repo_owner, repo_name=args.repo_name)
 
 
 class DoPostTestTasksController(CementBaseController):
@@ -806,8 +786,6 @@ class UploadPackageToPypiController(CementBaseController):
                 type=str, default='.', help='Path to package (e.g. parent directory of setup.py)')),
             (['--repository'], dict(
                 type=str, default='pypi', help='Repository upload package (e.g. pypi or testpypi)')),
-            (['--pypi-config-filename'], dict(
-                type=str, default='~/.pypirc', help='Path to .pypirc file')),
         ]
 
     @expose(hide=True)
@@ -816,8 +794,7 @@ class UploadPackageToPypiController(CementBaseController):
         buildHelper = BuildHelper()
         buildHelper.upload_package_to_pypi(
             dirname=args.dirname,
-            repository=args.repository,
-            pypi_config_filename=args.pypi_config_filename)
+            repository=args.repository)
 
 
 class App(CementApp):

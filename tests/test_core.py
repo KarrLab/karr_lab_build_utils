@@ -99,10 +99,6 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with open('tests/fixtures/CIRCLE_PROJECT_USERNAME', 'r') as file:
                 env.set('CIRCLE_PROJECT_USERNAME', file.read().rstrip())
 
-        if not os.getenv('PASSWORDS_REPO_PASSWORD'):
-            with open('tests/fixtures/secret/PASSWORDS_REPO_PASSWORD', 'r') as file:
-                env.set('PASSWORDS_REPO_PASSWORD', file.read().rstrip())
-
         return env
 
     @staticmethod
@@ -172,7 +168,6 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         confirm_side_effects = [True, False] + 36 * [True]
         prompt_side_effects = [
             name, description, ', '.join(keywords), ', '.join(dependencies), dirname, '0.0.1',
-            bh.github_username, bh.github_password,
             'code_climate_repo_token', 'code_climate_repo_id', 'code_climate_repo_badge_token',
             'coveralls_repo_token', 'coveralls_repo_badge_token', 'circleci_repo_token',
         ]
@@ -216,7 +211,6 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 confirm_side_effects = [True, False] + 33 * [True]
                 prompt_side_effects = [
                     name, description, ', '.join(keywords), ', '.join(dependencies), dirname, '0.0.1',
-                    bh.github_username, bh.github_password,
                     'code_climate_repo_token', 'code_climate_repo_id', 'code_climate_repo_badge_token',
                     'coveralls_repo_token', 'coveralls_repo_badge_token', 'circleci_repo_token',
                 ]
@@ -2289,24 +2283,6 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     def test_upload_package_to_pypi(self):
         dirname = 'tests/fixtures/karr_lab_build_utils_test_package'
 
-        # get username and password
-        username = 'jonrkarr'
-        build_helper = self.construct_build_helper()
-        password = build_helper.get_passwords()['TEST_PYPI_PASSWORD']
-
-        if not os.path.isdir('tests/fixtures/secret'):
-            os.makedirs('tests/fixtures/secret')
-        pypi_config_filename = 'tests/fixtures/secret/.pypirc'
-        with open(pypi_config_filename, 'w') as file:
-            file.write('[distutils]\n')
-            file.write('index-servers =\n')
-            file.write('    testpypi\n')
-            file.write('\n')
-            file.write('[testpypi]\n')
-            file.write('repository: https://test.pypi.org/legacy/\n')
-            file.write('username: {}\n'.format(username))
-            file.write('password: {}\n'.format(password))
-
         if not os.path.isdir('tests/fixtures/karr_lab_build_utils_test_package/build'):
             os.mkdir('tests/fixtures/karr_lab_build_utils_test_package/build')
 
@@ -2316,7 +2292,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         # test api
         build_helper = core.BuildHelper()
         with capturer.CaptureOutput(merged=False, relay=False) as captured:
-            build_helper.upload_package_to_pypi(dirname=dirname, repository='testpypi', pypi_config_filename=pypi_config_filename)
+            build_helper.upload_package_to_pypi(dirname=dirname, repository='testpypi')
             self.assertRegexpMatches(captured.stdout.get_text(), 'Uploading distributions to https://test\.pypi\.org/legacy/')
             self.assertEqual(captured.stderr.get_text().strip(), '')
 
@@ -2325,44 +2301,25 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
                 with __main__.App(argv=['upload-package-to-pypi',
                                         '--dirname', dirname,
-                                        '--repository', 'testpypi',
-                                        '--pypi-config-filename', pypi_config_filename]) as app:
+                                        '--repository', 'testpypi']) as app:
                     app.run()
                     self.assertRegexpMatches(captured.stdout.get_text(), 'Uploading distributions to https://test\.pypi\.org/legacy/')
                     self.assertEqual(captured.stderr.get_text().strip(), '')
 
-    def test_download_passwords(self):
+    def test_download_package_configs(self):
         build_helper = self.construct_build_helper()
-        build_helper.passwords_repo_path = tempfile.mkdtemp()
-        shutil.rmtree(build_helper.passwords_repo_path)
+        build_helper.configs_repo_path = tempfile.mkdtemp()
+        shutil.rmtree(build_helper.configs_repo_path)
 
-        # download passwords
-        build_helper.download_passwords()
-        self.assertTrue(os.path.isdir(build_helper.passwords_repo_path))
+        # download package configs
+        build_helper.download_package_configs()
+        self.assertTrue(os.path.isdir(build_helper.configs_repo_path))
 
-        # update passwords
-        build_helper.download_passwords(pull=True)
+        # update package configs
+        build_helper.download_package_configs()
 
         # cleanup
-        shutil.rmtree(build_helper.passwords_repo_path)
-
-    def test_get_passwords(self):
-        build_helper = self.construct_build_helper()
-        self.assertIn('GITHUB_PASSWORD', build_helper.get_passwords())
-        self.assertIn('CIRCLECI_API_TOKEN', build_helper.get_passwords())
-        self.assertIn('TEST_SERVER_TOKEN', build_helper.get_passwords())
-        self.assertIn('EMAIL_PASSWORD', build_helper.get_passwords())
-        self.assertNotIn('__undefined__', build_helper.get_passwords())
-
-    def test_set_env_vars_from_passwords(self):
-        build_helper = self.construct_build_helper()
-        with EnvironmentVarGuard():
-            build_helper.set_env_vars_from_passwords()
-            self.assertIn('GITHUB_PASSWORD', os.environ)
-            self.assertIn('CIRCLECI_API_TOKEN', os.environ)
-            self.assertIn('TEST_SERVER_TOKEN', os.environ)
-            self.assertIn('EMAIL_PASSWORD', os.environ)
-            self.assertNotIn('__undefined__', os.environ)
+        shutil.rmtree(build_helper.configs_repo_path)
 
     def test_get_version(self):
         self.assertIsInstance(karr_lab_build_utils.__init__.__version__, str)

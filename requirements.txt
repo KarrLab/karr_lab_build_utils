@@ -3,6 +3,7 @@ attrdict
 capturer
 cement
 click
+configobj
 coverage
 coveralls
 enum34
@@ -31,5 +32,6 @@ sphinx_rtd_theme
 sphinxcontrib_bibtex
 sphinxcontrib_spelling
 twine
+git+https://github.com/KarrLab/wc_utils.git#egg=wc_utils-0.0.1a5[all]
 wheel
 whichcraft

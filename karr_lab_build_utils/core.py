@@ -34,6 +34,7 @@ import graphviz
 # import instrumental.api
 import json
 import karr_lab_build_utils
+import karr_lab_build_utils.config.core
 import logging
 import mock
 import natsort
@@ -105,19 +106,27 @@ class BuildHelper(object):
         proj_docs_build_spelling_dir (:obj:`str`): local directory where spell check results should be saved
         build_image (:obj:`str`): Docker image to use to run tests
 
-        passwords_repo_url (:obj:`str`): URL to Git repository with passwords
-        passwords_repo_username (:obj:`str`): username for Git repository with passwords
-        passwords_repo_password (:obj:`str`): password for Git repository with passwords
-        passwords_repo_path (:obj:`str`): path to clone Git repository with passwords
-
-        coveralls_token (:obj:`str`): Coveralls token
-        code_climate_token (:obj:`str`): Code Climate token
+        configs_repo_url (:obj:`str`): URL to Git repository with passwords
+        configs_repo_username (:obj:`str`): username for Git repository with passwords
+        configs_repo_password (:obj:`str`): password for Git repository with passwords
+        configs_repo_path (:obj:`str`): path to clone Git repository with passwords
 
         github_username (obj:`str`): GitHub username
         github_password (obj:`str`): GitHub password
         circleci_api_token (:obj:`str`): CircleCI API token
         test_server_token (:obj:`str`): test history report server token
-        email_password (:obj:`obj:`str`): password for karr.lab.daemon@gmail.com
+        email_hostname (:obj:`str`): hostname and port for email server
+        email_username (:obj:`str`): username for email server
+        email_password (:obj:`str`): password for :obj:`email_username`
+        code_server_hostname (:obj:`str`): code server host name
+        code_server_directory (:obj:`str`): code server directory
+        code_server_username (:obj:`str`): code server username
+        code_server_password (:obj:`str`): code server password
+        pypi_repository (:obj:`str`): PyPI repository name or URL
+        pypi_config_filename (:obj:`str`): path to PyPI config file
+
+        coveralls_token (:obj:`str`): Coveralls token
+        code_climate_token (:obj:`str`): Code Climate token
 
         INITIAL_PACKAGE_VERSION (:obj:`str`): initial package version
         DEFAULT_BUILD_IMAGE_VERSION (:obj:`str`): default build image version
@@ -190,23 +199,30 @@ class BuildHelper(object):
         self.proj_docs_build_spelling_dir = self.DEFAULT_PROJ_DOCS_BUILD_SPELLING_DIR
         self.build_image = self.DEFAULT_BUILD_IMAGE
 
-        self.passwords_repo_url = 'https://github.com/KarrLab/karr_lab_passwords.git'
-        self.passwords_repo_username = 'karr-lab-daemon-public'
-        self.passwords_repo_password = os.getenv('PASSWORDS_REPO_PASSWORD')
-        self.passwords_repo_path = os.path.expanduser(os.path.join('~', '.wc', 'karr_lab_passwords'))
-        self.download_passwords(pull=True)
+        config = karr_lab_build_utils.config.core.get_config()['karr_lab_build_utils']
+        self.configs_repo_url = config['configs_repo_url']
+        self.configs_repo_username = config['configs_repo_username']
+        self.configs_repo_password = config['configs_repo_password']
+        self.configs_repo_path = os.path.expanduser(config['configs_repo_path'])
+
+        self.download_package_configs()
+        config = karr_lab_build_utils.config.core.get_config()['karr_lab_build_utils']
+        self.github_username = config['github_username']
+        self.github_password = config['github_password']
+        self.circleci_api_token = config['circleci_api_token']
+        self.test_server_token = config['test_server_token']
+        self.email_hostname = config['email_hostname']
+        self.email_username = config['email_username']
+        self.email_password = config['email_password']
+        self.code_server_hostname = config['code_server_hostname']
+        self.code_server_directory = config['code_server_directory']
+        self.code_server_username = config['code_server_username']
+        self.code_server_password = config['code_server_password']
+        self.pypi_repository = config['pypi_repository']
+        self.pypi_config_filename = os.path.expanduser(config['pypi_config_filename'])
 
         self.coveralls_token = os.getenv('COVERALLS_REPO_TOKEN')
         self.code_climate_token = os.getenv('CODECLIMATE_REPO_TOKEN')
-        self.github_username = 'karr-lab-daemon'
-        self.github_password = self.get_passwords().get('GITHUB_PASSWORD', None)
-        self.circleci_api_token = self.get_passwords().get('CIRCLECI_API_TOKEN', None)
-        self.test_server_token = self.get_passwords().get('TEST_SERVER_TOKEN', None)
-        self.email_password = self.get_passwords().get('EMAIL_PASSWORD', None)
-        self.code_server_hostname = 'code.karrlab.org'
-        self.code_server_username = 'karrlab_code'
-        self.code_server_password = self.get_passwords().get('CODE_SERVER_PASSWORD', None)
-        self.code_server_directory = '/code.karrlab.org/repo'
 
     #####################
     # Create a package
@@ -254,18 +270,11 @@ class BuildHelper(object):
 
         build_image_version = click.prompt('Enter the build image version to test the package',
                                            type=str, default=self.DEFAULT_BUILD_IMAGE_VERSION)
-
-        github_username = click.prompt('Enter your GitHub username', type=str, default=self.github_username)
-        github_password = click.prompt('Enter your GitHub password', type=str, hide_input=True,
-                                       default='*' * len(self.github_password or ''))
-        if github_password == '*' * len(self.github_password or ''):
-            github_password = self.github_password
-
+        
         # create local and GitHub Git repositories
         print('Creating {} remote Git repository "{}/{}" on GitHub and cloning this repository to "{}"'.format(
             'private' if private else 'public', self.repo_owner, name, dirname))
-        self.create_repository(name, description=description, private=private, dirname=dirname,
-                               github_username=github_username, github_password=github_password)
+        self.create_repository(name, description=description, private=private, dirname=dirname)
 
         # Code Climate
         # :todo: programmatically add repo to Code Climate and generate tokens
@@ -322,7 +331,7 @@ class BuildHelper(object):
         # :todo: programmatically create CircleCI build
         # :todo: programmatically create CircleCI token for status badges
         has_private_dependencies = False
-        g = github.Github(github_username, github_password)
+        g = github.Github(self.github_username, self.github_password)
         org = g.get_organization('KarrLab')
         for dependency in dependencies:
             try:
@@ -363,7 +372,7 @@ class BuildHelper(object):
         vars = {
             'COVERALLS_REPO_TOKEN': coveralls_repo_token,
             'CODECLIMATE_REPO_TOKEN': code_climate_repo_token,
-            'PASSWORDS_REPO_PASSWORD': self.passwords_repo_password,
+            'CONFIG__DOT__karr_lab_build_utils__DOT__configs_repo_password': self.configs_repo_password,
         }
         self.set_circleci_environment_variables(vars, repo_name=name)
 
@@ -464,7 +473,7 @@ class BuildHelper(object):
                                'downstream dependency is not available').format(dependency),
                               UserWarning)
 
-    def create_repository(self, name, description='', private=True, dirname=None, github_username=None, github_password=None):
+    def create_repository(self, name, description='', private=True, dirname=None):
         """ Create a Git repository with the default directory structure
 
         Args:
@@ -473,8 +482,6 @@ class BuildHelper(object):
             private (:obj:`bool`, optional): if :obj:`False`, make the GitHub repository public and set
                 up documentation generation with Read the Docs
             dirname (:obj:`str`, optional): directory name for repository
-            github_username (:obj:`str`, optional): GitHub username
-            github_password (:obj:`str`, optional): GitHub password
         """
 
         # process arguments
@@ -484,14 +491,8 @@ class BuildHelper(object):
 
         dirname = dirname or os.path.join('.', name)
 
-        if github_username is None:
-            github_username = self.github_username
-
-        if github_password is None:
-            github_password = self.github_password
-
         # create GitHub repository
-        g = github.Github(github_username, github_password)
+        g = github.Github(self.github_username, self.github_password)
         org = g.get_organization('KarrLab')
         org.create_repo(name=name, description=description, private=private, auto_init=True)
 
@@ -502,7 +503,7 @@ class BuildHelper(object):
             os.rename(gitconfig_filename, gitconfig_filename + '.ignore')
 
         import pygit2
-        credentials = pygit2.UserPass(github_username, github_password)
+        credentials = pygit2.UserPass(self.github_username, self.github_password)
         callbacks = pygit2.RemoteCallbacks(credentials=credentials)
         pygit2.clone_repository('https://github.com/KarrLab/{}.git'.format(name), dirname, callbacks=callbacks)
 
@@ -602,15 +603,13 @@ class BuildHelper(object):
     ###########################
     # Register repo on CircleCI
     ###########################
-    def follow_circleci_build(self, repo_type=None, repo_owner=None, repo_name=None, circleci_api_token=None,
-                              has_private_dependencies=False):
+    def follow_circleci_build(self, repo_type=None, repo_owner=None, repo_name=None, has_private_dependencies=False):
         """ Follow CircleCI build for a repository
 
         Args:
             repo_type (:obj:`str`, optional): repository type
             repo_owner (:obj:`str`, optional): repository owner
             repo_name (:obj:`str`, optional): repository name
-            circleci_api_token (:obj:`str`, optional): CircleCI API token
             has_private_dependencies (:obj:`bool`, optional): if :obj:`True`, add a GitHub SSH key for the Karr Lab machine user to the build
 
         Raises:
@@ -625,13 +624,9 @@ class BuildHelper(object):
         if repo_name is None:
             repo_name = self.repo_name
 
-        if circleci_api_token is None:
-            circleci_api_token = self.circleci_api_token
-
         # follow repo
         result = self.run_circleci_api('/follow',
-                                       method='post', repo_type=repo_type, repo_owner=repo_owner, repo_name=repo_name,
-                                       circleci_api_token=circleci_api_token)
+                                       method='post', repo_type=repo_type, repo_owner=repo_owner, repo_name=repo_name)
         if 'following' not in result or not result['following']:
             raise ValueError(
                 'Unable to follow CircleCI build for repository {}/{}'.format(repo_owner, repo_name))
@@ -641,14 +636,13 @@ class BuildHelper(object):
             # :todo: add a GitHub SSH key for the Karr Lab machine user to the build
             pass  # pragma: no cover
 
-    def get_circleci_environment_variables(self, repo_type=None, repo_owner=None, repo_name=None, circleci_api_token=None):
+    def get_circleci_environment_variables(self, repo_type=None, repo_owner=None, repo_name=None):
         """ Get the CircleCI environment variables for a repository and their partial values
 
         Args:
             repo_type (:obj:`str`, optional): repository type
             repo_owner (:obj:`str`, optional): repository owner
             repo_name (:obj:`str`, optional): repository name
-            circleci_api_token (:obj:`str`, optional): CircleCI API token
 
         Returns:
             :obj:`dict`: dictionary of environment variables and their partial values
@@ -662,15 +656,11 @@ class BuildHelper(object):
         if repo_name is None:
             repo_name = self.repo_name
 
-        if circleci_api_token is None:
-            circleci_api_token = self.circleci_api_token
-
         vars = self.run_circleci_api('/envvar',
-                                     repo_type=repo_type, repo_owner=repo_owner, repo_name=repo_name,
-                                     circleci_api_token=circleci_api_token)
+                                     repo_type=repo_type, repo_owner=repo_owner, repo_name=repo_name)
         return {var['name']: var['value'] for var in vars}
 
-    def set_circleci_environment_variables(self, vars, repo_type=None, repo_owner=None, repo_name=None, circleci_api_token=None):
+    def set_circleci_environment_variables(self, vars, repo_type=None, repo_owner=None, repo_name=None):
         """ Set the CircleCI environment variables for a repository
 
         Args:
@@ -678,7 +668,6 @@ class BuildHelper(object):
             repo_type (:obj:`str`, optional): repository type
             repo_owner (:obj:`str`, optional): repository owner
             repo_name (:obj:`str`, optional): repository name
-            circleci_api_token (:obj:`str`, optional): CircleCI API token
 
         Returns:
             :obj:`dict`: dictionary of environment variables and their values
@@ -692,28 +681,23 @@ class BuildHelper(object):
         if repo_name is None:
             repo_name = self.repo_name
 
-        if circleci_api_token is None:
-            circleci_api_token = self.circleci_api_token
-
         # get current environment variables
         old_vars = self.get_circleci_environment_variables(
-            repo_type=repo_type, repo_owner=repo_owner, repo_name=repo_name,
-            circleci_api_token=circleci_api_token)
+            repo_type=repo_type, repo_owner=repo_owner, repo_name=repo_name)
 
         # update environment variables
         for name, value in vars.items():
             # delete environment variables which we want to overwrite
             if name in old_vars:
                 self.delete_circleci_environment_variable(name,
-                                                          repo_type=repo_type, repo_owner=repo_owner, repo_name=repo_name,
-                                                          circleci_api_token=circleci_api_token)
+                                                          repo_type=repo_type, repo_owner=repo_owner, repo_name=repo_name)
 
             # add environment variable
             self.run_circleci_api('/envvar',
                                   method='post', repo_type=repo_type, repo_owner=repo_owner, repo_name=repo_name,
-                                  circleci_api_token=circleci_api_token, data={'name': name, 'value': value})
+                                  data={'name': name, 'value': value})
 
-    def delete_circleci_environment_variable(self, var, repo_type=None, repo_owner=None, repo_name=None, circleci_api_token=None):
+    def delete_circleci_environment_variable(self, var, repo_type=None, repo_owner=None, repo_name=None):
         """ Delete a CircleCI environment variable for a repository
 
         Args:
@@ -721,7 +705,6 @@ class BuildHelper(object):
             repo_type (:obj:`str`, optional): repository type
             repo_owner (:obj:`str`, optional): repository owner
             repo_name (:obj:`str`, optional): repository name
-            circleci_api_token (:obj:`str`, optional): CircleCI API token
         """
         if repo_type is None:
             repo_type = self.repo_type
@@ -732,23 +715,16 @@ class BuildHelper(object):
         if repo_name is None:
             repo_name = self.repo_name
 
-        if circleci_api_token is None:
-            circleci_api_token = self.circleci_api_token
-
         self.run_circleci_api('/envvar/{}'.format(var),
-                              method='delete', repo_type=repo_type, repo_owner=repo_owner, repo_name=repo_name,
-                              circleci_api_token=circleci_api_token)
+                              method='delete', repo_type=repo_type, repo_owner=repo_owner, repo_name=repo_name)
 
-    def create_code_climate_github_webhook(self, repo_type=None, repo_owner=None, repo_name=None,
-                                           github_username=None, github_password=None):
+    def create_code_climate_github_webhook(self, repo_type=None, repo_owner=None, repo_name=None):
         """ Create GitHub webhook for Code Climate
 
         Args:
             repo_type (:obj:`str`, optional): repository type
             repo_owner (:obj:`str`, optional): repository owner
-            repo_name (:obj:`str`, optional): repository name
-            github_username (:obj:`str`, optional): GitHub username
-            github_password (:obj:`str`, optional): GitHub password
+            repo_name (:obj:`str`, optional): repository name            
 
         Raises:
             :obj:`ValueError`: if webhook wasn't created and didn't already exist
@@ -762,14 +738,8 @@ class BuildHelper(object):
         if repo_name is None:
             repo_name = self.repo_name
 
-        if github_username is None:
-            github_username = self.github_username
-
-        if github_password is None:
-            github_password = self.github_password
-
         url = '{}/repos/{}/{}/hooks'.format(self.GITHUB_API_ENDPOINT, repo_owner, repo_name)
-        response = requests.post(url, auth=(github_username, github_password), json={
+        response = requests.post(url, auth=(self.github_username, self.github_password), json={
             'name': 'web',
             'config': {
                 'url': 'https://codeclimate.com/webhooks',
@@ -939,8 +909,6 @@ class BuildHelper(object):
         Raises:
             :obj:`BuildHelperError`: If the package directory not set
         """
-
-        self.set_env_vars_from_passwords()
 
         py_v = self.get_python_version()
         abs_xml_latest_filename = os.path.join(
@@ -1114,7 +1082,7 @@ class BuildHelper(object):
         print('== Install dependencies')
         print('=====================================')
         self._run_docker_command(['exec',
-                                  '--env', 'PASSWORDS_REPO_PASSWORD={}'.format(self.passwords_repo_password),
+                                  '--env', 'CONFIG__DOT__karr_lab_build_utils__DOT__configs_repo_password={}'.format(self.configs_repo_password),
                                   container,
                                   'bash', '-c',
                                   'cd /root/project && karr_lab_build_utils{} upgrade-requirements'.format(py_v)])
@@ -1138,7 +1106,7 @@ class BuildHelper(object):
             options.append('--verbose')
 
         self._run_docker_command(['exec',
-                                  '--env', 'PASSWORDS_REPO_PASSWORD={}'.format(self.passwords_repo_password),
+                                  '--env', 'CONFIG__DOT__karr_lab_build_utils__DOT__configs_repo_password={}'.format(self.configs_repo_password),
                                   container,
                                   'bash', '-c',
                                   'cd /root/project && karr_lab_build_utils{} run-tests {}'.format(py_v, ' '.join(options))],
@@ -1239,7 +1207,6 @@ class BuildHelper(object):
         with open(dockerfile_filename, 'w') as file:
             file.write('FROM {}\n'.format(image_name))
             file.write('COPY circleci_docker_context/GITHUB_SSH_KEY /root/.ssh/id_rsa\n')
-            file.write('ENV TEST_SERVER_TOKEN={}\n'.format(self.test_server_token or ''))
             file.write('RUN eval `ssh-agent` && ssh-add /root/.ssh/id_rsa\n')
             file.write('CMD bash\n')
 
@@ -1255,7 +1222,7 @@ class BuildHelper(object):
                                         '--env', 'test_path={}'.format(test_path),
                                         '--env', 'verbose={:d}'.format(verbose),
                                         '--env', 'dry_run=1',
-                                        '--env', 'PASSWORDS_REPO_PASSWORD={}'.format(self.passwords_repo_password),
+                                        '--env', 'CONFIG__DOT__karr_lab_build_utils__DOT__configs_repo_password={}'.format(self.configs_repo_password),
                                         'build'], cwd=dirname)
             while process.poll() is None:
                 time.sleep(0.5)
@@ -1533,21 +1500,28 @@ class BuildHelper(object):
             body = template.render(**context)
 
         msg = email.message.Message()
-        msg['From'] = email.utils.formataddr((str(email.header.Header('Karr Lab Build System', 'utf-8')), 'noreply@karrlab.org'))
+
+        email_domain, _, _ = self.email_hostname.partition(':')
+        email_domain = '.'.join(email_domain.split('.')[-2:])
+        from_addr = '{}@{}'.format(self.email_username, email_domain)
+        msg['From'] = email.utils.formataddr((str(email.header.Header('Karr Lab Build System', 'utf-8')), from_addr))
+
         tos = []
         for recipient in recipients:
             tos.append(email.utils.formataddr((None, recipient)))
         msg['To'] = ', '.join(tos)
+
         msg['Subject'] = subject
+        
         msg.add_header('Content-Type', 'text/html')
         msg.set_payload(body)
 
         if not dry_run:
-            smtp = smtplib.SMTP('smtp.gmail.com:587')
+            smtp = smtplib.SMTP(self.email_hostname)
             smtp.ehlo()
             smtp.starttls()
-            smtp.login('karr.lab.daemon', self.email_password)
-            smtp.sendmail('noreply@karrlab.org', recipients, msg.as_string())
+            smtp.login(self.email_username, self.email_password)            
+            smtp.sendmail(from_addr, recipients, msg.as_string())
             smtp.quit()
 
     def make_and_archive_reports(self, coverage_dirname='.', dry_run=False):
@@ -2228,14 +2202,16 @@ class BuildHelper(object):
 
         return unuseds
 
-    def upload_package_to_pypi(self, dirname='.', repository='pypi', pypi_config_filename='~/.pypirc'):
+    def upload_package_to_pypi(self, dirname='.', repository=None):
         """ Upload a package to PyPI
 
         Args:
             dirname (:obj:`str`, optional): path to package to upload
-            repository (:obj:`str`, optional): repository to upload code to (section in .pypirc or a full URL)
-            pypi_config_filename (:obj:`str`, optional): path to .pypirc
+            repository (:obj:`str`, optional): name of a repository defined in the PyPI config file or a repository URL
         """
+        repository = repository or self.pypi_repository
+        config_filename = os.path.abspath(os.path.expanduser(self.pypi_config_filename))
+
         # cleanup
         if os.path.isdir(os.path.join(dirname, 'build')):
             shutil.rmtree(os.path.join(dirname, 'build'))
@@ -2252,8 +2228,8 @@ class BuildHelper(object):
         if repository:
             options += ['--repository', repository]
 
-        if pypi_config_filename:
-            options += ['--config-file', os.path.abspath(os.path.expanduser(pypi_config_filename))]
+        if config_filename:
+            options += ['--config-file', config_filename]
 
         uploads = []
         for path in glob.glob(os.path.join(dirname, 'dist', '*')):
@@ -2265,7 +2241,7 @@ class BuildHelper(object):
         shutil.rmtree(os.path.join(dirname, 'dist'))
 
     def run_circleci_api(self, command, method='get', repo_type=None, repo_owner=None, repo_name=None,
-                         data=None, circleci_api_token=None):
+                         data=None):
         """ Run the CircleCI API
 
         Args:
@@ -2275,7 +2251,6 @@ class BuildHelper(object):
             repo_owner (:obj:`str`, optional): repository owner
             repo_name (:obj:`str`, optional): repository name
             data (:obj:`str`, optional): data
-            circleci_api_token (:obj:`str`, optional): CircleCI API token
 
         Returns:
             :obj:`dict`: CircleCI result
@@ -2289,11 +2264,9 @@ class BuildHelper(object):
             repo_owner = self.repo_owner
         if not repo_name:
             repo_name = self.repo_name
-        if not circleci_api_token:
-            circleci_api_token = self.circleci_api_token
 
         url = '{}/project/{}/{}/{}{}?circle-token={}'.format(
-            self.CIRCLE_API_ENDPOINT, repo_type, repo_owner, repo_name, command, circleci_api_token)
+            self.CIRCLE_API_ENDPOINT, repo_type, repo_owner, repo_name, command, self.circleci_api_token)
         request_method = getattr(requests, method)
 
         response = request_method(url, json=data)
@@ -2309,52 +2282,25 @@ class BuildHelper(object):
         with open('.karr_lab_build_utils.yml', 'r') as file:
             return yaml.load(file)
 
-    def download_passwords(self, pull=False):
-        """ Download passwords repository 
+    def download_package_configs(self):
+        """ Download the configuration repository 
 
         Args:
-            pull (:obj:`bool`, optional): if :obj:`True`, pull the passwords
+            update (:obj:`bool`, optional): if :obj:`True`, update the configuration
         """
         if six.PY3:
             devnull = subprocess.DEVNULL
         else:
             devnull = open(os.devnull, 'wb')
 
-        if os.path.isdir(self.passwords_repo_path):
-            if pull:
-                subprocess.check_call(['git', 'pull'], cwd=self.passwords_repo_path,
-                                      stdout=devnull, stderr=devnull)
-        else:
-            url = self.passwords_repo_url.replace('://', '://{}:{}@'.format(
-                self.passwords_repo_username, self.passwords_repo_password))
-            subprocess.check_call(['git', 'clone', url, self.passwords_repo_path],
+        if os.path.isdir(self.configs_repo_path):
+            subprocess.check_call(['git', 'pull'], cwd=self.configs_repo_path,
                                   stdout=devnull, stderr=devnull)
-
-    def get_passwords(self, pull=False):
-        """ Read key/value pairs from the passwords repository
-
-        Args:
-            pull (:obj:`bool`, optional): if :obj:`True`, pull the passwords
-
-        Returns:
-            :obj:`dict`: key/value pairs
-        """
-        self.download_passwords(pull=pull)
-        with open(os.path.join(self.passwords_repo_path, 'passwords.yml'), 'r') as file:
-            all_passwords = yaml.load(file)
-        passwords = all_passwords['global']
-        passwords.update(all_passwords['local'].get(self.repo_name, {}))
-        return passwords
-
-    def set_env_vars_from_passwords(self, pull=False):
-        """ Create OS environment variables based on the key/value pairs in the passwords repository 
-
-        Args:
-            pull (:obj:`bool`, optional): if :obj:`True`, pull the passwords
-        """
-        passwords = self.get_passwords(pull=pull)
-        for name, val in passwords.items():
-            os.environ[name] = val
+        else:
+            url = self.configs_repo_url.replace('://', '://{}:{}@'.format(
+                self.configs_repo_username, self.configs_repo_password))
+            subprocess.check_call(['git', 'clone', url, self.configs_repo_path],
+                                  stdout=devnull, stderr=devnull)
 
 
 class TestResults(object):
