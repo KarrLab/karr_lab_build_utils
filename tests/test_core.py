@@ -2323,6 +2323,29 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         # cleanup
         shutil.rmtree(build_helper.configs_repo_path)
 
+    def test_set_third_party_configs(self):
+        build_helper = self.construct_build_helper()
+        tmp_dir = build_helper.configs_repo_path = tempfile.mkdtemp()
+        os.mkdir(os.path.join(tmp_dir, 'third_party'))
+        source = os.path.join(tmp_dir, 'third_party', 'test.cfg')
+        dest = os.path.join(tmp_dir, 'a', 'b', 'c', 'test.cfg')
+        with open(os.path.join(tmp_dir, 'third_party', 'paths.yml'), 'w') as file:
+            yaml.dump({'test.cfg': dest}, file)
+        with open(source, 'w') as file:
+            file.write('xyz')
+
+        # update package configs
+        with EnvironmentVarGuard() as env:
+            env.set('CIRCLECI', 'true')
+            build_helper.set_third_party_configs()
+
+        # test
+        with open(dest, 'r') as file:
+            self.assertEqual(file.read(), 'xyz')
+
+        # cleanup
+        shutil.rmtree(build_helper.configs_repo_path)
+
     def test_get_version(self):
         self.assertIsInstance(karr_lab_build_utils.__init__.__version__, str)
 

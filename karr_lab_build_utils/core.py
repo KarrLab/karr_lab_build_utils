@@ -123,7 +123,7 @@ class BuildHelper(object):
         code_server_username (:obj:`str`): code server username
         code_server_password (:obj:`str`): code server password
         pypi_repository (:obj:`str`): PyPI repository name or URL
-        pypi_config_filename (:obj:`str`): path to PyPI config file
+        pypi_config_filename (:obj:`str`): path to PyPI configuration file
 
         coveralls_token (:obj:`str`): Coveralls token
         code_climate_token (:obj:`str`): Code Climate token
@@ -206,6 +206,7 @@ class BuildHelper(object):
         self.configs_repo_path = os.path.expanduser(config['configs_repo_path'])
 
         self.download_package_configs()
+        self.set_third_party_configs()
         config = karr_lab_build_utils.config.core.get_config()['karr_lab_build_utils']
         self.github_username = config['github_username']
         self.github_password = config['github_password']
@@ -270,7 +271,7 @@ class BuildHelper(object):
 
         build_image_version = click.prompt('Enter the build image version to test the package',
                                            type=str, default=self.DEFAULT_BUILD_IMAGE_VERSION)
-        
+
         # create local and GitHub Git repositories
         print('Creating {} remote Git repository "{}/{}" on GitHub and cloning this repository to "{}"'.format(
             'private' if private else 'public', self.repo_owner, name, dirname))
@@ -1082,7 +1083,8 @@ class BuildHelper(object):
         print('== Install dependencies')
         print('=====================================')
         self._run_docker_command(['exec',
-                                  '--env', 'CONFIG__DOT__karr_lab_build_utils__DOT__configs_repo_password={}'.format(self.configs_repo_password),
+                                  '--env', 'CONFIG__DOT__karr_lab_build_utils__DOT__configs_repo_password={}'.format(
+                                      self.configs_repo_password),
                                   container,
                                   'bash', '-c',
                                   'cd /root/project && karr_lab_build_utils{} upgrade-requirements'.format(py_v)])
@@ -1106,7 +1108,8 @@ class BuildHelper(object):
             options.append('--verbose')
 
         self._run_docker_command(['exec',
-                                  '--env', 'CONFIG__DOT__karr_lab_build_utils__DOT__configs_repo_password={}'.format(self.configs_repo_password),
+                                  '--env', 'CONFIG__DOT__karr_lab_build_utils__DOT__configs_repo_password={}'.format(
+                                      self.configs_repo_password),
                                   container,
                                   'bash', '-c',
                                   'cd /root/project && karr_lab_build_utils{} run-tests {}'.format(py_v, ' '.join(options))],
@@ -1222,13 +1225,14 @@ class BuildHelper(object):
                                         '--env', 'test_path={}'.format(test_path),
                                         '--env', 'verbose={:d}'.format(verbose),
                                         '--env', 'dry_run=1',
-                                        '--env', 'CONFIG__DOT__karr_lab_build_utils__DOT__configs_repo_password={}'.format(self.configs_repo_password),
+                                        '--env', 'CONFIG__DOT__karr_lab_build_utils__DOT__configs_repo_password={}'.format(
+                                            self.configs_repo_password),
                                         'build'], cwd=dirname)
             while process.poll() is None:
                 time.sleep(0.5)
             out = captured.get_text()
 
-        # revert CircleCI config file
+        # revert CircleCI configuration file
         os.remove(circleci_config_filename)
         shutil.move(backup_circleci_config_filename, circleci_config_filename)
 
@@ -1512,7 +1516,7 @@ class BuildHelper(object):
         msg['To'] = ', '.join(tos)
 
         msg['Subject'] = subject
-        
+
         msg.add_header('Content-Type', 'text/html')
         msg.set_payload(body)
 
@@ -1520,7 +1524,7 @@ class BuildHelper(object):
             smtp = smtplib.SMTP(self.email_hostname)
             smtp.ehlo()
             smtp.starttls()
-            smtp.login(self.email_username, self.email_password)            
+            smtp.login(self.email_username, self.email_password)
             smtp.sendmail(from_addr, recipients, msg.as_string())
             smtp.quit()
 
@@ -2207,7 +2211,8 @@ class BuildHelper(object):
 
         Args:
             dirname (:obj:`str`, optional): path to package to upload
-            repository (:obj:`str`, optional): name of a repository defined in the PyPI config file or a repository URL
+            repository (:obj:`str`, optional): name of a repository defined in the PyPI 
+                configuration file or a repository URL
         """
         repository = repository or self.pypi_repository
         config_filename = os.path.abspath(os.path.expanduser(self.pypi_config_filename))
@@ -2288,6 +2293,7 @@ class BuildHelper(object):
         Args:
             update (:obj:`bool`, optional): if :obj:`True`, update the configuration
         """
+        # clone or update repo
         if six.PY3:
             devnull = subprocess.DEVNULL
         else:
@@ -2301,6 +2307,21 @@ class BuildHelper(object):
                 self.configs_repo_username, self.configs_repo_password))
             subprocess.check_call(['git', 'clone', url, self.configs_repo_path],
                                   stdout=devnull, stderr=devnull)
+
+    def set_third_party_configs(self):
+        """ Copy third party configs to their appropriate paths from the configs repository """
+        if os.getenv('CIRCLECI', None) == 'true':
+            filename = os.path.join(self.configs_repo_path, 'third_party', 'paths.yml')
+            with open(filename, 'r') as file:
+                paths = yaml.load(file)
+
+            for source, dest in paths.items():
+                dest = os.path.expanduser(dest)
+                dest_dir = os.path.dirname(dest)
+                if not os.path.isdir(dest_dir):
+                    os.makedirs(dest_dir)
+                shutil.copyfile(os.path.join(self.configs_repo_path, 'third_party', source),
+                                dest)
 
 
 class TestResults(object):
