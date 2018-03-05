@@ -1739,6 +1739,36 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with __main__.App(argv=['make-documentation']) as app:
                 app.run()
 
+    def test_upload_documentation_to_docs_server(self):
+        bh = self.construct_build_helper()
+        bh.repo_name = 'test'
+
+        os.makedirs(os.path.join(self.tmp_dirname, bh.proj_docs_build_html_dir))
+        os.makedirs(os.path.join(self.tmp_dirname, bh.proj_docs_build_html_dir, 'a', 'b', 'c'))
+        with open(os.path.join(self.tmp_dirname, bh.proj_docs_build_html_dir, 'index.html'), 'w') as file:
+            file.write('Test documentation')
+        with open(os.path.join(self.tmp_dirname, bh.proj_docs_build_html_dir, 'a', 'b', 'c', 'index.html'), 'w') as file:
+            file.write('Test!')
+
+        bh.upload_documentation_to_docs_server(dirname=self.tmp_dirname)
+
+        with ftputil.FTPHost(bh.docs_server_hostname, bh.docs_server_username, bh.docs_server_password) as ftp:
+            # check documentation uploaded
+            remote_filename = ftp.path.join(bh.docs_server_directory, 'test', 'index.html')
+            local_filename = os.path.join(self.tmp_dirname, bh.proj_docs_build_html_dir, 'index2.html')
+            ftp.download(remote_filename, local_filename)
+            with open(local_filename, 'r') as file:
+                self.assertEqual(file.read(), 'Test documentation')
+
+            remote_filename = ftp.path.join(bh.docs_server_directory, 'test', 'a', 'b', 'c', 'index.html')
+            local_filename = os.path.join(self.tmp_dirname, bh.proj_docs_build_html_dir, 'a', 'b', 'c', 'index2.html')
+            ftp.download(remote_filename, local_filename)
+            with open(local_filename, 'r') as file:
+                self.assertEqual(file.read(), 'Test!')
+
+            # cleanup
+            ftp.rmtree(ftp.path.join(bh.docs_server_directory, 'test'))
+
     def test_compile_downstream_dependencies(self):
         # create temp directory with temp packages
         packages_parent_dir = tempfile.mkdtemp()

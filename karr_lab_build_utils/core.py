@@ -122,6 +122,10 @@ class BuildHelper(object):
         code_server_directory (:obj:`str`): code server directory
         code_server_username (:obj:`str`): code server username
         code_server_password (:obj:`str`): code server password
+        docs_server_hostname (:obj:`str`): docs server host name
+        docs_server_directory (:obj:`str`): docs server directory
+        docs_server_username (:obj:`str`): docs server username
+        docs_server_password (:obj:`str`): docs server password
         pypi_repository (:obj:`str`): PyPI repository name or URL
         pypi_config_filename (:obj:`str`): path to PyPI configuration file
 
@@ -219,6 +223,10 @@ class BuildHelper(object):
         self.code_server_directory = config['code_server_directory']
         self.code_server_username = config['code_server_username']
         self.code_server_password = config['code_server_password']
+        self.docs_server_hostname = config['docs_server_hostname']
+        self.docs_server_directory = config['docs_server_directory']
+        self.docs_server_username = config['docs_server_username']
+        self.docs_server_password = config['docs_server_password']
         self.pypi_repository = config['pypi_repository']
         self.pypi_config_filename = os.path.expanduser(config['pypi_config_filename'])
 
@@ -1570,6 +1578,7 @@ class BuildHelper(object):
 
         """ documentation """
         self.make_documentation()
+        self.upload_documentation_to_docs_server()
 
         """ Throw error """
         if errors:
@@ -1803,6 +1812,39 @@ class BuildHelper(object):
                 self.proj_docs_dir,
                 self.proj_docs_build_spelling_dir,
             ])
+
+    def upload_documentation_to_docs_server(self, dirname='.'):
+        """ Upload compiled documentation to the lab server
+
+        Args:
+            dirname (:obj:`str`, optional): path to package
+        """
+        with ftputil.FTPHost(self.docs_server_hostname, self.docs_server_username, self.docs_server_password) as ftp:
+            remote_root = ftp.path.join(self.docs_server_directory, self.repo_name)
+
+            # delete old files
+            if ftp.path.isdir(remote_root):
+                ftp.rmtree(remote_root)
+
+            # create directory for new files
+            if not ftp.path.isdir(remote_root):
+                ftp.mkdir(remote_root)
+
+            # copy files to server
+            local_root = os.path.join(dirname, self.proj_docs_build_html_dir)
+            for root, dirnames, filenames in os.walk(local_root):
+                rel_root = os.path.relpath(root, local_root)
+
+                for dirname in dirnames:
+                    rel_dirname = os.path.join(rel_root, dirname)
+                    remote_dir = ftp.path.join(remote_root, rel_dirname)
+                    if not ftp.path.isdir(remote_dir):
+                        ftp.makedirs(remote_dir)
+
+                for filename in filenames:
+                    local_filename = os.path.join(local_root, rel_root, filename)
+                    remote_filename = os.path.join(remote_root, rel_root, filename)
+                    ftp.upload(local_filename, remote_filename)
 
     def compile_downstream_dependencies(self, dirname='.', packages_parent_dir='..', config_filename=None):
         """ Compile the downstream dependencies of a package and save them to :obj:`config_filename`
