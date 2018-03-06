@@ -1850,11 +1850,11 @@ class BuildHelper(object):
 
             # update            
             filename = ftp.path.join(self.docs_server_directory, self.repo_name, '.htaccess')
-            with ftp.open(filename, 'wb') as fobj:
-                fobj.write('RewriteEngine On\n')
-                fobj.write('RewriteBase /test_repo/\n')
-                fobj.write('RewriteRule ^$ latest/ [R=301,L]\n')
-                fobj.write('RewriteRule ^latest(/.*)$ {}$1 [L]\n'.format(version))
+            with ftp.open(filename, 'w') as fobj:
+                fobj.write(u'RewriteEngine On\n')
+                fobj.write(u'RewriteBase /test_repo/\n')
+                fobj.write(u'RewriteRule ^$ latest/ [R=301,L]\n')
+                fobj.write(u'RewriteRule ^latest(/.*)$ {}$1 [L]\n'.format(version))
 
 
     def compile_downstream_dependencies(self, dirname='.', packages_parent_dir='..', config_filename=None):
