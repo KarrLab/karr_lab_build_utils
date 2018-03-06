@@ -684,7 +684,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
     @unittest.skipIf(whichcraft.which('docker') is None, (
         'Test requires Docker and Docker isn''t installed. '
-        'See installation instructions at `https://intro-to-wc-modeling.readthedocs.io/en/latest/installation.html`'
+        'See installation instructions at `https://docs.karrlab.org/intro_to_wc_modeling/latest/installation.html`'
     ))
     def test_run_tests_docker(self):
         if not os.path.isdir('tests/__pycache__'):
@@ -707,7 +707,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
     @unittest.skipIf(whichcraft.which('docker') is None, (
         'Test requires Docker and Docker isn''t installed. '
-        'See installation instructions at `https://intro-to-wc-modeling.readthedocs.io/en/latest/installation.html`'
+        'See installation instructions at `https://docs.karrlab.org/intro_to_wc_modeling/latest/installation.html`'
     ))
     def test__run_docker_command_exception(self):
         build_helper = self.construct_build_helper()
@@ -1741,7 +1741,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
     def test_upload_documentation_to_docs_server(self):
         bh = self.construct_build_helper()
-        bh.repo_name = 'test'
+        bh.repo_name = 'test_repo'
+        repo_version = '0.0.1a'
+
+        os.makedirs(os.path.join(self.tmp_dirname, bh.repo_name))
+        with open(os.path.join(self.tmp_dirname, bh.repo_name, 'VERSION'), 'w') as file:
+            file.write(repo_version)
 
         os.makedirs(os.path.join(self.tmp_dirname, bh.proj_docs_build_html_dir))
         os.makedirs(os.path.join(self.tmp_dirname, bh.proj_docs_build_html_dir, 'a', 'b', 'c'))
@@ -1754,20 +1759,21 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         with ftputil.FTPHost(bh.docs_server_hostname, bh.docs_server_username, bh.docs_server_password) as ftp:
             # check documentation uploaded
-            remote_filename = ftp.path.join(bh.docs_server_directory, 'test', 'index.html')
-            local_filename = os.path.join(self.tmp_dirname, bh.proj_docs_build_html_dir, 'index2.html')
-            ftp.download(remote_filename, local_filename)
-            with open(local_filename, 'r') as file:
+            remote_filename = ftp.path.join(bh.docs_server_directory, bh.repo_name, repo_version, 'index.html')
+            with ftp.open(remote_filename, 'r') as file:
                 self.assertEqual(file.read(), 'Test documentation')
 
-            remote_filename = ftp.path.join(bh.docs_server_directory, 'test', 'a', 'b', 'c', 'index.html')
-            local_filename = os.path.join(self.tmp_dirname, bh.proj_docs_build_html_dir, 'a', 'b', 'c', 'index2.html')
-            ftp.download(remote_filename, local_filename)
-            with open(local_filename, 'r') as file:
+            remote_filename = ftp.path.join(bh.docs_server_directory, bh.repo_name, repo_version, 'a', 'b', 'c', 'index.html')
+            with ftp.open(remote_filename, 'r') as file:
                 self.assertEqual(file.read(), 'Test!')
 
+            remote_filename = ftp.path.join(bh.docs_server_directory, bh.repo_name, '.htaccess')
+            with ftp.open(remote_filename, 'r') as file:
+                self.assertRegexpMatches(file.read(), 'RewriteRule \^latest\(\/\.\*\)\$ {}\$1 \[L\]'.format(
+                    repo_version))
+
             # cleanup
-            ftp.rmtree(ftp.path.join(bh.docs_server_directory, 'test'))
+            ftp.rmtree(ftp.path.join(bh.docs_server_directory, bh.repo_name))
 
     def test_compile_downstream_dependencies(self):
         # create temp directory with temp packages
@@ -2446,7 +2452,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
 @unittest.skipIf(whichcraft.which('docker') is None or whichcraft.which('circleci') is None, (
     'Test requires the CircleCI command line utility (local executor) and this isn''t installed. See '
-    'installation instructions at `http://intro-to-wc-modeling.readthedocs.io/en/latest/installation.html`.'
+    'installation instructions at `http://docs.karrlab.org/intro_to_wc_modeling/latest/installation.html`.'
 ))
 class TestCircleCi(unittest.TestCase):
 

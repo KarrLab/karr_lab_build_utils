@@ -388,8 +388,8 @@ class BuildHelper(object):
         # Read the Docs
         if not private:
             # :todo: programmatically add repo to Read the Docs
-            print('Visit "https://readthedocs.org/dashboard/import/?"')
-            click.confirm('Continue?', default=True, abort=True)
+            # print('Visit "https://readthedocs.org/dashboard/import/?"')
+            # click.confirm('Continue?', default=True, abort=True)
 
             print('Click the "refresh" icon')
             click.confirm('Continue?', default=True, abort=True)
@@ -1819,8 +1819,10 @@ class BuildHelper(object):
         Args:
             dirname (:obj:`str`, optional): path to package
         """
-        with ftputil.FTPHost(self.docs_server_hostname, self.docs_server_username, self.docs_server_password) as ftp:
-            remote_root = ftp.path.join(self.docs_server_directory, self.repo_name)
+        with ftputil.FTPHost(self.docs_server_hostname, self.docs_server_username, self.docs_server_password) as ftp:            
+            with open(os.path.join(dirname, self.repo_name, 'VERSION'), 'r') as file:
+                version = file.read()
+            remote_root = ftp.path.join(self.docs_server_directory, self.repo_name, version)
 
             # delete old files
             if ftp.path.isdir(remote_root):
@@ -1828,7 +1830,7 @@ class BuildHelper(object):
 
             # create directory for new files
             if not ftp.path.isdir(remote_root):
-                ftp.mkdir(remote_root)
+                ftp.makedirs(remote_root)
 
             # copy files to server
             local_root = os.path.join(dirname, self.proj_docs_build_html_dir)
@@ -1845,6 +1847,15 @@ class BuildHelper(object):
                     local_filename = os.path.join(local_root, rel_root, filename)
                     remote_filename = os.path.join(remote_root, rel_root, filename)
                     ftp.upload(local_filename, remote_filename)
+
+            # update            
+            filename = ftp.path.join(self.docs_server_directory, self.repo_name, '.htaccess')
+            with ftp.open(filename, 'wb') as fobj:
+                fobj.write('RewriteEngine On\n')
+                fobj.write('RewriteBase /test_repo/\n')
+                fobj.write('RewriteRule ^$ latest/ [R=301,L]\n')
+                fobj.write('RewriteRule ^latest(/.*)$ {}$1 [L]\n'.format(version))
+
 
     def compile_downstream_dependencies(self, dirname='.', packages_parent_dir='..', config_filename=None):
         """ Compile the downstream dependencies of a package and save them to :obj:`config_filename`
