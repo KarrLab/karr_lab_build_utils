@@ -1852,7 +1852,7 @@ class BuildHelper(object):
             filename = ftp.path.join(self.docs_server_directory, self.repo_name, '.htaccess')
             with ftp.open(filename, 'w') as fobj:
                 fobj.write(u'RewriteEngine On\n')
-                fobj.write(u'RewriteBase /test_repo/\n')
+                fobj.write(u'RewriteBase /{}/\n'.format(self.repo_name))
                 fobj.write(u'RewriteRule ^$ latest/ [R=301,L]\n')
                 fobj.write(u'RewriteRule ^latest(/.*)$ {}$1 [L]\n'.format(version))
 
