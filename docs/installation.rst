@@ -22,8 +22,8 @@ Pre-requisites
 
     #. Copy the contents of ``~/.ssh/id_rsa.pub`` and use it to add your SSH key to GitHub following the instructions at `https://help.github.com/articles/adding-a-new-ssh-key-to-your-github-account <https://help.github.com/articles/adding-a-new-ssh-key-to-your-github-account>`_.
 
-#. Optionally install Docker by following the `installation instructions <http://intro-to-wc-modeling.readthedocs.io/en/latest/installation.html>`_ in "An Introduction to Whole-Cell Modeling." This is needed to run tests using Docker and CircleCI.
-#. Optionally, install the CircleCI command line tool by following the `installation instructions <http://intro-to-wc-modeling.readthedocs.io/en/latest/installation.html>`_ in "An Introduction to Whole-Cell Modeling." This is needed to run tests using CircleCI.
+#. Optionally install Docker by following the `installation instructions <http://docs.karrlab.org/intro_to_wc_modeling/latest/installation.html>`_ in "An Introduction to Whole-Cell Modeling." This is needed to run tests using Docker and CircleCI.
+#. Optionally, install the CircleCI command line tool by following the `installation instructions <http://docs.karrlab.org/intro_to_wc_modeling/latest/installation.html>`_ in "An Introduction to Whole-Cell Modeling." This is needed to run tests using CircleCI.
 #. Optionally, create a PyPI account at `https://pypi.python.org <https://pypi.python.org>`_. This is needed to upload packages to PyPI.
 #. Optionally, save your PyPI credentials to ``~/.pypirc``. This is needed to upload packages to PyPI.::
 

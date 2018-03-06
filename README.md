@@ -1,5 +1,5 @@
 [//]: # ( [![PyPI package](https://img.shields.io/pypi/v/karr_lab_build_utils.svg)](https://pypi.python.org/pypi/karr_lab_build_utils) )
-[![Documentation](https://readthedocs.org/projects/karr_lab_build_utils/badge/?version=latest)](http://karr_lab_build_utils.readthedocs.org)
+[![Documentation](https://img.shields.io/badge/docs-latest-green.svg)](http://docs.karrlab.org/karr_lab_build_utils)
 [![Test results](https://circleci.com/gh/KarrLab/karr_lab_build_utils.svg?style=shield)](https://circleci.com/gh/KarrLab/karr_lab_build_utils)
 [![Test coverage](https://coveralls.io/repos/github/KarrLab/karr_lab_build_utils/badge.svg)](https://coveralls.io/github/KarrLab/karr_lab_build_utils)
 [![Code analysis](https://api.codeclimate.com/v1/badges/423e5ef078681ee55979/maintainability)](https://codeclimate.com/github/KarrLab/karr_lab_build_utils)
@@ -80,7 +80,7 @@ Follow the [Google Python style guide](https://google.github.io/styleguide/pygui
 
 ### Test your code
 
-See our [primer](http://intro-to-wc-modeling.readthedocs.io/en/latest/concepts_skills/software_engineering/testing_python.html)
+See our [primer](http://docs.karrlab.org/intro_to_wc_modeling/latest/concepts_skills/software_engineering/testing_python.html)
 
 ### Document your code
 
@@ -133,7 +133,7 @@ karr_lab_build_utils make-documentation
 ```
 
 ## Documentation
-Please see the [API documentation](http://karr_lab_build_utils.readthedocs.io).
+Please see the [API documentation](http://docs.karrlab.org/karr_lab_build_utils).
 
 ## License
 The build utilities are released under the [MIT license](LICENSE).

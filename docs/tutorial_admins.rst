@@ -7,10 +7,10 @@ Except as indicated below, ``karr_lab_build_utils`` should be run from the packa
 
 To use the command line interface, your package should follow the organization scheme described in "An Introduction Whole-Cell Modeling":
 
-* `Structuring Python projects <http://intro-to-wc-modeling.readthedocs.io/en/latest/concepts_skills/software_engineering/structuring_python_projects.html>`_
-* `Testing Python projects <http://intro-to-wc-modeling.readthedocs.io/en/latest/concepts_skills/software_engineering/continuous_integration.html>`_
-* `Documenting Python code <http://intro-to-wc-modeling.readthedocs.io/en/latest/concepts_skills/software_engineering/documenting_python.html>`_
-* `Packaging Python projects <http://intro-to-wc-modeling.readthedocs.io/en/latest/concepts_skills/software_engineering/distributing_python.html>`_
+* `Structuring Python projects <http://docs.karrlab.org/intro_to_wc_modeling/latest/concepts_skills/software_engineering/structuring_python_projects.html>`_
+* `Testing Python projects <http://docs.karrlab.org/intro_to_wc_modeling/latest/concepts_skills/software_engineering/continuous_integration.html>`_
+* `Documenting Python code <http://docs.karrlab.org/intro_to_wc_modeling/latest/concepts_skills/software_engineering/documenting_python.html>`_
+* `Packaging Python projects <http://docs.karrlab.org/intro_to_wc_modeling/latest/concepts_skills/software_engineering/distributing_python.html>`_
 
 
 Getting help
