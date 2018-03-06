@@ -1,5 +1,5 @@
 [//]: # ( [![PyPI package](https://img.shields.io/pypi/v/{{ name }}.svg)](https://pypi.python.org/pypi/{{ name }}) )
-{% if private %}[![Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](http://code.karrlab.org/view_docs.php?package={{ name }}){% else %}[![Documentation](https://img.shields.io/badge/docs-latest-green.svg)](http://docs.karrlab.org/{{ name }}){% endif %}
+{% if private %}[![Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](http://docs.karrlab.org/{{ name }}){% else %}[![Documentation](https://img.shields.io/badge/docs-latest-green.svg)](http://docs.karrlab.org/{{ name }}){% endif %}
 [![Test results](https://circleci.com/gh/KarrLab/{{ name }}.svg?style=shield&circle-token={{ circleci_repo_token }})](https://circleci.com/gh/KarrLab/{{ name }})
 [![Test coverage](https://coveralls.io/repos/github/KarrLab/{{ name }}/badge.svg?t={{ coveralls_repo_badge_token }})](https://coveralls.io/github/KarrLab/{{ name }})
 [![Code analysis](https://api.codeclimate.com/v1/badges/{{ codeclimate_repo_badge_token }}/maintainability)]({% if private %}https://codeclimate.com/repos/{{ codeclimate_repo_id }}){% else %}https://codeclimate.com/github/KarrLab/{{ name }}{% endif %})
