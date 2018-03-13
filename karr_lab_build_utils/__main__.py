@@ -147,7 +147,7 @@ class CreateDocumentationTemplateController(CementBaseController):
         stacked_type = 'nested'
         arguments = [
             (['--dirname'], dict(
-                default='.', type=str, help='Path to the package')),
+                default='.', type=str, help="Path to the package; default='.'")),
         ]
 
     @expose(hide=True)
@@ -176,21 +176,21 @@ class RunTestsController(CementBaseController):
                     'Path to tests to run. '
                     'If the `test_path` environment variable is not defined, TEST_PATH defaults to `tests`.'))),
             (['--dirname'], dict(
-                type=str, default='.', help='Path to package to test')),
+                type=str, default='.', help="Path to package to test; default='.'")),
             (['--verbose'], dict(
-                default=False, action='store_true', help='True/False to display test output')),
+                default=False, action='store_true', help='if set display test output')),
             (['--with-xunit'], dict(
-                default=False, action='store_true', help='True/False to save test results to XML file')),
+                default=False, action='store_true', help='if set save test results to XML file')),
             (['--with-coverage'], dict(
-                default=False, action='store_true', help='True/False to assess code coverage')),
+                default=False, action='store_true', help='if set assess code coverage')),
             (['--coverage-dirname'], dict(
-                type=str, default='.', help='Directory to store coverage data')),
+                type=str, default='.', help="Directory to store coverage data; default='.'")),
             (['--coverage-type'], dict(
                 type=str, default='branch',
-                help='Type of coverage analysis to run {statement, branch, or multiple-decision}')),
+                help="Type of coverage analysis to run {statement, branch, or multiple-decision}; default='branch'")),
             (['--environment'], dict(
                 type=str, default='local',
-                help='Environment to run tests (local, docker, or circleci)')),
+                help="Environment to run tests (local, docker, or circleci); default='local'")),
             (['--ssh-key-filename'], dict(
                 type=str, default='~/.ssh/id_rsa', help='Path to GitHub SSH key')),
         ]
@@ -374,7 +374,7 @@ class DoPostTestTasksController(CementBaseController):
             (['tests_exit_code'], dict(
                 type=int, help='Exit code of the tests')),
             (['--dry-run'], dict(
-                default=False, dest='dry_run', action='store_true', help='If true, do not send results to Coveralls and Code Climate')),
+                default=False, dest='dry_run', action='store_true', help='If set, do not send results to Coveralls and Code Climate')),
         ]
 
     @expose(hide=True)
@@ -438,7 +438,7 @@ class MakeAndArchiveReportsController(CementBaseController):
             (['--coverage-dirname'], dict(
                 default='.', type=str, help="Directory to save coverage reports, which defaults to '.'.")),
             (['--dry-run'], dict(
-                default=False, dest='dry_run', action='store_true', help='If true, do not send results to Coveralls and Code Climate')),
+                default=False, dest='dry_run', action='store_true', help='If set, do not send results to Coveralls and Code Climate')),
         ]
 
     @expose(hide=True)
@@ -486,7 +486,7 @@ class ArchiveCoverageReportController(CementBaseController):
             (['--coverage-dirname'], dict(
                 default='.', type=str, help="Directory to save coverage reports, which defaults to '.'.")),
             (['--dry-run'], dict(
-                default=False, dest='dry_run', action='store_true', help='If true, do not send results to Coveralls and Code Climate')),
+                default=False, dest='dry_run', action='store_true', help='If set, do not send results to Coveralls and Code Climate')),
         ]
 
     @expose(hide=True)
@@ -513,7 +513,7 @@ class UploadCoverageReportToCoverallsController(CementBaseController):
             (['--coverage-dirname'], dict(
                 default='.', type=str, help="Directory to save coverage reports, which defaults to '.'.")),
             (['--dry-run'], dict(
-                default=False, dest='dry_run', action='store_true', help='If true, do not send results to Coveralls')),
+                default=False, dest='dry_run', action='store_true', help='If set, do not send results to Coveralls')),
         ]
 
     @expose(hide=True)
@@ -537,7 +537,7 @@ class UploadCoverageReportToCodeClimateController(CementBaseController):
             (['--coverage-dirname'], dict(
                 default='.', type=str, help="Directory to save coverage reports, which defaults to '.'.")),
             (['--dry-run'], dict(
-                default=False, dest='dry_run', action='store_true', help='If true, do not send results to Code Climate')),
+                default=False, dest='dry_run', action='store_true', help='If set, do not send results to Code Climate')),
         ]
 
     @expose(hide=True)
