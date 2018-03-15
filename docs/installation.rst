@@ -21,7 +21,7 @@ Pre-requisites
         wget
 
     # install libgit2 (version in apt repository is old)
-    cd /tmp
+    pushd /tmp
     wget https://github.com/libgit2/libgit2/archive/v0.26.3.tar.gz -O /tmp/libgit2-0.26.3.tar.gz
     tar -xvvf /tmp/libgit2-0.26.3.tar.gz
     cd /tmp/libgit2-0.26.3
@@ -34,8 +34,10 @@ Pre-requisites
     echo "" >> ~/.bashrc
     echo "# libgit2" >> ~/.bashrc
     echo "export LIBGIT2=/usr/local" >> ~/.bashrc
+    source ~/.bashrc
     rm /tmp/libgit2-0.26.3.tar.gz
     rm -r /tmp/libgit2-0.26.3
+    popd
 
 #. Run this command to upgrade pip and setuptools::
 
