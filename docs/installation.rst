@@ -43,6 +43,8 @@ Pre-requisites
 
     pip install -U pip setuptools
 
+#. Optionally, create ``~/.wc/karr_lab_build_utils.cfg`` to configure the package (see configuration options in ``karr_lab_build_utils/config/core.schema.cfg``). We recommend that Karr Lab members start by copying the shared configuration file from ``karr_lab_config/karr_lab_build_utils.cfg``.
+
 #. Optionally, create an SSH key for GitHub. This is needed to run tests using Docker and CircleCI.
 
     #. Create an SSH key and save it to ``~/.ssh/id_rsa``::
@@ -71,8 +73,6 @@ Pre-requisites
     repository: https://upload.pypi.org/legacy/
     username: <username>
     password: <password>
-
-#. Optionally, edit ``~/.wc/karr_lab_build_utils.cfg`` to configure the package.
 
 
 Install the latest revision from GitHub
