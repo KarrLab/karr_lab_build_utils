@@ -47,6 +47,7 @@ import nose
 import os
 import pip
 import pytest
+import re
 import requests
 import shutil
 import six
@@ -681,6 +682,28 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 build_helper.run_tests(test_path=self.DUMMY_TEST, with_xunit=True)
 
         shutil.rmtree(tempdirname)
+
+    @unittest.skipIf(whichcraft.which('docker') is None, (
+        'Test requires Docker and Docker isn''t installed. '
+        'See installation instructions at `https://docs.karrlab.org/intro_to_wc_modeling/latest/installation.html`'
+    ))
+    def test_low_level_docker_commands(self):
+        with capturer.CaptureOutput(merged=False, relay=True) as captured:
+            with __main__.App(argv=['docker', 'create-container']) as app:
+                app.run()
+                stdout = captured.stdout.get_text()
+                self.assertRegexpMatches(stdout, ('Created Docker container (build[\-0-9]+) with volume (build[\-0-9]+)'))
+        match = re.search('Created Docker container (build[\-0-9]+) ', stdout, re.IGNORECASE)
+        container = match.group(1)
+
+        with __main__.App(argv=['docker', 'install-package-to-container', container]) as app:
+            app.run()
+
+        with __main__.App(argv=['docker', 'run-tests-in-container', container, '--test-path', self.DUMMY_TEST]) as app:
+            app.run()
+
+        with __main__.App(argv=['docker', 'remove-container', container]) as app:
+            app.run()
 
     @unittest.skipIf(whichcraft.which('docker') is None, (
         'Test requires Docker and Docker isn''t installed. '

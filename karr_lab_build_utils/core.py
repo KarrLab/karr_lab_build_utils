@@ -1018,13 +1018,26 @@ class BuildHelper(object):
             coverage_type (:obj:`CoverageType`, optional): type of coverage to run when :obj:`with_coverage` is :obj:`True`
             ssh_key_filename (:obj:`str`, optional): path to GitHub SSH key
         """
+        container = self.create_docker_container(ssh_key_filename=ssh_key_filename)
+        self.install_package_to_docker_container(container, dirname=dirname)
+        self.run_tests_in_docker_container(container, test_path=test_path, verbose=verbose, with_xunit=with_xunit,
+                                           with_coverage=with_coverage, coverage_dirname=coverage_dirname, coverage_type=coverage_type)
+        self.remove_docker_container(container)
 
+    def create_docker_container(self, ssh_key_filename='~/.ssh/id_rsa'):
+        """ Create a docker container 
+
+        Args:
+            ssh_key_filename (:obj:`str`, optional): path to GitHub SSH key
+
+        Returns:
+            :obj:`str`: container id
+        """
         ssh_key_filename = os.path.expanduser(ssh_key_filename)
 
         # pick container name
-        basename = os.path.basename(os.path.abspath(dirname))
         now = datetime.now()
-        container = 'build-{0}-{1.year}-{1.month}-{1.day}-{1.hour}-{1.minute}-{1.second}'.format(basename, now)
+        container = now.strftime('build-%Y-%m-%d-%H-%M-%S')
 
         # get Python version
         py_v = '{}.{}'.format(sys.version_info[0], sys.version_info[1])
@@ -1032,9 +1045,14 @@ class BuildHelper(object):
         # create container
         print('\n\n')
         print('=====================================')
-        print('== Creating container')
+        print('== Creating and starting container')
         print('=====================================')
-        self._run_docker_command(['run', '-it', '-d', '--name', container, self.build_image, 'bash'])
+        self._run_docker_command(['run',
+                                  '--detach',
+                                  '--tty',
+                                  '--name', container,
+                                  '--volume', '{}:/root/volume'.format(container),
+                                  self.build_image])
 
         # copy GitHub SSH key to container
         print('\n\n')
@@ -1042,22 +1060,6 @@ class BuildHelper(object):
         print('== Copying SSH key to container')
         print('=====================================')
         self._run_docker_command(['cp', ssh_key_filename, container + ':/root/.ssh/'])
-
-        # delete __pycache__ directories
-        print('\n\n')
-        print('=====================================')
-        print('== Deleting __pycache__ directories')
-        print('=====================================')
-        for root, rel_dirnames, rel_filenames in os.walk(dirname):
-            for rel_dirname in fnmatch.filter(rel_dirnames, '__pycache__'):
-                shutil.rmtree(os.path.join(root, rel_dirname))
-
-        # copy package to container
-        print('\n\n')
-        print('=====================================')
-        print('== Copying package to container')
-        print('=====================================')
-        self._run_docker_command(['cp', os.path.abspath(dirname), container + ':/root/project'])
 
         # install pkg_utils
         print('\n\n')
@@ -1077,27 +1079,73 @@ class BuildHelper(object):
         self._run_docker_command(['exec', container, 'bash', '-c',
                                   'pip{} install -U --process-dependency-links {}'.format(py_v, build_utils_uri)])
 
+        return container
+
+    def install_package_to_docker_container(self, container, dirname='.'):
+        """ Copy and install package to Docker container
+
+        Args:
+            container (:obj:`str`): container id
+            dirname (:obj:`str`, optional): path to package to copy and install
+        """
+        # get Python version
+        py_v = '{}.{}'.format(sys.version_info[0], sys.version_info[1])
+        
+        # delete __pycache__ directories
+        print('\n\n')
+        print('=====================================')
+        print('== Deleting __pycache__ directories')
+        print('=====================================')
+        for root, rel_dirnames, rel_filenames in os.walk(dirname):
+            for rel_dirname in fnmatch.filter(rel_dirnames, '__pycache__'):
+                shutil.rmtree(os.path.join(root, rel_dirname))
+
+        # copy package to container
+        print('\n\n')
+        print('=====================================')
+        print('== Copying package to container')
+        print('=====================================')
+        self._run_docker_command(['cp', os.path.abspath(dirname), container + ':/root/project'])
+
         # install package
         print('\n\n')
         print('=====================================')
         print('== Install package')
         print('=====================================')
-        self._run_docker_command(['exec', container, 'bash', '-c',
-                                  'cd /root/project && pip{} install --process-dependency-links -e .'.format(py_v)])
+        self._run_docker_command(['exec',
+                                  '-w', '/root/project',
+                                  container,
+                                  'bash', '-c', 'pip{} install --process-dependency-links -e .'.format(py_v),
+                                  ])
 
         # install dependencies
         print('\n\n')
         print('=====================================')
-        print('== Install dependencies')
+        print('== Upgrade dependencies')
         print('=====================================')
         self._run_docker_command(['exec',
                                   '--env', 'CONFIG__DOT__karr_lab_build_utils__DOT__configs_repo_password={}'.format(
                                       self.configs_repo_password),
+                                  '-w', '/root/project',
                                   container,
-                                  'bash', '-c',
-                                  'cd /root/project && karr_lab_build_utils{} upgrade-requirements'.format(py_v)])
+                                  'bash', '-c', 'karr_lab_build_utils{} upgrade-requirements'.format(py_v),
+                                  ])
 
-        # test package in container
+    def run_tests_in_docker_container(self, container, test_path='tests', verbose=False, with_xunit=False, with_coverage=False,
+                                      coverage_dirname='.', coverage_type=CoverageType.branch):
+        """ Test a package in a docker container
+
+        Args:
+            container (:obj:`str`): container id
+            test_path (:obj:`str`, optional): path to tests that should be run
+            verbose (:obj:`str`, optional): if :obj:`True`, display stdout from tests
+            with_xunit (:obj:`bool`, optional): whether or not to save test results
+            with_coverage (:obj:`bool`, optional): whether or not coverage should be assessed
+            coverage_dirname (:obj:`str`, optional): directory to save coverage data
+            coverage_type (:obj:`CoverageType`, optional): type of coverage to run when :obj:`with_coverage` is :obj:`True`
+        """
+        py_v = '{}.{}'.format(sys.version_info[0], sys.version_info[1])
+
         print('\n\n')
         print('=====================================')
         print('== Running tests')
@@ -1118,9 +1166,9 @@ class BuildHelper(object):
         self._run_docker_command(['exec',
                                   '--env', 'CONFIG__DOT__karr_lab_build_utils__DOT__configs_repo_password={}'.format(
                                       self.configs_repo_password),
+                                  '-w', '/root/project',
                                   container,
-                                  'bash', '-c',
-                                  'cd /root/project && karr_lab_build_utils{} run-tests {}'.format(py_v, ' '.join(options))],
+                                  'bash', '-c', 'karr_lab_build_utils{} run-tests {}'.format(py_v, ' '.join(options))],
                                  raise_error=False)
 
         if with_coverage:
@@ -1137,12 +1185,19 @@ class BuildHelper(object):
                                                                                 self.DEFAULT_PROJ_TESTS_XML_LATEST_FILENAME), out)
             self._run_docker_command(['cp', container + ':' + match.group(0), os.path.join(self.proj_tests_xml_dir, match.group(1))])
 
-        # stop and remove container
+    def remove_docker_container(self, container):
+        """ Stop and remove a docker container
+
+        Args:
+            container (:obj:`str`): container id
+        """
         print('\n\n')
         print('=====================================')
-        print('== Removing container')
+        print('== Stopping and removing container')
         print('=====================================')
-        self._run_docker_command(['rm', '-f', container])
+        self._run_docker_command(['stop', container])
+        self._run_docker_command(['rm', container])
+        self._run_docker_command(['volume', 'rm', container])
 
     def _run_docker_command(self, cmd, cwd=None, raise_error=True):
         """ Run a docker command

@@ -222,6 +222,129 @@ class RunTestsController(CementBaseController):
                               ssh_key_filename=args.ssh_key_filename)
 
 
+class DockerController(CementBaseController):
+    """ Base controller for Docker tasks """
+
+    class Meta:
+        label = 'docker'
+        description = 'Docker utilities'
+        stacked_on = 'base'
+        stacked_type = 'nested'
+        arguments = []
+
+
+class DockerCreateContainerController(CementBaseController):
+    """ Create a Docker container for running tests """
+
+    class Meta:
+        label = 'create-container'
+        description = 'Create a Docker container for running tests'
+        stacked_on = 'docker'
+        stacked_type = 'nested'
+        arguments = [
+            (['--ssh-key-filename'], dict(
+                type=str, default='~/.ssh/id_rsa', help='Path to GitHub SSH key')),
+        ]
+
+    @expose(hide=True)
+    def default(self):
+        args = self.app.pargs
+        buildHelper = BuildHelper()
+        container = buildHelper.create_docker_container(ssh_key_filename=args.ssh_key_filename)
+        print('Created Docker container {0} with volume {0}'.format(container))
+
+
+class InstallPackageToDockerContainerController(CementBaseController):
+    """ Copy and install a package to a Docker container """
+    class Meta:
+        label = 'install-package-to-container'
+        description = 'Copy and install a package to a Docker container'
+        stacked_on = 'docker'
+        stacked_type = 'nested'
+        arguments = [
+            (['container'], dict(type=str, help="Container id")),
+            (['--dirname'], dict(
+                type=str, default='.', help="Path to package to test; default='.'")),
+        ]
+
+    @expose(hide=True)
+    def default(self):
+        args = self.app.pargs
+        buildHelper = BuildHelper()
+        buildHelper.install_package_to_docker_container(args.container, dirname=args.dirname)
+
+
+class RunTestsInDockerContainerController(CementBaseController):
+    """ Run tests in a Docker container """
+
+    class Meta:
+        label = 'run-tests-in-container'
+        description = 'Run tests in a Docker container'
+        stacked_on = 'docker'
+        stacked_type = 'nested'
+        arguments = [
+            (['container'], dict(type=str, help="Container id")),
+            (['--test-path'], dict(
+                type=str, default=None, help=(
+                    'Path to tests to run. '
+                    'If the `test_path` environment variable is not defined, TEST_PATH defaults to `tests`.'))),
+            (['--verbose'], dict(
+                default=False, action='store_true', help='if set display test output')),
+            (['--with-xunit'], dict(
+                default=False, action='store_true', help='if set save test results to XML file')),
+            (['--with-coverage'], dict(
+                default=False, action='store_true', help='if set assess code coverage')),
+            (['--coverage-dirname'], dict(
+                type=str, default='.', help="Directory to store coverage data; default='.'")),
+            (['--coverage-type'], dict(
+                type=str, default='branch',
+                help="Type of coverage analysis to run {statement, branch, or multiple-decision}; default='branch'")),
+        ]
+
+    @expose(hide=True)
+    def default(self):
+        # if `test_path` was not specified at the command line, try to get it from the `test_path` environment variable
+        # which can be set in CircleCI via build parameters
+        args = self.app.pargs
+        if args.test_path is None:
+            if 'test_path' in os.environ:
+                test_path = os.getenv('test_path')
+            else:
+                test_path = 'tests'
+        else:
+            test_path = args.test_path
+
+        verbose = args.verbose or bool(int(os.getenv('verbose', '0')))
+
+        # get coverage type
+        coverage_type = karr_lab_build_utils.core.CoverageType[args.coverage_type.lower().replace('-', '_')]
+
+        # run tests
+        buildHelper = BuildHelper()
+        buildHelper.run_tests_in_docker_container(args.container, test_path=test_path, verbose=verbose, with_xunit=args.with_xunit,
+                                                  with_coverage=args.with_coverage, coverage_dirname=args.coverage_dirname,
+                                                  coverage_type=coverage_type)
+
+
+class DockerRemoveContainerController(CementBaseController):
+    """ Remove a Docker container """
+
+    class Meta:
+        label = 'remove-container'
+        description = 'Remove a Docker container'
+        stacked_on = 'docker'
+        stacked_type = 'nested'
+        arguments = [
+            (['container'], dict(type=str, help="Container id")),
+        ]
+
+    @expose(hide=True)
+    def default(self):
+        args = self.app.pargs
+        buildHelper = BuildHelper()
+        buildHelper.remove_docker_container(args.container)
+
+
 class FollowCircleciBuildController(CementBaseController):
     """ Follow a CircleCI build for a repository """
     class Meta:
@@ -809,6 +932,11 @@ class App(CementApp):
             SetupRepositoryController,
             CreateDocumentationTemplateController,
             RunTestsController,
+            DockerController,
+            DockerCreateContainerController,
+            InstallPackageToDockerContainerController,
+            RunTestsInDockerContainerController,
+            DockerRemoveContainerController,
             FollowCircleciBuildController,
             GetCircleciEnvironmentVariablesController,
             SetCircleciEnvironmentVariableController,
