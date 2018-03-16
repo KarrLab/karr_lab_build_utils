@@ -13,7 +13,6 @@
       {% else %}
       "token": ""
       {% endif %}
-      }
     }
   },
   "test_results": true,
