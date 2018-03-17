@@ -431,7 +431,9 @@ packages = parser.get('sphinx-apidocs', 'packages').strip().split('\n')
 # find imported modules
 options = mock.Mock()
 options.paths = [os.path.join(parent_dir, p) for p in packages]
-options.ignore_files = pip_check_reqs.common.ignorer([])
+options.ignore_files = pip_check_reqs.common.ignorer([
+    '../karr_lab_build_utils/templates/*',
+    ])
 options.ignore_mods = pip_check_reqs.common.ignorer([])
 import_mods = pip_check_reqs.common.find_imported_modules(options)
 
