@@ -570,7 +570,6 @@ class BuildHelper(object):
             'tests/test_core.py',
             'tests/test_main.py',
             '.circleci/config.yml',
-            '.readthedocs.yml',
             '.karr_lab_build_utils.yml',
             '_package_/__init__.py',
             '_package_/VERSION',
@@ -1819,7 +1818,6 @@ class BuildHelper(object):
             filenames = [
                 'conf.py',
                 'requirements.txt',
-                'conda.environment.yml',
                 'spelling_wordlist.txt',
                 'index.rst',
                 'overview.rst',

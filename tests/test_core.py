@@ -326,10 +326,8 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'tests', 'test_main.py')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'docs', 'conf.py')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'docs', 'requirements.txt')))
-        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'docs', 'conda.environment.yml')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'docs', 'spelling_wordlist.txt')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', '.circleci', 'config.yml')))
-        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', '.readthedocs.yml')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', '.karr_lab_build_utils.yml')))
 
         """ test CLI """
@@ -360,10 +358,8 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'tests', 'test_main.py')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'docs', 'conf.py')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'docs', 'requirements.txt')))
-        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'docs', 'conda.environment.yml')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'docs', 'spelling_wordlist.txt')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', '.circleci', 'config.yml')))
-        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', '.readthedocs.yml')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', '.karr_lab_build_utils.yml')))
 
         """ cleanup """
