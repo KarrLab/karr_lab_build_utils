@@ -5,7 +5,7 @@
 :Copyright: 2016-2018, Karr Lab
 :License: MIT
 """
-
+import pip # has to be imported first due to problem with urllib/requests
 from datetime import datetime
 from jinja2 import Template
 from pylint import epylint
@@ -33,7 +33,6 @@ import glob
 import graphviz
 # import instrumental.api
 import json
-import karr_lab_build_utils
 import karr_lab_build_utils.config.core
 import logging
 import mock
@@ -41,7 +40,6 @@ import natsort
 import networkx
 import nose
 import os
-import pip
 import pip_check_reqs
 import pip_check_reqs.find_extra_reqs
 import pip_check_reqs.find_missing_reqs
@@ -1089,7 +1087,7 @@ class BuildHelper(object):
         """
         # get Python version
         py_v = '{}.{}'.format(sys.version_info[0], sys.version_info[1])
-        
+
         # delete __pycache__ directories
         print('\n\n')
         print('=====================================')
@@ -2123,7 +2121,9 @@ class BuildHelper(object):
         Returns:
             :obj:`str`: the version
         """
-        return '{0:s} (Python {1[0]:d}.{1[1]:d}.{1[2]:d})'.format(karr_lab_build_utils.__version__, sys.version_info)
+        with open(pkg_resources.resource_filename('karr_lab_build_utils', 'VERSION'), 'r') as file:
+            __version__ = file.read().strip()
+        return '{0:s} (Python {1[0]:d}.{1[1]:d}.{1[2]:d})'.format(version, sys.version_info)
 
     @staticmethod
     def get_python_version():

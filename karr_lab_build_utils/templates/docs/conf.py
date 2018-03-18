@@ -425,7 +425,7 @@ import_mods = pip_check_reqs.common.find_imported_modules(options)
 class ModuleMock(mock.MagicMock):
     @classmethod
     def __getattr__(cls, name):
-        return MagicMock()
+        return cls()
 for import_mod in import_mods.keys():
     try:
         importlib.import_module(import_mod)
