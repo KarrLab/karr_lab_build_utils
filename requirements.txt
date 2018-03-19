@@ -15,7 +15,7 @@ mock
 natsort
 networkx
 nose
-pip
+pip <= 9.0.1
 pip_check_reqs
 git+https://github.com/KarrLab/pkg_utils.git#egg=pkg_utils-0.0.3[all]
 pygithub
@@ -29,6 +29,7 @@ setuptools
 six
 sphinx >= 1.7
 sphinx_rtd_theme
+sphinxcontrib_addmetahtml
 sphinxcontrib_bibtex
 sphinxcontrib_spelling
 twine

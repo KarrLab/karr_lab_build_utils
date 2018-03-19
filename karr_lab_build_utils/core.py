@@ -5,12 +5,10 @@
 :Copyright: 2016-2018, Karr Lab
 :License: MIT
 """
-import pip # has to be imported first due to problem with urllib/requests
 from datetime import datetime
 from jinja2 import Template
 from pylint import epylint
 from sphinx.cmd.build import main as sphinx_build
-from sphinx.apidoc import main as sphinx_apidoc
 from mock import patch
 from six.moves import configparser
 from xml.dom import minidom
@@ -40,6 +38,7 @@ import natsort
 import networkx
 import nose
 import os
+import pip
 import pip_check_reqs
 import pip_check_reqs.find_extra_reqs
 import pip_check_reqs.find_missing_reqs
@@ -50,6 +49,7 @@ import pkg_resources
 import pytest
 import re
 import requests
+import sphinx.ext.apidoc
 import shutil
 import six
 import smtplib
@@ -773,7 +773,7 @@ class BuildHelper(object):
 
         # upgrade pip, setuptools
         self.run_method_and_capture_stderr(pip.main, ['install', '-U', 'setuptools'])
-        self.run_method_and_capture_stderr(pip.main, ['install', '-U', 'pip'])
+        self.run_method_and_capture_stderr(pip.main, ['install', '-U', 'pip<=9.0.1'])
 
         # requirements for package
         self._install_requirements_helper('requirements.txt')
@@ -1851,6 +1851,14 @@ class BuildHelper(object):
         # create `proj_docs_static_dir`, if necessary
         if not os.path.isdir(self.proj_docs_static_dir):
             os.mkdir(self.proj_docs_static_dir)
+
+        # compile API docs
+        parser = configparser.ConfigParser()
+        parser.read('setup.cfg')
+        packages = parser.get('sphinx-apidocs', 'packages').strip().split('\n')
+        for package in packages:            
+            self.run_method_and_capture_stderr(sphinx.ext.apidoc.main, 
+                argv=['-f', '-P', '-o', os.path.join(self.proj_docs_dir, 'source'), package])
 
         # build HTML documentation
         self.run_method_and_capture_stderr(sphinx_build, [self.proj_docs_dir, self.proj_docs_build_html_dir])
