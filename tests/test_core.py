@@ -2303,8 +2303,14 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         unused = build_helper.find_unused_requirements('karr_lab_build_utils', ignore_files=['karr_lab_build_utils/templates/*'])
         unused.sort()
 
-        expected_unused = ['robpol86_sphinxcontrib_googleanalytics', 'sphinx_rtd_theme',
-                           'sphinxcontrib_bibtex', 'sphinxcontrib_spelling', 'wheel']
+        expected_unused = [
+            'robpol86_sphinxcontrib_googleanalytics',
+            'sphinx_rtd_theme',
+            'sphinxcontrib_addmetahtml',
+            'sphinxcontrib_bibtex',
+            'sphinxcontrib_spelling',
+            'wheel',
+        ]
         if six.PY3:
             expected_unused.insert(0, 'enum34')
         self.assertEqual(unused, expected_unused)
