@@ -2130,7 +2130,7 @@ class BuildHelper(object):
             :obj:`str`: the version
         """
         with open(pkg_resources.resource_filename('karr_lab_build_utils', 'VERSION'), 'r') as file:
-            __version__ = file.read().strip()
+            version = file.read().strip()
         return '{0:s} (Python {1[0]:d}.{1[1]:d}.{1[2]:d})'.format(version, sys.version_info)
 
     @staticmethod
