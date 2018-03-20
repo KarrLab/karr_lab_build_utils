@@ -54,6 +54,7 @@ import sphinx.ext.apidoc
 import shutil
 import six
 import smtplib
+import stat
 import subprocess
 import sys
 import tempfile
@@ -2420,7 +2421,9 @@ class BuildHelper(object):
             abs_src = os.path.join(self.configs_repo_path, 'third_party', rel_src)
             if not os.path.isfile(abs_dest) or overwrite:
                 shutil.copyfile(abs_src, abs_dest)
-                shutil.copymode(abs_src, abs_dest)
+                if rel_src == 'id_rsa':
+                    os.chmod(abs_dest, stat.S_IRUSR | stat.S_IWUSR)
+
 
 
 class TestResults(object):
