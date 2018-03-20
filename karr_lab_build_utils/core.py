@@ -26,6 +26,7 @@ import email.utils
 import enum
 import fnmatch
 import ftputil
+import git
 import github
 import glob
 import graphviz
@@ -109,8 +110,7 @@ class BuildHelper(object):
         configs_repo_password (:obj:`str`): password for Git repository with passwords
         configs_repo_path (:obj:`str`): path to clone Git repository with passwords
 
-        github_username (obj:`str`): GitHub username
-        github_password (obj:`str`): GitHub password
+        github_api_token (:obj:`str`): GitHub API token
         circleci_api_token (:obj:`str`): CircleCI API token
         test_server_token (:obj:`str`): test history report server token
         email_hostname (:obj:`str`): hostname and port for email server
@@ -210,8 +210,7 @@ class BuildHelper(object):
         self.download_package_configs()
         self.set_third_party_configs()
         config = karr_lab_build_utils.config.core.get_config()['karr_lab_build_utils']
-        self.github_username = config['github_username']
-        self.github_password = config['github_password']
+        self.github_api_token = config['github_api_token']
         self.circleci_api_token = config['circleci_api_token']
         self.test_server_token = config['test_server_token']
         self.email_hostname = config['email_hostname']
@@ -338,7 +337,7 @@ class BuildHelper(object):
         # :todo: programmatically create CircleCI build
         # :todo: programmatically create CircleCI token for status badges
         has_private_dependencies = False
-        g = github.Github(self.github_username, self.github_password)
+        g = github.Github(self.github_api_token)
         org = g.get_organization('KarrLab')
         for dependency in dependencies:
             try:
@@ -499,23 +498,12 @@ class BuildHelper(object):
         dirname = dirname or os.path.join('.', name)
 
         # create GitHub repository
-        g = github.Github(self.github_username, self.github_password)
+        g = github.Github(self.github_api_token)
         org = g.get_organization('KarrLab')
         org.create_repo(name=name, description=description, private=private, auto_init=True)
 
         # initialize Git
-        gitconfig_filename = os.path.expanduser('~/.gitconfig')
-        has_gitconfig = os.path.isfile(gitconfig_filename)
-        if has_gitconfig:
-            os.rename(gitconfig_filename, gitconfig_filename + '.ignore')
-
-        import pygit2
-        credentials = pygit2.UserPass(self.github_username, self.github_password)
-        callbacks = pygit2.RemoteCallbacks(credentials=credentials)
-        pygit2.clone_repository('https://github.com/KarrLab/{}.git'.format(name), dirname, callbacks=callbacks)
-
-        if has_gitconfig:
-            os.rename(gitconfig_filename + '.ignore', gitconfig_filename)
+        git.Repo.clone_from('https://github.com/KarrLab/{}.git'.format(name), dirname)
 
     def setup_repository(self, name, description='', keywords=None, dependencies=None, private=True, build_image_version=None,
                          dirname=None, circleci_repo_token=None, coveralls_repo_badge_token=None, code_climate_repo_id=None,
@@ -744,26 +732,22 @@ class BuildHelper(object):
         if repo_name is None:
             repo_name = self.repo_name
 
-        url = '{}/repos/{}/{}/hooks'.format(self.GITHUB_API_ENDPOINT, repo_owner, repo_name)
-        response = requests.post(url, auth=(self.github_username, self.github_password), json={
-            'name': 'web',
-            'config': {
-                'url': 'https://codeclimate.com/webhooks',
-                'content_type': 'form',
-            },
-            'events': [
-                'push',
-                'pull_request'
-            ],
-            'active': True,
-        })
-        if response.status_code != 201:
-            if 'errors' in response.json():
-                msg = '\n  '.join(err['message'] for err in response.json()['errors'])
-                raise ValueError('Unable to create webhook for {}/{}:\n  {}'.format(repo_owner, repo_name, msg))
-            else:
-                msg = response.json()['message']
-                raise ValueError('Unable to create webhook for {}/{}: {}'.format(repo_owner, repo_name, msg))
+        assert(repo_type == 'github')
+
+        g = github.Github(self.github_api_token)
+        org = g.get_organization(repo_owner)
+        repo = org.get_repo(repo_name)
+
+        config = {
+            'url': 'https://codeclimate.com/webhooks',
+            'content_type': 'form',
+        }
+        events = ['push', 'pull_request']
+        try:
+            repo.create_hook('web', config, events=events, active=True)
+        except github.GithubException as error:
+            if error.data['errors'][0]['message'] != 'Hook already exists on this repository':
+                raise error
 
     #########################
     # Installing dependencies
@@ -1856,9 +1840,9 @@ class BuildHelper(object):
         parser = configparser.ConfigParser()
         parser.read('setup.cfg')
         packages = parser.get('sphinx-apidocs', 'packages').strip().split('\n')
-        for package in packages:            
-            self.run_method_and_capture_stderr(sphinx.ext.apidoc.main, 
-                argv=['-f', '-P', '-o', os.path.join(self.proj_docs_dir, 'source'), package])
+        for package in packages:
+            self.run_method_and_capture_stderr(sphinx.ext.apidoc.main,
+                                               argv=['-f', '-P', '-o', os.path.join(self.proj_docs_dir, 'source'), package])
 
         # build HTML documentation
         self.run_method_and_capture_stderr(sphinx_build, [self.proj_docs_dir, self.proj_docs_build_html_dir])
@@ -2407,34 +2391,33 @@ class BuildHelper(object):
             update (:obj:`bool`, optional): if :obj:`True`, update the configuration
         """
         # clone or update repo
-        if six.PY3:
-            devnull = subprocess.DEVNULL
-        else:
-            devnull = open(os.devnull, 'wb')
-
         if os.path.isdir(self.configs_repo_path):
-            subprocess.check_call(['git', 'pull'], cwd=self.configs_repo_path,
-                                  stdout=devnull, stderr=devnull)
+            repo = git.Repo(path=self.configs_repo_path)
+            repo.remotes['origin'].pull()
         else:
-            url = self.configs_repo_url.replace('://', '://{}:{}@'.format(
-                self.configs_repo_username, self.configs_repo_password))
-            subprocess.check_call(['git', 'clone', url, self.configs_repo_path],
-                                  stdout=devnull, stderr=devnull)
+            git.Repo.clone_from(self.configs_repo_url, self.configs_repo_path)
 
-    def set_third_party_configs(self):
-        """ Copy third party configs to their appropriate paths from the configs repository """
-        if os.getenv('CIRCLECI', None) == 'true':
-            filename = os.path.join(self.configs_repo_path, 'third_party', 'paths.yml')
-            with open(filename, 'r') as file:
-                paths = yaml.load(file)
+    def set_third_party_configs(self, overwrite=None):
+        """ Copy third party configs to their appropriate paths from the configs repository 
 
-            for source, dest in paths.items():
-                dest = os.path.expanduser(dest)
-                dest_dir = os.path.dirname(dest)
-                if not os.path.isdir(dest_dir):
-                    os.makedirs(dest_dir)
-                shutil.copyfile(os.path.join(self.configs_repo_path, 'third_party', source),
-                                dest)
+        Args:
+            overwrite (:obj:`bool`, optional): if :obj:`True`, overwrite existing configuration files
+        """
+        if overwrite is None:
+            overwrite = os.getenv('CIRCLECI', None) == 'true'
+
+        filename = os.path.join(self.configs_repo_path, 'third_party', 'paths.yml')
+        with open(filename, 'r') as file:
+            paths = yaml.load(file)
+
+        for rel_src, abs_dest in paths.items():
+            abs_dest = os.path.expanduser(abs_dest)
+            abs_dest_dir = os.path.dirname(abs_dest)
+            if not os.path.isdir(abs_dest_dir):
+                os.makedirs(abs_dest_dir)
+            abs_src = os.path.join(self.configs_repo_path, 'third_party', rel_src)
+            if not os.path.isfile(abs_dest) or overwrite:
+                shutil.copyfile(abs_src, abs_dest)
 
 
 class TestResults(object):

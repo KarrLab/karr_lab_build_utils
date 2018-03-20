@@ -116,9 +116,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         tempdirname = tempfile.mkdtemp()
 
-        g = github.Github(bh.github_username, bh.github_password)
+        g = github.Github(bh.github_api_token)
         org = g.get_organization('KarrLab')
-        for name in ['test_a', 'test_b', 'test_c']:
+        for name in ['test_a', 'test_a2', 'test_a_2', 'test_b', 'test_c']:
             try:
                 repo = org.get_repo(name)
                 repo.delete()
@@ -137,7 +137,6 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         confirm_side_effects = 21 * [True]
         prompt_side_effects = [
             name, description, ', '.join(keywords), ', '.join(dependencies), dirname, '0.0.1',
-            bh.github_username, '*' * len(bh.github_password),
             'code_climate_repo_token', 'code_climate_repo_id', 'code_climate_repo_badge_token',
             'coveralls_repo_token', 'coveralls_repo_badge_token', 'circleci_repo_token',
         ]
@@ -236,7 +235,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             self.assertTrue(ftp.path.isfile(remote_filename))
 
         """ cleanup """
-        g = github.Github(bh.github_username, bh.github_password)
+        g = github.Github(bh.github_api_token)
         org = g.get_organization('KarrLab')
         for name in ['test_a', 'test_b', 'test_c']:
             repo = org.get_repo(name)
@@ -259,7 +258,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         tempdirname = tempfile.mkdtemp()
 
-        g = github.Github(build_helper.github_username, build_helper.github_password)
+        g = github.Github(build_helper.github_api_token)
         org = g.get_organization('KarrLab')
         for name in ['test_a', 'test_a2', 'test_a_2', 'test_b']:
             try:
@@ -287,7 +286,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.assertTrue(os.path.isdir(os.path.join(tempdirname, 'test_b', '.git')))
 
         """ cleanup """
-        g = github.Github(build_helper.github_username, build_helper.github_password)
+        g = github.Github(build_helper.github_api_token)
         org = g.get_organization('KarrLab')
         for name in ['test_a', 'test_a2', 'test_a_2', 'test_b']:
             repo = org.get_repo(name)
@@ -495,36 +494,6 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     app.run()
                 except ValueError as err:
                     pass
-
-    def test_create_code_climate_github_webhook_one_error(self):
-        build_helper = self.construct_build_helper()
-
-        class Result(object):
-
-            def __init__(self):
-                self.status_code = 0
-
-            def json(self):
-                return {'message': 'Error!'}
-
-        with mock.patch.object(requests, 'post', return_value=Result()):
-            with self.assertRaisesRegexp(ValueError, '^Unable to create webhook for'):
-                build_helper.create_code_climate_github_webhook()
-
-    def test_create_code_climate_github_webhook_multiple_errors(self):
-        build_helper = self.construct_build_helper()
-
-        class Result(object):
-
-            def __init__(self):
-                self.status_code = 0
-
-            def json(self):
-                return {'errors': [{'message': 'Error 1!'}, {'message': 'Error 2!'}]}
-
-        with mock.patch.object(requests, 'post', return_value=Result()):
-            with self.assertRaisesRegexp(ValueError, '^Unable to create webhook for'):
-                build_helper.create_code_climate_github_webhook()
 
     def test_install_requirements(self):
         build_helper = self.construct_build_helper()
@@ -1514,17 +1483,17 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             os.path.join(build_helper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(10000000000000002, py_v))
         )
 
-        shutil.copy('requirements.optional.txt', 'requirements.optional.txt.save')
-        with open('requirements.optional.txt', 'w') as file:
+        shutil.copy('requirements.txt', 'requirements.txt.save')
+        with open('requirements.txt', 'w') as file:
             pass
-
-        with self.assertRaisesRegexp(core.BuildHelperError, 'The following requirements are missing:\n  '):
-            warning = 'The following requirements appear to be unused:\n  robpol86_sphinxcontrib_googleanalytics'
-            with pytest.warns(UserWarning, match=warning):
-                build_helper.make_and_archive_reports(coverage_dirname=self.tmp_dirname, dry_run=True)
-
-        os.remove('requirements.optional.txt')
-        os.rename('requirements.optional.txt.save', 'requirements.optional.txt')
+        try:
+            with self.assertRaisesRegexp(core.BuildHelperError, 'The following requirements are missing:\n  '):
+                warning = 'The following requirements appear to be unused:\n  robpol86_sphinxcontrib_googleanalytics'
+                with pytest.warns(UserWarning, match=warning):
+                    build_helper.make_and_archive_reports(coverage_dirname=self.tmp_dirname, dry_run=True)
+        finally:
+            os.remove('requirements.txt')
+            os.rename('requirements.txt.save', 'requirements.txt')
 
     def test_archive_test_report(self):
         build_helper = self.construct_build_helper()
@@ -2283,19 +2252,21 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     self.assertRegexpMatches(captured.stdout.get_text(), 'requirements.txt appears to contain all of the dependencies')
                     self.assertEqual(captured.stderr.get_text(), '')
 
-        shutil.copy('requirements.optional.txt', 'requirements.optional.txt.save')
-        with open('requirements.optional.txt', 'w') as file:
+        shutil.copy('requirements.txt', 'requirements.txt.save')
+        with open('requirements.txt', 'w') as file:
             pass
-        with self.construct_environment():
-            with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                with __main__.App(argv=[
-                        'find-missing-requirements', 'karr_lab_build_utils',
-                        '--ignore-files', 'karr_lab_build_utils/templates/*']) as app:
-                    app.run()
-                    self.assertRegexpMatches(captured.stdout.get_text(), 'The following dependencies should likely be added to')
-                    self.assertEqual(captured.stderr.get_text(), '')
-        os.remove('requirements.optional.txt')
-        os.rename('requirements.optional.txt.save', 'requirements.optional.txt')
+        try:
+            with self.construct_environment():
+                with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                    with __main__.App(argv=[
+                            'find-missing-requirements', 'karr_lab_build_utils',
+                            '--ignore-files', 'karr_lab_build_utils/templates/*']) as app:
+                        app.run()
+                        self.assertRegexpMatches(captured.stdout.get_text(), 'The following dependencies should likely be added to')
+                        self.assertEqual(captured.stderr.get_text(), '')
+        finally:
+            os.remove('requirements.txt')
+            os.rename('requirements.txt.save', 'requirements.txt')
 
     def test_find_unused_requirements(self):
         # test api
@@ -2397,7 +2368,6 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         # update package configs
         with EnvironmentVarGuard() as env:
-            env.set('CIRCLECI', 'true')
             build_helper.set_third_party_configs()
 
         # test

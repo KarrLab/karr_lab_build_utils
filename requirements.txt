@@ -8,6 +8,7 @@ coverage
 coveralls
 enum34
 ftputil
+gitpython
 graphviz
 # instrumental
 jinja2
