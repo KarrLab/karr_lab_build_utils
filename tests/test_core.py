@@ -37,6 +37,7 @@ import attrdict
 import base64
 import capturer
 import ftputil
+import git
 import github
 import imp
 import karr_lab_build_utils
@@ -2347,6 +2348,20 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         # download package configs
         build_helper.download_package_configs()
+        self.assertTrue(os.path.isdir(build_helper.configs_repo_path))
+
+        shutil.rmtree(build_helper.configs_repo_path)
+        counter = {'count': 0}
+        default_func = git.Repo.clone_from
+
+        def side_effect(src, dest):
+            counter['count'] += 1
+            if counter['count'] == 1:
+                raise git.exc.GitCommandError('msg', 'msg')
+            else:
+                default_func(src, dest)
+        with mock.patch('git.Repo.clone_from', side_effect=side_effect):
+            build_helper.download_package_configs()
         self.assertTrue(os.path.isdir(build_helper.configs_repo_path))
 
         # update package configs

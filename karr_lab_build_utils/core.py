@@ -2395,7 +2395,12 @@ class BuildHelper(object):
             repo = git.Repo(path=self.configs_repo_path)
             repo.remotes['origin'].pull()
         else:
-            git.Repo.clone_from(self.configs_repo_url, self.configs_repo_path)
+            try:
+                git.Repo.clone_from(self.configs_repo_url, self.configs_repo_path)
+            except git.exc.GitCommandError:                
+                url = self.configs_repo_url.replace('://', '://{}:{}@'.format(
+                    self.configs_repo_username, self.configs_repo_password))
+                git.Repo.clone_from(url, self.configs_repo_path)
 
     def set_third_party_configs(self, overwrite=None):
         """ Copy third party configs to their appropriate paths from the configs repository 
