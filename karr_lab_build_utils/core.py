@@ -2402,15 +2402,12 @@ class BuildHelper(object):
                     self.configs_repo_username, self.configs_repo_password))
                 git.Repo.clone_from(url, self.configs_repo_path)
 
-    def set_third_party_configs(self, overwrite=None):
+    def set_third_party_configs(self, overwrite=False):
         """ Copy third party configs to their appropriate paths from the configs repository 
 
         Args:
             overwrite (:obj:`bool`, optional): if :obj:`True`, overwrite existing configuration files
         """
-        if overwrite is None:
-            overwrite = os.getenv('CIRCLECI', None) == 'true'
-
         filename = os.path.join(self.configs_repo_path, 'third_party', 'paths.yml')
         with open(filename, 'r') as file:
             paths = yaml.load(file)
