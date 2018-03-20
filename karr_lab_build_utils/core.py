@@ -211,6 +211,10 @@ class BuildHelper(object):
         self.download_package_configs()
         self.set_third_party_configs()
         config = karr_lab_build_utils.config.core.get_config()['karr_lab_build_utils']
+        self.configs_repo_url = config['configs_repo_url']
+        self.configs_repo_username = config['configs_repo_username']
+        self.configs_repo_password = config['configs_repo_password']
+        self.configs_repo_path = os.path.expanduser(config['configs_repo_path'])
         self.github_api_token = config['github_api_token']
         self.circleci_api_token = config['circleci_api_token']
         self.test_server_token = config['test_server_token']
