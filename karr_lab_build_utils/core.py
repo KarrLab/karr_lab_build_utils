@@ -2420,6 +2420,7 @@ class BuildHelper(object):
             abs_src = os.path.join(self.configs_repo_path, 'third_party', rel_src)
             if not os.path.isfile(abs_dest) or overwrite:
                 shutil.copyfile(abs_src, abs_dest)
+                shutil.copymode(abs_src, abs_dest)
 
 
 class TestResults(object):
