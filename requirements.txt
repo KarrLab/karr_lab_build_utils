@@ -16,7 +16,7 @@ mock
 natsort
 networkx
 nose
-pip <= 9.0.1
+pip
 pip_check_reqs
 git+https://github.com/KarrLab/pkg_utils.git#egg=pkg_utils-0.0.3[all]
 pygithub

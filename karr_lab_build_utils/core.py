@@ -5,6 +5,10 @@
 :Copyright: 2016-2018, Karr Lab
 :License: MIT
 """
+import pip
+# pip 9.0.2 must be imported before requests package is imported. 
+# todo: remove this import after this issue is resolved by pip 10
+
 from datetime import datetime
 from jinja2 import Template
 from pylint import epylint
@@ -762,7 +766,7 @@ class BuildHelper(object):
 
         # upgrade pip, setuptools
         self.run_method_and_capture_stderr(pip.main, ['install', '-U', 'setuptools'])
-        self.run_method_and_capture_stderr(pip.main, ['install', '-U', 'pip<=9.0.1'])
+        self.run_method_and_capture_stderr(pip.main, ['install', '-U', 'pip'])
 
         # requirements for package
         self._install_requirements_helper('requirements.txt')
