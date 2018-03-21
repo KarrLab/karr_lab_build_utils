@@ -766,7 +766,7 @@ class BuildHelper(object):
 
         # upgrade pip, setuptools
         self.run_method_and_capture_stderr(pip.main, ['install', '-U', 'setuptools'])
-        self.run_method_and_capture_stderr(pip.main, ['install', '-U', 'pip'])
+        self.run_method_and_capture_stderr(pip.main, ['install', '-U', 'pip<=9.0.1'])
 
         # requirements for package
         self._install_requirements_helper('requirements.txt')
