@@ -814,9 +814,9 @@ class BuildHelper(object):
         """
 
         # get PyPI requirements
-        lines = self.run_method_and_capture_stdout(pip._internal.main, ['freeze'])
+        lines = pip._internal.operations.freeze.freeze()
         pkgs = []
-        for line in lines.split('\n'):
+        for line in lines:
             if not line.startswith('-e') and '==' in line:
                 pkgs.append(line.partition('==')[0])
 
