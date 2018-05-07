@@ -1245,6 +1245,13 @@ class BuildHelper(object):
         with open(circleci_config_filename, 'r') as file:
             config = yaml.load(file)
 
+        if 'steps' in config['jobs']['build']:
+            for i_step, step in enumerate(config['jobs']['build']['steps']):
+                if 'run' in step and 'command' in step['run']:
+                    step['run']['command'] = 'eval $(ssh-agent -s) && ssh-add /root/.ssh/id_rsa\n' \
+                        + step['run']['command']
+                config['jobs']['build']['steps'][i_step] = step
+
         image_name = config['jobs']['build']['docker'][0]['image']
         if image_name.endswith('.with_ssh_key'):
             image_with_ssh_key_name = image_name
@@ -1267,7 +1274,7 @@ class BuildHelper(object):
         with open(dockerfile_filename, 'w') as file:
             file.write('FROM {}\n'.format(image_name))
             file.write('COPY circleci_docker_context/GITHUB_SSH_KEY /root/.ssh/id_rsa\n')
-            file.write('RUN eval `ssh-agent` && ssh-add /root/.ssh/id_rsa\n')
+            file.write('RUN eval $(ssh-agent -s) && ssh-add /root/.ssh/id_rsa\n')
             file.write('CMD bash\n')
 
         self._run_docker_command(['build',
