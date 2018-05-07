@@ -820,12 +820,12 @@ class BuildHelper(object):
             if not line.startswith('-e') and '==' in line:
                 pkgs.append(line.partition('==')[0])
 
-        infos = self.run_method_and_capture_stdout(pip._internal.main, ['show'] + pkgs)
+        infos = pip._internal.commands.show.search_packages_info(pkgs)
         reqs = []
-        for info in infos.split('---\n'):
-            if 'github.com/KarrLab/' in info:
-                name = info.partition('Name: ')[2].partition('\n')[0].replace('-', '_')
-                url = info.partition('Home-page: ')[2].partition('\n')[0]
+        for info in infos:
+            if 'github.com/KarrLab/' in info['home-page']:
+                name = info['name'].replace('-', '_')
+                url = info['home-page']
                 reqs.append('git+{}.git#egg={}[all]'.format(url, name))
 
         # ugrade PyPI requirements

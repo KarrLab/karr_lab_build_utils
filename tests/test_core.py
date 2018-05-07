@@ -538,18 +538,20 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 'pkg4==0.0.4',
                 'pkg5==0.0.5',
             ]),
-            '---\n'.join([
-                'Name: pkg2\nHome-page: pypi',
-                'Name: pkg3\nHome-page: https://github.com/KarrLab/pkg3',
-                'Name: pkg4\nHome-page: pypi',
-                'Name: pkg5\nHome-page: https://github.com/KarrLab/pkg5',
-            ]),
         ]
 
-        with mock.patch.object(core.BuildHelper, 'run_method_and_capture_stdout', side_effect=side_effect):
-            with mock.patch.object(core.BuildHelper, 'run_method_and_capture_stderr', return_value=None):
-                build_helper = self.construct_build_helper()
-                reqs = build_helper.upgrade_requirements()
+        infos = [
+            {'name': 'pkg2', 'home-page': 'pypi'},
+            {'name': 'pkg3', 'home-page': 'https://github.com/KarrLab/pkg3'},
+            {'name': 'pkg4', 'home-page': 'pypi'},
+            {'name': 'pkg5', 'home-page': 'https://github.com/KarrLab/pkg5'},
+        ]
+
+        with mock.patch('pip._internal.commands.show.search_packages_info', return_value=infos):
+            with mock.patch.object(core.BuildHelper, 'run_method_and_capture_stdout', side_effect=side_effect):
+                with mock.patch.object(core.BuildHelper, 'run_method_and_capture_stderr', return_value=None):
+                    build_helper = self.construct_build_helper()
+                    reqs = build_helper.upgrade_requirements()
         self.assertEqual(reqs, ['git+https://github.com/KarrLab/pkg3.git#egg=pkg3[all]',
                                 'git+https://github.com/KarrLab/pkg5.git#egg=pkg5[all]'])
 
