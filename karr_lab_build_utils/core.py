@@ -1115,7 +1115,10 @@ class BuildHelper(object):
                                       self.configs_repo_password),
                                   '-w', '/root/project',
                                   container,
-                                  'bash', '-c', 'karr_lab_build_utils{} upgrade-requirements'.format(py_v),
+                                  'bash', '-c', (
+                                      'eval $(ssh-agent -s) && '
+                                      'ssh-add /root/.ssh/id_rsa && '
+                                      'karr_lab_build_utils{} upgrade-requirements'.format(py_v)),
                                   ])
 
     def run_tests_in_docker_container(self, container, test_path='tests', verbose=False, with_xunit=False, with_coverage=False,
@@ -1155,7 +1158,11 @@ class BuildHelper(object):
                                       self.configs_repo_password),
                                   '-w', '/root/project',
                                   container,
-                                  'bash', '-c', 'karr_lab_build_utils{} run-tests {}'.format(py_v, ' '.join(options))],
+                                  'bash', '-c', (
+                                      'eval $(ssh-agent -s) && '
+                                      'ssh-add /root/.ssh/id_rsa && '
+                                      'karr_lab_build_utils{} run-tests {}'.format(py_v, ' '.join(options))
+                                  )],
                                  raise_error=False)
 
         if with_coverage:
@@ -2403,7 +2410,7 @@ class BuildHelper(object):
         else:
             try:
                 git.Repo.clone_from(self.configs_repo_url, self.configs_repo_path)
-            except git.exc.GitCommandError:                
+            except git.exc.GitCommandError:
                 url = self.configs_repo_url.replace('://', '://{}:{}@'.format(
                     self.configs_repo_username, self.configs_repo_password))
                 git.Repo.clone_from(url, self.configs_repo_path)
@@ -2428,7 +2435,6 @@ class BuildHelper(object):
                 shutil.copyfile(abs_src, abs_dest)
                 if rel_src == 'id_rsa':
                     os.chmod(abs_dest, stat.S_IRUSR | stat.S_IWUSR)
-
 
 
 class TestResults(object):
