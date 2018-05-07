@@ -829,7 +829,8 @@ class BuildHelper(object):
                 reqs.append('git+{}.git#egg={}[all]'.format(url, name))
 
         # ugrade PyPI requirements
-        self.run_method_and_capture_stderr(pip._internal.main, ['install', '-U', '--process-dependency-links'] + reqs)
+        if reqs:
+            self.run_method_and_capture_stderr(pip._internal.main, ['install', '-U', '--process-dependency-links'] + reqs)
 
         # upgrade CircleCI
         if whichcraft.which('docker') and whichcraft.which('circleci'):
