@@ -46,7 +46,7 @@ import karr_lab_build_utils.config.core
 import mock
 import nose
 import os
-import pip
+import pip._internal
 import pytest
 import re
 import requests
@@ -555,7 +555,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
     def test_upgrade_requirements_pip_error(self):
         build_helper = self.construct_build_helper()
-        with mock.patch('pip.main', return_value=1):
+        with mock.patch('pip._internal.main', return_value=1):
             with self.assertRaises(SystemExit):
                 build_helper.upgrade_requirements()
 

@@ -5,10 +5,6 @@
 :Copyright: 2016-2018, Karr Lab
 :License: MIT
 """
-import pip
-# pip 9.0.2 must be imported before requests package is imported. 
-# todo: remove this import after this issue is resolved by pip 10
-
 from datetime import datetime
 from jinja2 import Template
 from pylint import epylint
@@ -43,7 +39,7 @@ import natsort
 import networkx
 import nose
 import os
-import pip
+import pip._internal
 import pip_check_reqs
 import pip_check_reqs.find_extra_reqs
 import pip_check_reqs.find_missing_reqs
@@ -765,8 +761,8 @@ class BuildHelper(object):
         """ Install requirements """
 
         # upgrade pip, setuptools
-        self.run_method_and_capture_stderr(pip.main, ['install', '-U', 'setuptools'])
-        self.run_method_and_capture_stderr(pip.main, ['install', '-U', 'pip<=9.0.1'])
+        self.run_method_and_capture_stderr(pip._internal.main, ['install', '-U', 'setuptools'])
+        self.run_method_and_capture_stderr(pip._internal.main, ['install', '-U', 'pip'])
 
         # requirements for package
         self._install_requirements_helper('requirements.txt')
@@ -804,7 +800,7 @@ class BuildHelper(object):
 
             filename = sanitized_filename
 
-        self.run_method_and_capture_stderr(pip.main, ['install', '-U', '--process-dependency-links', '-r', filename])
+        self.run_method_and_capture_stderr(pip._internal.main, ['install', '-U', '--process-dependency-links', '-r', filename])
 
         # cleanup temporary file
         if ignore_options:
@@ -818,13 +814,13 @@ class BuildHelper(object):
         """
 
         # get PyPI requirements
-        lines = self.run_method_and_capture_stdout(pip.main, ['freeze'])
+        lines = self.run_method_and_capture_stdout(pip._internal.main, ['freeze'])
         pkgs = []
         for line in lines.split('\n'):
             if not line.startswith('-e') and '==' in line:
                 pkgs.append(line.partition('==')[0])
 
-        infos = self.run_method_and_capture_stdout(pip.main, ['show'] + pkgs)
+        infos = self.run_method_and_capture_stdout(pip._internal.main, ['show'] + pkgs)
         reqs = []
         for info in infos.split('---\n'):
             if 'github.com/KarrLab/' in info:
@@ -833,7 +829,7 @@ class BuildHelper(object):
                 reqs.append('git+{}.git#egg={}[all]'.format(url, name))
 
         # ugrade PyPI requirements
-        self.run_method_and_capture_stderr(pip.main, ['install', '-U', '--process-dependency-links'] + reqs)
+        self.run_method_and_capture_stderr(pip._internal.main, ['install', '-U', '--process-dependency-links'] + reqs)
 
         # upgrade CircleCI
         if whichcraft.which('docker') and whichcraft.which('circleci'):
