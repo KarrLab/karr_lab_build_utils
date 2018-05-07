@@ -817,12 +817,16 @@ class BuildHelper(object):
         lines = pip._internal.operations.freeze.freeze()
         pkgs = []
         for line in lines:
+            print(line)
             if not line.startswith('-e') and '==' in line:
                 pkgs.append(line.partition('==')[0])
+
+        print(pkgs)
 
         infos = pip._internal.commands.show.search_packages_info(pkgs)
         reqs = []
         for info in infos:
+            print(info)
             if 'github.com/KarrLab/' in info['home-page']:
                 name = info['name'].replace('-', '_')
                 url = info['home-page']
