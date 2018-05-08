@@ -17,7 +17,7 @@ natsort
 networkx
 nose
 pip >= 10.0.1
-git+https://github.com/KarrLab/pip-check-reqs.git#egg=pip_check_reqs-2.0.1b1 >= 2.0.1b1
+git+https://github.com/KarrLab/pip-check-reqs.git#egg=pip_check_reqs-2.0.1b2 >= 2.0.1b2
 git+https://github.com/KarrLab/pkg_utils.git#egg=pkg_utils-0.0.3[all]
 pygithub
 pylint
