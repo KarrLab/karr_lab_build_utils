@@ -485,7 +485,7 @@ class BuildHelper(object):
                               UserWarning)
 
     def create_repository(self, name, description='', private=True, dirname=None):
-        """ Create a Git repository with the default directory structure
+        """ Create a GitHub repository and clone the repository locally
 
         Args:
             name (:obj`str`): package name
@@ -513,7 +513,7 @@ class BuildHelper(object):
     def setup_repository(self, name, description='', keywords=None, dependencies=None, private=True, build_image_version=None,
                          dirname=None, circleci_repo_token=None, coveralls_repo_badge_token=None, code_climate_repo_id=None,
                          code_climate_repo_badge_token=None):
-        """ Setup Git repository with the default directory structure
+        """ Setup a local Git repository with the default directory structure
 
         Args:
             name (:obj`str`): package name

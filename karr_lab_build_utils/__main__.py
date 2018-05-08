@@ -47,13 +47,18 @@ class BaseController(CementBaseController):
 
 
 class CreatePackageController(CementBaseController):
-    """ Create a package """
+    """ Create a package
+    
+    * Create local and remote Git repositories;
+    * Setup the directory structure of the repository;
+    * Add the repository to CircleCI, Coveralls, Code Climate, Read the Docs, and code.karrlab.org;
+    * Update the downstream dependencies of the package''s dependencies
+    """
 
     class Meta:
         label = 'create-package'
         description = (
-            'Create a package: \n'
-            '    - Create local and remote Git repositories;\n'
+            '- Create local and remote Git repositories;\n'
             '    - Setup the directory structure of the repository;\n'
             '    - Add the repository to CircleCI, Coveralls, Code Climate, Read the Docs, and code.karrlab.org;\n'
             '    - Update the downstream dependencies of the package''s dependencies'
@@ -70,11 +75,11 @@ class CreatePackageController(CementBaseController):
 
 
 class CreateRepositoryController(CementBaseController):
-    """ Create a Git repository with the default directory structure """
+    """ Create a GitHub repository and clone the repository locally """
 
     class Meta:
         label = 'create-repository'
-        description = 'Create a Git repository with the default directory structure'
+        description = 'Create a GitHub repository and clone the repository locally'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
@@ -96,11 +101,11 @@ class CreateRepositoryController(CementBaseController):
 
 
 class SetupRepositoryController(CementBaseController):
-    """ Setup a Git repository with the default directory structure """
+    """ Setup a local Git repository with the default directory structure """
 
     class Meta:
         label = 'setup-repository'
-        description = 'Setup a Git repository with the default directory structure'
+        description = 'Setup a local Git repository with the default directory structure'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [

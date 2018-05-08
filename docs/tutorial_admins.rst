@@ -24,10 +24,21 @@ Run the following commands to get help documentation about the command line util
 Creating a new package
 ----------------------
 
-Run this command to create a new package (create local and remote repositories with the proper directory structure and files for our build system, add repository to CircleCI, add package to downstream dependencies of dependencies, etc.). This should be run from the package's desired parent directory, e.g. with a current working directory of ``~/Documents``.::
+Run this command to create a new package (create local and remote repositories with the proper directory structure and files for our build system, add repository to CircleCI, add package to downstream dependencies of dependencies, etc.). The command will prompt you for all of the information needed to create a repository and instruct you how to create a new package, including linking it to CircleCI, Coveralls, Code Climate, and Read the Docs. The command should be run from the package's desired parent directory, e.g. with a current working directory of ``~/Documents``.::
 
     cd ~/Documents
     karr_lab_build_utils create-package
+
+``karr_lab_build_utils`` also provides two lower-level commands for creating, cloning, and initializing Git repositories. These commands are an alternative to the ``create-package`` command which creates, clones, and initializes Git repositories and much more.
+
+* ``create-repository``: create a new GitHub repository and clone it locally
+* ``setup-repository``: set up the file structure of a local Git repository
+
+.. code::
+
+    cd ~/Documents
+    karr_lab_build_utils create-repository
+    karr_lab_build_utils setup-repository
 
 
 Versioning with Git and GitHub
