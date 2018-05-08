@@ -530,36 +530,28 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 app.run()
 
     def test_upgrade_requirements_karr_lab_reqs(self):
-        side_effect = [
-            '\n'.join([
+        freeze = [
                 '-e git+https://github.com/KarrLab/pkg1.git@commit#egg=pkg1',
                 'pkg2==0.0.2',
                 'pkg3==0.0.3',
                 'pkg4==0.0.4',
                 'pkg5==0.0.5',
-            ]),
+            ]
+
+        show = [
+            [{'name': 'pkg2', 'home-page': 'pypi'}],
+            [{'name': 'pkg3', 'home-page': 'https://github.com/KarrLab/pkg3'}],
+            [{'name': 'pkg4', 'home-page': 'pypi'}],
+            [{'name': 'pkg5', 'home-page': 'https://github.com/KarrLab/pkg5'}],
         ]
 
-        infos = [
-            {'name': 'pkg2', 'home-page': 'pypi'},
-            {'name': 'pkg3', 'home-page': 'https://github.com/KarrLab/pkg3'},
-            {'name': 'pkg4', 'home-page': 'pypi'},
-            {'name': 'pkg5', 'home-page': 'https://github.com/KarrLab/pkg5'},
-        ]
-
-        with mock.patch('pip._internal.commands.show.search_packages_info', return_value=infos):
-            with mock.patch.object(core.BuildHelper, 'run_method_and_capture_stdout', side_effect=side_effect):
-                with mock.patch.object(core.BuildHelper, 'run_method_and_capture_stderr', return_value=None):
+        with mock.patch.object(core.BuildHelper, 'run_method_and_capture_stderr', return_value=None):
+            with mock.patch('pip._internal.commands.show.search_packages_info', side_effect=show):
+                with mock.patch('pip._internal.operations.freeze.freeze', return_value=freeze):
                     build_helper = self.construct_build_helper()
                     reqs = build_helper.upgrade_requirements()
         self.assertEqual(reqs, ['git+https://github.com/KarrLab/pkg3.git#egg=pkg3[all]',
                                 'git+https://github.com/KarrLab/pkg5.git#egg=pkg5[all]'])
-
-    def test_upgrade_requirements_pip_error(self):
-        build_helper = self.construct_build_helper()
-        with mock.patch('pip._internal.main', return_value=1):
-            with self.assertRaises(SystemExit):
-                build_helper.upgrade_requirements()
 
     def test_run_tests(self):
         self.help_run('pytest', coverage_type=core.CoverageType.branch)

@@ -815,24 +815,20 @@ class BuildHelper(object):
 
         # get PyPI requirements
         lines = pip._internal.operations.freeze.freeze()
-        pkgs = []
-        for line in lines:
-            print(line)
-            if not line.startswith('-e') and '==' in line:
-                pkgs.append(line.partition('==')[0])
-
-        print(pkgs)
-
-        infos = pip._internal.commands.show.search_packages_info(pkgs)
         reqs = []
-        for info in infos:
-            print(info)
-            if 'github.com/KarrLab/' in info['home-page']:
-                name = info['name'].replace('-', '_')
-                url = info['home-page']
-                reqs.append('git+{}.git#egg={}[all]'.format(url, name))
-
-        # ugrade PyPI requirements
+        for line in lines:
+            if not line.startswith('-e') and '==' in line:
+                name = line.partition('==')[0]
+                try:
+                    info = list(pip._internal.commands.show.search_packages_info([name]))
+                except:
+                    info = None
+                if info and 'github.com/KarrLab/' in info[0]['home-page']:
+                    name = info[0]['name'].replace('-', '_')
+                    url = info[0]['home-page']
+                    reqs.append('git+{}.git#egg={}[all]'.format(url, name))
+                
+        # upgrade PyPI requirements
         if reqs:
             self.run_method_and_capture_stderr(pip._internal.main, ['install', '-U', '--process-dependency-links'] + reqs)
 
