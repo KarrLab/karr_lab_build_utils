@@ -21,25 +21,6 @@ Run the following commands to get help documentation about the command line util
     karr_lab_build_utils --help
     karr_lab_build_utils create-repository --help
 
-Creating a new package
-----------------------
-
-Run this command to create a new package (create local and remote repositories with the proper directory structure and files for our build system, add repository to CircleCI, add package to downstream dependencies of dependencies, etc.). The command will prompt you for all of the information needed to create a repository and instruct you how to create a new package, including linking it to CircleCI, Coveralls, Code Climate, and Read the Docs. The command should be run from the package's desired parent directory, e.g. with a current working directory of ``~/Documents``.::
-
-    cd ~/Documents
-    karr_lab_build_utils create-package
-
-``karr_lab_build_utils`` also provides two lower-level commands for creating, cloning, and initializing Git repositories. These commands are an alternative to the ``create-package`` command which creates, clones, and initializes Git repositories and much more.
-
-* ``create-repository``: create a new GitHub repository and clone it locally
-* ``setup-repository``: set up the file structure of a local Git repository
-
-.. code::
-
-    cd ~/Documents
-    karr_lab_build_utils create-repository
-    karr_lab_build_utils setup-repository
-
 
 Versioning with Git and GitHub
 ------------------------------
@@ -54,29 +35,6 @@ Run this command to create a new repository (including both local and GitHub ver
         --description description \
         --public
 
-
-Testing with pytest, coverage, instrumental, Docker, and CircleCI
------------------------------------------------------------------
-
-Runing the tests for a package
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Run this command to test the local package::
-
-    karr_lab_build_utils run-tests
-
-Evaluating the coverage of the tests
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Add the ``--coverage-type`` option to specify ``statement``, ``branch``, or ``multiple-condition`` coverage, e.g.::
-
-    karr_lab_build_utils run-tests --with-coverage --coverage-type branch
-
-Running tests with Docker or the CircleCI local executor
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Add the ``--environment`` option to specify ``local``, ``docker``, or ``circleci``, e.g.::
-
-    karr_lab_build_utils run-tests --environment docker tests
 
 Statically analyzing code with Pylint
 -------------------------------------
@@ -95,73 +53,6 @@ This will identify potential errors such as
 * re-imported modules, classes, functions, and variables
 * unused imports, arguments, and variables
 * wild card imports
-
-
-Documenting code with Sphinx
-----------------------------
-
-Building the documentation for a package
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Run this command to compile the documentation in HTML format for a package.::
-
-    karr_lab_build_utils make-documentation
-
-Spell checking documentation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Add the ``--spell-check`` option to spell check the documentation, e.g.::
-
-    karr_lab_build_utils -spell-check make-documentation
-
-The output will be saved to ``docs/_build/spelling/output.txt``.
-
-White-listed words can be saved (1 word per line) to ``docs/spelling_wordlist.txt``.
-
-
-Managing dependencies
----------------------
-
-Installing the dependencies for a package
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Run the following command to install all of the requirements for the current package in the following files:
-
-* ``requirements.txt``,
-* ``requirements.optional.txt``,
-* ``tests/requirements.txt``, and
-* ``docs/requirements.txt``
-
-.. code-block:: bash
-
-    karr_lab_build_utils install-requirements
-
-Finding missing requirements for a package
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Run this command to find potentially missing requirements for a package::
-
-    karr_lab_build_utils find-missing-requirements
-
-
-Finding unused requirements for a package
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Run this command to identify potentially unused requirements for a package::
-
-    karr_lab_build_utils find-unused-requirements
-
-Compiling the downstream dependencies of a package
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-#. Clone all of our packages
-#. Run this command to compile the downstream dependencies of your package::
-
-    karr_lab_build_utils compile-downstream-dependencies --packages-parent-dir ~/Documents
-
-#. Optionally, add the ``--downstream-dependencies-filename`` option to save the dependencies to a YAML file::
-
-    karr_lab_build_utils compile-downstream-dependencies --packages-parent-dir ~/Documents --downstream-dependencies-filename .circleci/downstream_dependencies.yml
 
 
 Visualizing all of the package dependencies
