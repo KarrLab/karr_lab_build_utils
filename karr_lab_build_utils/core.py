@@ -850,9 +850,7 @@ class BuildHelper(object):
 
         # upgrade PyPI requirements
         if reqs:
-            cmd = pip._internal.commands.install.InstallCommand()
-            options, args = cmd.parse_args(['-U', '--process-dependency-links'] + reqs)
-            cmd.run(options, args)
+            self.run_method_and_capture_stderr(pip._internal.main, ['install', '-U', '--process-dependency-links'] + reqs)
 
         # upgrade CircleCI
         if whichcraft.which('docker') and whichcraft.which('circleci'):
