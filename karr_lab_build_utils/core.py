@@ -849,13 +849,13 @@ class BuildHelper(object):
                     reqs.append('git+{}.git#egg={}{}'.format(url, name, options))
 
         # upgrade PyPI requirements
-        cmd = pip._internal.commands.install.InstallCommand()
-        options, _ = cmd.parse_args(['-U', '--process-dependency-links'])
         for req in reqs:
             try:
-                cmd.run(options, [req])
+                cmd = pip._internal.commands.install.InstallCommand()
+                options, args = cmd.parse_args(['-U', '--process-dependency-links', req])
+                cmd.run(options, args)
             except Exception as error:
-                raise BuildHelperError('Unable to install {}: {}'.format(req, str(error)))
+                raise BuildHelperError('Unable to upgrade {}: {}'.format(req, str(error)))
 
         # upgrade CircleCI
         if whichcraft.which('docker') and whichcraft.which('circleci'):
