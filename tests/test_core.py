@@ -545,7 +545,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             [{'name': 'pkg5', 'home-page': 'https://github.com/KarrLab/pkg5'}],
         ]
 
-        with mock.patch.object(core.BuildHelper, 'run_method_and_capture_stderr', return_value=None):
+        with mock.patch.object(pip._internal.commands.install.InstallCommand, 'run', return_value=None):
             with mock.patch('pip._internal.commands.show.search_packages_info', side_effect=show):
                 with mock.patch('pip._internal.operations.freeze.freeze', return_value=freeze):
                     build_helper = self.construct_build_helper()

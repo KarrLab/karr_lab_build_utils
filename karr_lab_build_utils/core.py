@@ -765,9 +765,11 @@ class BuildHelper(object):
     def install_requirements(self):
         """ Install requirements """
 
-        # upgrade pip, setuptools
-        self.run_method_and_capture_stderr(pip._internal.main, ['install', '-U', 'setuptools'])
-        self.run_method_and_capture_stderr(pip._internal.main, ['install', '-U', 'pip'])
+        # upgrade pip, setuptools        
+        cmd = pip._internal.commands.install.InstallCommand()
+        options, _ = cmd.parse_args(['-U'])
+        cmd.run(options, ['setuptools'])
+        cmd.run(options, ['pip'])
 
         # requirements for package
         self._install_requirements_helper('requirements.txt')
@@ -805,7 +807,9 @@ class BuildHelper(object):
 
             filename = sanitized_filename
 
-        self.run_method_and_capture_stderr(pip._internal.main, ['install', '-U', '--process-dependency-links', '-r', filename])
+        cmd = pip._internal.commands.install.InstallCommand()
+        options, args = cmd.parse_args(['-U', '--process-dependency-links', '-r', filename])
+        cmd.run(options, args)
 
         # cleanup temporary file
         if ignore_options:
@@ -841,7 +845,9 @@ class BuildHelper(object):
 
         # upgrade PyPI requirements
         if reqs:
-            self.run_method_and_capture_stderr(pip._internal.main, ['install', '-U', '--process-dependency-links'] + reqs)
+            cmd = pip._internal.commands.install.InstallCommand()
+            options, args = cmd.parse_args(['-U', '--process-dependency-links'] + reqs)
+            cmd.run(options, args)
 
         # upgrade CircleCI
         if whichcraft.which('docker') and whichcraft.which('circleci'):
