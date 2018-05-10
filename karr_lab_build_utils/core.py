@@ -850,6 +850,7 @@ class BuildHelper(object):
 
         # upgrade PyPI requirements
         if reqs:
+            print(reqs)
             self.run_method_and_capture_stderr(pip._internal.main, ['install', '-U', '--process-dependency-links'] + reqs)
 
         # upgrade CircleCI
