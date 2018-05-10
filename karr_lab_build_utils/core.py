@@ -175,7 +175,7 @@ class BuildHelper(object):
 
     PATCHED_PACKAGES = (
         'log',
-        'pip_check_reqs',
+        'pip-check-reqs',
     )
 
     def __init__(self):
@@ -851,6 +851,8 @@ class BuildHelper(object):
         # upgrade PyPI requirements
         if reqs:
             print(reqs)
+            import logging
+            logging.getLogger().info('\n'.join(reqs))
             self.run_method_and_capture_stderr(pip._internal.main, ['install', '-U', '--process-dependency-links'] + reqs)
 
         # upgrade CircleCI
