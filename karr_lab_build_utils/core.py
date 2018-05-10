@@ -173,6 +173,11 @@ class BuildHelper(object):
     COVERALLS_ENABLED = True
     CODE_CLIMATE_ENABLED = True
 
+    PATCHED_PACKAGES = (
+        'log',
+        'pip_check_reqs',
+    )
+
     def __init__(self):
         """ Construct build helper """
 
@@ -826,7 +831,12 @@ class BuildHelper(object):
                 if info and 'github.com/KarrLab/' in info[0]['home-page']:
                     name = info[0]['name'].replace('-', '_')
                     url = info[0]['home-page']
-                    reqs.append('git+{}.git#egg={}[all]'.format(url, name))
+                    
+                    options = []
+                    if name not in self.PATCHED_PACKAGES:
+                        options.append('all')
+                    
+                    reqs.append('git+{}.git#egg={}[{}]'.format(url, name, ','.join(options)))
                 
         # upgrade PyPI requirements
         if reqs:
