@@ -313,10 +313,10 @@ class BuildHelper(object):
         print('Cick the "Test coverage" menu item')
         click.confirm('Continue?', default=True, abort=True)
         code_climate_repo_token = click.prompt('Enter the "test reporter id"')
+        code_climate_repo_id = click.prompt('Enter the repository ID (ID in the URL https://codeclimate.com/repos/<id>/settings/test_reporter)')
 
         print('Cick the "Badges" menu item')
         click.confirm('Continue?', default=True, abort=True)
-        code_climate_repo_id = click.prompt('Enter the repository ID (ID in the URL https://codeclimate.com/repos/<id>/maintainability)')
         code_climate_repo_badge_token = click.prompt(
             'Enter the badge token (token in the URL https://api.codeclimate.com/v1/badges/<token>/maintainability)')
 
@@ -325,7 +325,7 @@ class BuildHelper(object):
         print('Visit "https://coveralls.io/repos/new"')
         click.confirm('Continue?', default=True, abort=True)
 
-        print('Click the "SYNC REPOS" button')
+        print('Click the "ADD REPOS" button')
         click.confirm('Continue?', default=True, abort=True)
 
         print('Search for the "{}/{}" repository and click its "OFF" button'.format(self.repo_owner, name))
@@ -340,8 +340,13 @@ class BuildHelper(object):
 
         print('Click the "README BADGE" EMBED" button')
         click.confirm('Continue?', default=True, abort=True)
-        coveralls_repo_badge_token = click.prompt(
-            'Enter the badge token (token in the URL https://coveralls.io/repos/github/KarrLab/test_a/badge.svg?t=<token>')
+        if private:
+            coveralls_repo_badge_token = click.prompt(
+                'Enter the badge token (token in the URL https://coveralls.io/repos/github/KarrLab/test_a/badge.svg?t=<token>')
+        else:
+            coveralls_repo_badge_token = click.prompt(
+                'Enter the badge token (token in the URL https://coveralls.io/repos/github/KarrLab/test_a/badge.svg')
+
 
         # CircleCI
         # :todo: programmatically create CircleCI build
@@ -359,7 +364,7 @@ class BuildHelper(object):
         print('Visit "https://circleci.com/add-projects/gh/KarrLab"')
         click.confirm('Continue?', default=True, abort=True)
 
-        print('Search for the "{}" repository and click its "Follow project" button'.format(name))
+        print('Search for the "{}" repository and click its "Setup project" button'.format(name))
         click.confirm('Continue?', default=True, abort=True)
 
         print('Click the "Project settings" icon')
@@ -395,8 +400,8 @@ class BuildHelper(object):
         # Read the Docs
         if not private:
             # :todo: programmatically add repo to Read the Docs
-            # print('Visit "https://readthedocs.org/dashboard/import/?"')
-            # click.confirm('Continue?', default=True, abort=True)
+            print('Visit "https://readthedocs.org/dashboard/import/?"')
+            click.confirm('Continue?', default=True, abort=True)
 
             print('Click the "refresh" icon')
             click.confirm('Continue?', default=True, abort=True)
@@ -425,7 +430,7 @@ class BuildHelper(object):
             print('Click the "Maintainers" menu item')
             click.confirm('Continue?', default=True, abort=True)
 
-            print('Add "jonrkarr" to the maintainers')
+            print('Add "karr-lab-daemon" to the maintainers')
             click.confirm('Continue?', default=True, abort=True)
 
             print('Click the "Notifications" menu item')
