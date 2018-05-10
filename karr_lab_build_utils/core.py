@@ -838,7 +838,7 @@ class BuildHelper(object):
                 except:
                     info = None
                 if info and 'github.com/KarrLab/' in info[0]['home-page']:
-                    name = info[0]['name'].replace('-', '_')
+                    name = info[0]['name']
                     url = info[0]['home-page']
 
                     if name in self.PATCHED_PACKAGES:
@@ -849,13 +849,10 @@ class BuildHelper(object):
                     reqs.append('git+{}.git#egg={}{}'.format(url, name, options))
 
         # upgrade PyPI requirements
-        for req in reqs:
-            try:
-                cmd = pip._internal.commands.install.InstallCommand()
-                options, args = cmd.parse_args(['-U', '--process-dependency-links', req])
-                cmd.run(options, args)
-            except Exception as error:
-                raise BuildHelperError('Unable to upgrade {}: {}'.format(req, str(error)))
+        if reqs:
+            cmd = pip._internal.commands.install.InstallCommand()
+            options, args = cmd.parse_args(['-U', '--process-dependency-links'] + reqs)
+            cmd.run(options, args)
 
         # upgrade CircleCI
         if whichcraft.which('docker') and whichcraft.which('circleci'):

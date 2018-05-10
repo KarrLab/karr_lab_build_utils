@@ -553,21 +553,6 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.assertEqual(reqs, ['git+https://github.com/KarrLab/pkg3.git#egg=pkg3[all]',
                                 'git+https://github.com/KarrLab/pkg5.git#egg=pkg5[all]'])
 
-    def test_upgrade_requirements_error(self):
-        freeze = [
-            'unknown_package==0.0.1',
-        ]
-
-        show = [
-            [{'name': 'unknown_package', 'home-page': 'https://github.com/KarrLab/unknown_package'}],
-        ]
-
-        build_helper = self.construct_build_helper()
-        with self.assertRaisesRegexp(core.BuildHelperError, 'Unable to install'):
-            with mock.patch('pip._internal.commands.show.search_packages_info', side_effect=show):
-                with mock.patch('pip._internal.operations.freeze.freeze', return_value=freeze):
-                    build_helper.upgrade_requirements()
-
     def test_run_tests(self):
         self.help_run('pytest', coverage_type=core.CoverageType.branch)
         self.help_run('nose', coverage_type=core.CoverageType.branch)
