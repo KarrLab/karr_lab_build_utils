@@ -831,13 +831,14 @@ class BuildHelper(object):
                 if info and 'github.com/KarrLab/' in info[0]['home-page']:
                     name = info[0]['name'].replace('-', '_')
                     url = info[0]['home-page']
-                    
-                    options = []
-                    if name not in self.PATCHED_PACKAGES:
-                        options.append('all')
-                    
-                    reqs.append('git+{}.git#egg={}[{}]'.format(url, name, ','.join(options)))
-                
+
+                    if name in self.PATCHED_PACKAGES:
+                        options = ''
+                    else:
+                        options = '[all]'
+
+                    reqs.append('git+{}.git#egg={}{}'.format(url, name, options))
+
         # upgrade PyPI requirements
         if reqs:
             self.run_method_and_capture_stderr(pip._internal.main, ['install', '-U', '--process-dependency-links'] + reqs)
