@@ -975,7 +975,11 @@ class BuildHelper(object):
             test_path = test_path.replace(':', '::')
             test_path = re.sub('::(.+?)(\.)', r'::\1::', test_path)
 
-            argv = [test_path]
+            argv = [
+                test_path,
+                '--log-file', 'logging.log',
+                '--log-level', 'DEBUG',
+            ]
             if verbose:
                 argv.append('--capture=no')
             if with_xunit:
@@ -1185,6 +1189,8 @@ class BuildHelper(object):
                                       'karr_lab_build_utils{} run-tests {}'.format(py_v, ' '.join(options))
                                   )],
                                  raise_error=False)
+
+        self._run_docker_command(['cp', container + ':/root/project/logging.log', 'logging.log'])
 
         if with_coverage:
             out = self._run_docker_command(['exec', container, 'bash', '-c', 'ls -la ' +
