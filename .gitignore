@@ -34,3 +34,6 @@ tests/fixtures/secret/
 
 # CircleCI Docker context
 circleci_docker_context/
+
+# logs
+logs/

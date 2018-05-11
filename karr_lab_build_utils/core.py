@@ -62,6 +62,7 @@ import time
 import twine.commands.upload
 import yaml
 import warnings
+import wc_utils
 import whichcraft
 
 
@@ -975,9 +976,12 @@ class BuildHelper(object):
             test_path = test_path.replace(':', '::')
             test_path = re.sub('::(.+?)(\.)', r'::\1::', test_path)
 
+            if not os.path.isdir('logs'):
+                os.mkdir('logs')
+
             argv = [
                 test_path,
-                '--log-file', 'logging.log',
+                '--log-file', 'logs/tests.log',
                 '--log-level', 'DEBUG',
             ]
             if verbose:
@@ -1189,8 +1193,11 @@ class BuildHelper(object):
                                       'karr_lab_build_utils{} run-tests {}'.format(py_v, ' '.join(options))
                                   )],
                                  raise_error=False)
-
-        self._run_docker_command(['cp', container + ':/root/project/logging.log', 'logging.log'])
+        
+        temp_dirname = tempfile.mkdtemp()
+        self._run_docker_command(['cp', container + ':/root/project/logs/', temp_dirname])
+        wc_utils.util.files.copytree_to_existing_destination(os.path.join(temp_dirname, 'logs'), 'logs')
+        shutil.rmtree(temp_dirname)
 
         if with_coverage:
             out = self._run_docker_command(['exec', container, 'bash', '-c', 'ls -la ' +
@@ -2080,7 +2087,15 @@ class BuildHelper(object):
         :todo: support branches
         """
 
-        logger = logging.getLogger()
+        logger = logging.getLogger('karr_lab_build_utils')
+        logger.setLevel(logging.DEBUG)
+
+        handler = logging.FileHandler('logs/karr_lab_build_utils.log')
+        logger.addHandler(handler)
+
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(filename)s:%(funcName)s:%(lineno)d %(message)s')
+        handler.setFormatter(formatter)
+
         logger.debug('\n\n============')
         logger.debug('trigger_tests_of_downstream_dependencies')
         logger.debug('repo_name={}'.format(self.repo_name))
