@@ -313,7 +313,8 @@ class BuildHelper(object):
         print('Cick the "Test coverage" menu item')
         click.confirm('Continue?', default=True, abort=True)
         code_climate_repo_token = click.prompt('Enter the "test reporter id"')
-        code_climate_repo_id = click.prompt('Enter the repository ID (ID in the URL https://codeclimate.com/repos/<id>/settings/test_reporter)')
+        code_climate_repo_id = click.prompt(
+            'Enter the repository ID (ID in the URL https://codeclimate.com/repos/<id>/settings/test_reporter)')
 
         print('Cick the "Badges" menu item')
         click.confirm('Continue?', default=True, abort=True)
@@ -346,7 +347,6 @@ class BuildHelper(object):
         else:
             coveralls_repo_badge_token = click.prompt(
                 'Enter the badge token (token in the URL https://coveralls.io/repos/github/KarrLab/test_a/badge.svg')
-
 
         # CircleCI
         # :todo: programmatically create CircleCI build
@@ -770,7 +770,7 @@ class BuildHelper(object):
     def install_requirements(self):
         """ Install requirements """
 
-        # upgrade pip, setuptools        
+        # upgrade pip, setuptools
         cmd = pip._internal.commands.install.InstallCommand()
         options, _ = cmd.parse_args(['-U'])
         cmd.run(options, ['setuptools'])
@@ -850,10 +850,8 @@ class BuildHelper(object):
 
         # upgrade PyPI requirements
         if reqs:
-            print(reqs)
-            import logging
-            logging.getLogger().info('\n'.join(reqs))
-            self.run_method_and_capture_stderr(pip._internal.main, ['install', '-U', '--process-dependency-links'] + reqs)
+            subprocess.check_call(['pip{}.{}'.format(sys.version_info[0], sys.version_info[1]),
+                                   'install', '-U', '--process-dependency-links'] + reqs)
 
         # upgrade CircleCI
         if whichcraft.which('docker') and whichcraft.which('circleci'):
