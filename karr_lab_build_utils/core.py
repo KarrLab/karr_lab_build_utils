@@ -1595,6 +1595,9 @@ class BuildHelper(object):
             context (obj:`dict`): context for template
             dry_run (:obj:`bool`, optional): if true, don't upload to the Coveralls and Code Climate servers
         """
+        if not recipients:
+            return
+            
         full_template_filename = pkg_resources.resource_filename(
             'karr_lab_build_utils', os.path.join('templates', 'email_notifications', template_filename))
         with open(full_template_filename, 'r') as file:
