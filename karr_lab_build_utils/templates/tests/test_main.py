@@ -21,8 +21,9 @@ class TestCore(unittest.TestCase):
                 self.assertRegexpMatches(context.Exception, 'usage: {{ name }}')
 
     def test_help(self):
-        with __main__.App(argv=['--help']) as app:
-            app.run()
+        with self.assertRaises(SystemExit):
+            with __main__.App(argv=['--help']) as app:
+                app.run()
 
     def test_command_1(self):
         with capturer.CaptureOutput(merged=False, relay=False) as captured:
@@ -31,8 +32,18 @@ class TestCore(unittest.TestCase):
                 app.run()
 
                 # test that the CLI produced the correct output
-                self.assertEqual(captured.stdout.get_text(), '...')
-                self.assertEqual(captured.stderr.get_text(), '...')
+                self.assertEqual(captured.stdout.get_text(), 'command_1 output')
+                self.assertEqual(captured.stderr.get_text(), '')
+
+    def test_command_1(self):
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            with __main__.App(argv=['command-2']) as app:
+                # run app
+                app.run()
+
+                # test that the CLI produced the correct output
+                self.assertEqual(captured.stdout.get_text(), 'command_2 output')
+                self.assertEqual(captured.stderr.get_text(), '')
 
     def test_command_3(self):
         with capturer.CaptureOutput(merged=False, relay=False) as captured:

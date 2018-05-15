@@ -22,12 +22,12 @@ class BaseController(CementBaseController):
     @expose(help='command_1 description')
     def command_1(self):
         """ command_1 description """
-        pass
+        print('command_1 output')
 
     @expose(help='command_2 description')
     def command_2(self):
         """ command_2 description """
-        pass
+        print('command_2 output')
 
     @expose(help='Get version')
     def get_version(self):
