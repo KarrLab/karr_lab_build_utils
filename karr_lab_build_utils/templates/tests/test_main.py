@@ -6,7 +6,8 @@
 :License: MIT
 """
 
-from {{name}} import __main__
+from {{ name }} import __main__
+import {{ name }}
 import capturer
 import mock
 import unittest
@@ -24,6 +25,21 @@ class TestCore(unittest.TestCase):
         with self.assertRaises(SystemExit):
             with __main__.App(argv=['--help']) as app:
                 app.run()
+
+    def test_version(self):        
+        with __main__.App(argv=['-v']) as app:
+            with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                with self.assertRaises(SystemExit):
+                    app.run()
+                self.assertEqual(captured.stdout.get_text(), {{ name }}.__version)
+                self.assertEqual(captured.stderr.get_text(), '')
+
+        with __main__.App(argv=['--version']) as app:
+            with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                with self.assertRaises(SystemExit):
+                    app.run()
+                self.assertEqual(captured.stdout.get_text(), {{ name }}.__version)
+                self.assertEqual(captured.stderr.get_text(), '')
 
     def test_command_1(self):
         with capturer.CaptureOutput(merged=False, relay=False) as captured:

@@ -2397,8 +2397,19 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with __main__.App(argv=['get-version']) as app:
-                app.run()
+            with __main__.App(argv=['-v']) as app:
+                with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                    with self.assertRaises(SystemExit):
+                        app.run()
+                    self.assertEqual(captured.stdout.get_text(), karr_lab_build_utils.__version__)
+                    self.assertEqual(captured.stderr.get_text(), '')
+
+            with __main__.App(argv=['--version']) as app:
+                with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                    with self.assertRaises(SystemExit):
+                        app.run()
+                    self.assertEqual(captured.stdout.get_text(), karr_lab_build_utils.__version__)
+                    self.assertEqual(captured.stderr.get_text(), '')
 
     def test_raw_cli(self):
         with mock.patch('sys.argv', ['karr_lab_build_utils', '--help']):

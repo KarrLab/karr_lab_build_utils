@@ -20,6 +20,9 @@ class BaseController(CementBaseController):
     class Meta:
         label = 'base'
         description = "Karr Lab build utilities"
+        arguments = [
+            (['-v', '--version'], dict(action='version', version=karr_lab_build_utils.__version__)),
+        ]
 
     @expose(help='Archive test report')
     def archive_test_report(self):
@@ -38,12 +41,6 @@ class BaseController(CementBaseController):
         """ Upgrade requirements from the Karr Lab's GitHub organization """
         buildHelper = BuildHelper()
         buildHelper.upgrade_requirements()
-
-    @expose(help='Get version')
-    def get_version(self):
-        """ Get version """
-        buildHelper = BuildHelper()
-        print(buildHelper.get_version())
 
 
 class CreatePackageController(CementBaseController):

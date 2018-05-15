@@ -18,6 +18,9 @@ class BaseController(CementBaseController):
     class Meta:
         label = 'base'
         description = "{{ name }}"
+        arguments = [
+            (['-v', '--version'], dict(action='version', version={{ name }}.__version__)),
+        ]
 
     @expose(help='command_1 description')
     def command_1(self):
@@ -28,11 +31,6 @@ class BaseController(CementBaseController):
     def command_2(self):
         """ command_2 description """
         print('command_2 output')
-
-    @expose(help='Get version')
-    def get_version(self):
-        """ Get version """
-        print({{name}}.__version__)
 
 
 class Command3WithArgumentsController(CementBaseController):
