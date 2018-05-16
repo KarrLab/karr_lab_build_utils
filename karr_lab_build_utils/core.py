@@ -314,8 +314,11 @@ class BuildHelper(object):
         print('Cick the "Test coverage" menu item')
         click.confirm('Continue?', default=True, abort=True)
         code_climate_repo_token = click.prompt('Enter the "test reporter id"')
-        code_climate_repo_id = click.prompt(
-            'Enter the repository ID (ID in the URL https://codeclimate.com/repos/<id>/settings/test_reporter)')
+        if private:
+            code_climate_repo_id = click.prompt(
+                'Enter the repository ID (ID in the URL https://codeclimate.com/repos/<id>/settings/test_reporter)')
+        else:
+            code_climate_repo_id = None
 
         print('Cick the "Badges" menu item')
         click.confirm('Continue?', default=True, abort=True)
@@ -339,15 +342,14 @@ class BuildHelper(object):
         print('Click the "Settings" menu item')
         click.confirm('Continue?', default=True, abort=True)
         coveralls_repo_token = click.prompt('Enter the "REPO TOKEN"')
-
-        print('Click the "README BADGE" EMBED" button')
-        click.confirm('Continue?', default=True, abort=True)
+        
         if private:
+            print('Click the "README BADGE" EMBED" button')
+            click.confirm('Continue?', default=True, abort=True)
             coveralls_repo_badge_token = click.prompt(
-                'Enter the badge token (token in the URL https://coveralls.io/repos/github/KarrLab/test_a/badge.svg?t=<token>')
+                'Enter the badge token (token in the URL https://coveralls.io/repos/github/KarrLab/{}/badge.svg?t=<token>'.format(name))
         else:
-            coveralls_repo_badge_token = click.prompt(
-                'Enter the badge token (token in the URL https://coveralls.io/repos/github/KarrLab/test_a/badge.svg')
+            coveralls_repo_badge_token = None
 
         # CircleCI
         # :todo: programmatically create CircleCI build
@@ -381,15 +383,18 @@ class BuildHelper(object):
             print('Click the "Create and add ... user key" button')
             click.confirm('Continue?', default=True, abort=True)
 
-        print('Click the "API permissions" menu item')
-        click.confirm('Continue?', default=True, abort=True)
+        if private:
+            print('Click the "API permissions" menu item')
+            click.confirm('Continue?', default=True, abort=True)
 
-        print('Click the "Create Token" button')
-        click.confirm('Continue?', default=True, abort=True)
+            print('Click the "Create Token" button')
+            click.confirm('Continue?', default=True, abort=True)
 
-        print('Select "All", enter a label, and click the "Add Token" button')
-        click.confirm('Continue?', default=True, abort=True)
-        circleci_repo_token = click.prompt('Enter the new token')
+            print('Select "All", enter a label, and click the "Add Token" button')
+            click.confirm('Continue?', default=True, abort=True)
+            circleci_repo_token = click.prompt('Enter the new token')
+        else:
+            circleci_repo_token = None
 
         vars = {
             'COVERALLS_REPO_TOKEN': coveralls_repo_token,
@@ -444,8 +449,9 @@ class BuildHelper(object):
             click.confirm('Continue?', default=True, abort=True)
 
         # add package to code.karrlab.org
-        with open(pkg_resources.resource_filename('karr_lab_build_utils',
-                                                  os.path.join('templates', 'code_server', '_package_.json')), 'r') as file:
+        with open(pkg_resources.resource_filename(
+            'karr_lab_build_utils',
+                os.path.join('templates', 'code_server', '_package_.json')), 'r') as file:
             template = Template(file.read())
 
         fid, local_filename = tempfile.mkstemp()
@@ -453,11 +459,13 @@ class BuildHelper(object):
 
         context = {
             'name': name,
+            'type': 'Other',
             'description': description,
             'private': private,
             'circleci_repo_token': circleci_repo_token,
             'coveralls_repo_token': coveralls_repo_token,
-            'code_climate_repo_id': code_climate_repo_id,
+            'code_climate_repo_badge_token': code_climate_repo_badge_token,
+            'code_climate_repo_id': code_climate_repo_id,            
         }
 
         template.stream(**context).dump(local_filename)
@@ -1193,7 +1201,7 @@ class BuildHelper(object):
                                       'karr_lab_build_utils{} run-tests {}'.format(py_v, ' '.join(options))
                                   )],
                                  raise_error=False)
-        
+
         temp_dirname = tempfile.mkdtemp()
         self._run_docker_command(['cp', container + ':/root/project/logs/', temp_dirname])
         wc_utils.util.files.copytree_to_existing_destination(os.path.join(temp_dirname, 'logs'), 'logs')
@@ -1597,7 +1605,7 @@ class BuildHelper(object):
         """
         if not recipients:
             return
-            
+
         full_template_filename = pkg_resources.resource_filename(
             'karr_lab_build_utils', os.path.join('templates', 'email_notifications', template_filename))
         with open(full_template_filename, 'r') as file:

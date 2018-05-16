@@ -1,5 +1,6 @@
 {
   "id": "{{ name }}",
+  "type": "{{ type }}",
   "description": "{{ description }}",
   "availability": "{% if private %}Closed{% else %}Open{% endif %}",
   "license": "MIT",

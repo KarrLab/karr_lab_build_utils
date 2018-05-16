@@ -168,11 +168,11 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         private = False
         dirname = os.path.join(tempdirname, 'test_b')
 
-        confirm_side_effects = [True, False] + 36 * [True]
+        confirm_side_effects = [True, False] + 32 * [True]
         prompt_side_effects = [
             name, description, ', '.join(keywords), ', '.join(dependencies), dirname, '0.0.1',
-            'code_climate_repo_token', 'code_climate_repo_id', 'code_climate_repo_badge_token',
-            'coveralls_repo_token', 'coveralls_repo_badge_token', 'circleci_repo_token',
+            'code_climate_repo_token', 'code_climate_repo_badge_token',
+            'coveralls_repo_token',
         ]
 
         config_filename = os.path.join(tempdirname, 'test_a', '.karr_lab_build_utils.yml')
@@ -211,11 +211,11 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         with self.construct_environment():
             with __main__.App(argv=['create-package']) as app:
-                confirm_side_effects = [True, False] + 33 * [True]
+                confirm_side_effects = [True, False] + 29 * [True]
                 prompt_side_effects = [
                     name, description, ', '.join(keywords), ', '.join(dependencies), dirname, '0.0.1',
-                    'code_climate_repo_token', 'code_climate_repo_id', 'code_climate_repo_badge_token',
-                    'coveralls_repo_token', 'coveralls_repo_badge_token', 'circleci_repo_token',
+                    'code_climate_repo_token', 'code_climate_repo_badge_token',
+                    'coveralls_repo_token',
                 ]
                 with mock.patch('click.confirm', side_effect=confirm_side_effects):
                     with mock.patch('click.prompt', side_effect=prompt_side_effects):
