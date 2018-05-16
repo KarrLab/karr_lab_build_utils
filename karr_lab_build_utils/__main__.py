@@ -42,10 +42,14 @@ class BaseController(CementBaseController):
         buildHelper = BuildHelper()
         buildHelper.upgrade_requirements()
 
+    @expose(hide=True)
+    def default(self):
+        self.app.args.print_help()
+
 
 class CreatePackageController(CementBaseController):
     """ Create a package
-    
+
     * Create local and remote Git repositories;
     * Setup the directory structure of the repository;
     * Add the repository to CircleCI, Coveralls, Code Climate, Read the Docs, and code.karrlab.org;
@@ -233,6 +237,10 @@ class DockerController(CementBaseController):
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = []
+
+    @expose(hide=True)
+    def default(self):
+        self.app.args.print_help()
 
 
 class DockerCreateContainerController(CementBaseController):
