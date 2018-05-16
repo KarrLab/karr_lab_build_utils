@@ -643,6 +643,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         shutil.rmtree(tempdirname)
 
+    def test_docker_help(self):
+        with __main__.App(argv=['docker']) as app:
+            app.run()
+
     @unittest.skipIf(whichcraft.which('docker') is None, (
         'Test requires Docker and Docker isn''t installed. '
         'See installation instructions at `https://docs.karrlab.org/intro_to_wc_modeling/latest/installation.html`'
@@ -655,7 +659,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 self.assertRegexpMatches(stdout, ('Created Docker container (build[\-0-9]+) with volume (build[\-0-9]+)'))
         match = re.search('Created Docker container (build[\-0-9]+) ', stdout, re.IGNORECASE)
         container = match.group(1)
-
+        
         with __main__.App(argv=['docker', 'install-package-to-container', container]) as app:
             app.run()
 
@@ -2416,6 +2420,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with self.assertRaises(SystemExit) as context:
                 karr_lab_build_utils.__main__.main()
                 self.assertRegexpMatches(context.Exception, 'usage: karr_lab_build_utils')
+
+        with mock.patch('sys.argv', ['karr_lab_build_utils']):
+            with capturer.CaptureOutput(merged=False, relay=False) as captured:
+                karr_lab_build_utils.__main__.main()
+                self.assertRegexpMatches(captured.stdout.get_text(), 'usage: karr_lab_build_utils')
+                self.assertEqual(captured.stderr.get_text(), '')
 
     def test_unsupported_test_runner(self):
         with self.assertRaisesRegexp(core.BuildHelperError, 'Unsupported test runner'):
