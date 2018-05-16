@@ -12,13 +12,17 @@ downstream_dependencies:
   - nose2unitth
   - obj_model
   - pkg_utils
-  - random_wc_model_generator
+  - rand_wc_model_gen
   - unitth
+  - wc
   - wc_analysis
   - wc_kb
+  - wc_kb_gen
   - wc_lang
+  - wc_model_gen
   - wc_rules
   - wc_sim
+  - wc_test
   - wc_utils
 email_notifications:
   - jonrkarr@gmail.com
