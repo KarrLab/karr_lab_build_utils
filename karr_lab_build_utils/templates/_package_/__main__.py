@@ -32,6 +32,10 @@ class BaseController(CementBaseController):
         """ command_2 description """
         print('command_2 output')
 
+    @expose(hide=True)
+    def default(self):
+        self.app.args.print_help()
+
 
 class Command3WithArgumentsController(CementBaseController):
     """ Command3 description """
