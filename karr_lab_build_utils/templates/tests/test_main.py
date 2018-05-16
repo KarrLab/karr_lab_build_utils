@@ -31,14 +31,14 @@ class TestCore(unittest.TestCase):
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
                 with self.assertRaises(SystemExit):
                     app.run()
-                self.assertEqual(captured.stdout.get_text(), {{ name }}.__version)
+                self.assertEqual(captured.stdout.get_text(), {{ name }}.__version__)
                 self.assertEqual(captured.stderr.get_text(), '')
 
         with __main__.App(argv=['--version']) as app:
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
                 with self.assertRaises(SystemExit):
                     app.run()
-                self.assertEqual(captured.stdout.get_text(), {{ name }}.__version)
+                self.assertEqual(captured.stdout.get_text(), {{ name }}.__version__)
                 self.assertEqual(captured.stderr.get_text(), '')
 
     def test_command_1(self):
