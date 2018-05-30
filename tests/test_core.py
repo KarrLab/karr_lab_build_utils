@@ -31,6 +31,7 @@ from jinja2 import Template
 from karr_lab_build_utils import __main__
 from karr_lab_build_utils import core
 from pkg_resources import resource_filename
+from sphinx.application import Sphinx
 from six.moves import configparser
 import abduct
 import attrdict
@@ -659,7 +660,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 self.assertRegexpMatches(stdout, ('Created Docker container (build[\-0-9]+) with volume (build[\-0-9]+)'))
         match = re.search('Created Docker container (build[\-0-9]+) ', stdout, re.IGNORECASE)
         container = match.group(1)
-        
+
         with __main__.App(argv=['docker', 'install-package-to-container', container]) as app:
             app.run()
 
@@ -1725,6 +1726,19 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with self.construct_environment():
             with __main__.App(argv=['make-documentation']) as app:
                 app.run()
+
+    def test_make_documentation_error(self):
+        build_helper = self.construct_build_helper()
+
+        """ test API """
+        if os.path.isdir(build_helper.proj_docs_build_html_dir):
+            shutil.rmtree(build_helper.proj_docs_build_html_dir)
+        if os.path.isdir(build_helper.proj_docs_static_dir):
+            shutil.rmtree(build_helper.proj_docs_static_dir)
+        
+        with self.assertRaisesRegexp(Exception, 'Test exception'):
+            with mock.patch.object(Sphinx, '__init__', side_effect=Exception('Test exception')):
+                build_helper.make_documentation()
 
     def test_upload_documentation_to_docs_server(self):
         bh = self.construct_build_helper()

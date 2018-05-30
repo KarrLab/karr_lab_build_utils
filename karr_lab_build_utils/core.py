@@ -8,7 +8,7 @@
 from datetime import datetime
 from jinja2 import Template
 from pylint import epylint
-from sphinx.cmd.build import main as sphinx_build
+from sphinx.cmdline import main as sphinx_main
 from mock import patch
 from six.moves import configparser
 from xml.dom import minidom
@@ -342,7 +342,7 @@ class BuildHelper(object):
         print('Click the "Settings" menu item')
         click.confirm('Continue?', default=True, abort=True)
         coveralls_repo_token = click.prompt('Enter the "REPO TOKEN"')
-        
+
         if private:
             print('Click the "README BADGE" EMBED" button')
             click.confirm('Continue?', default=True, abort=True)
@@ -465,7 +465,7 @@ class BuildHelper(object):
             'circleci_repo_token': circleci_repo_token,
             'coveralls_repo_token': coveralls_repo_token,
             'code_climate_repo_badge_token': code_climate_repo_badge_token,
-            'code_climate_repo_id': code_climate_repo_id,            
+            'code_climate_repo_id': code_climate_repo_id,
         }
 
         template.stream(**context).dump(local_filename)
@@ -1910,16 +1910,20 @@ class BuildHelper(object):
                                                argv=['-f', '-P', '-o', os.path.join(self.proj_docs_dir, 'source'), package])
 
         # build HTML documentation
-        self.run_method_and_capture_stderr(sphinx_build, [self.proj_docs_dir, self.proj_docs_build_html_dir])
+        def handle_exception(app, args, exception, stderr=sys.stderr):
+            raise
 
-        # run spell check
-        if spell_check:
-            self.run_method_and_capture_stderr(sphinx_build, [
-                '-b', 'spelling',
-                '-d', self.proj_docs_build_doctrees_dir,
-                self.proj_docs_dir,
-                self.proj_docs_build_spelling_dir,
-            ])
+        with patch('sphinx.cmdline.handle_exception', handle_exception):
+            sphinx_main([self.proj_docs_dir, self.proj_docs_build_html_dir])
+
+            # run spell check
+            if spell_check:
+                sphinx_main([
+                    '-b', 'spelling',
+                    '-d', self.proj_docs_build_doctrees_dir,
+                    self.proj_docs_dir,
+                    self.proj_docs_build_spelling_dir,
+                ])
 
     def upload_documentation_to_docs_server(self, dirname='.'):
         """ Upload compiled documentation to the lab server
