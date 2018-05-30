@@ -28,7 +28,7 @@ requests
 robpol86_sphinxcontrib_googleanalytics
 setuptools >= 39.2.0
 six
-sphinx >= 1.7
+sphinx >= 1.7.5
 sphinx_rtd_theme
 sphinxcontrib_addmetahtml
 sphinxcontrib_bibtex
