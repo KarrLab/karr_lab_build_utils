@@ -835,8 +835,10 @@ class BuildHelper(object):
         Returns:
             :obj:`list` of :obj:`str`: upgraded requirements from the Karr Lab's GitHub organization
         """
+        # upgrade PyPI requirements
+        self.install_requirements()
 
-        # get PyPI requirements
+        # get Karr Lab requirements
         lines = pip._internal.operations.freeze.freeze()
         reqs = []
         for line in lines:
@@ -857,7 +859,7 @@ class BuildHelper(object):
 
                     reqs.append('git+{}.git#egg={}{}'.format(url, name, options))
 
-        # upgrade PyPI requirements
+        # upgrade Karr Lab requirements
         if reqs:
             subprocess.check_call(['pip{}.{}'.format(sys.version_info[0], sys.version_info[1]),
                                    'install', '-U', '--process-dependency-links'] + reqs)
