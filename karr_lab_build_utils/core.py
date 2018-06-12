@@ -781,8 +781,8 @@ class BuildHelper(object):
 
         # upgrade pip, setuptools
         py_v = '{}.{}'.format(sys.version_info[0], sys.version_info[1])
-        subprocess.check_call(['pip' + pv_v, 'install', '-U', 'setuptools'])
-        subprocess.check_call(['pip' + pv_v, 'install', '-U', 'pip'])
+        subprocess.check_call(['pip' + py_v, 'install', '-U', 'setuptools'])
+        subprocess.check_call(['pip' + py_v, 'install', '-U', 'pip'])
 
         # requirements for package
         self._install_requirements_helper('requirements.txt')
@@ -821,7 +821,7 @@ class BuildHelper(object):
             filename = sanitized_filename
 
         py_v = '{}.{}'.format(sys.version_info[0], sys.version_info[1])
-        subprocess.check_call(['pip' + pv_v, 'install', '-U', '--process-dependency-links', '-r', filename])
+        subprocess.check_call(['pip' + py_v, 'install', '-U', '--process-dependency-links', '-r', filename])
 
         # cleanup temporary file
         if ignore_options:
