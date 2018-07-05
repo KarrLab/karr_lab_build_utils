@@ -14,7 +14,10 @@ from six.moves import configparser
 from xml.dom import minidom
 import abduct
 import attrdict
-import capturer
+try:
+    import capturer
+except ImportError:
+    pass
 import click
 import coverage
 import coveralls

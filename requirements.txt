@@ -1,6 +1,5 @@
 abduct
 attrdict
-capturer
 cement
 click
 configobj
