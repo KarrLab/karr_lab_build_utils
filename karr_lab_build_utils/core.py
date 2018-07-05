@@ -2105,44 +2105,22 @@ class BuildHelper(object):
         :todo: support branches
         """
 
-        logger = logging.getLogger('karr_lab_build_utils')
-        logger.setLevel(logging.DEBUG)
-
-        handler = logging.FileHandler('logs/karr_lab_build_utils.log')
-        logger.addHandler(handler)
-
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(filename)s:%(funcName)s:%(lineno)d %(message)s')
-        handler.setFormatter(formatter)
-
-        logger.debug('\n\n============')
-        logger.debug('trigger_tests_of_downstream_dependencies')
-        logger.debug('repo_name={}'.format(self.repo_name))
-        logger.debug('build_num={}'.format(self.build_num))
-        logger.debug('cwd={}'.format(os.getcwd()))
-        logger.debug('config_filename={}'.format(config_filename))
-        logger.debug('dry_run={}'.format(dry_run))
-
         # stop if this is a dry run
         if dry_run:
-            logger.debug('Terminated because dry_run=True')
             return []
 
         # stop if the tests didn't pass
         test_results = self.get_test_results()
         if test_results.get_num_errors() > 0 or test_results.get_num_failures() > 0:
-            logger.debug('Terminated because num_errors={}, num_failures={}'.format(
-                test_results.get_num_errors(), test_results.get_num_failures()))
             return []
 
         # read downstream dependencies
         with open(config_filename, 'r') as file:
             config = yaml.load(file)
         packages = config.get('downstream_dependencies', [])
-        logger.debug('packages=\n  {}'.format('\n  '.join(packages)))
 
         # stop if there are no downstream dependencies
         if not packages:
-            logger.debug('Terminated because packages=[]')
             return []
 
         upstream_repo_name = os.getenv('UPSTREAM_REPONAME', '')
@@ -2154,15 +2132,8 @@ class BuildHelper(object):
         result = self.run_circleci_api('/' + str(upstream_build_num), repo_name=upstream_repo_name)
         upstream_build_time = dateutil.parser.parse(result['start_time'])
 
-        logger.debug('upstream_repo_name={}'.format(upstream_repo_name))
-        logger.debug('upstream_build_num={}'.format(upstream_build_num))
-        logger.debug('upstream_build_time={}'.format(upstream_build_time))
-        logger.debug('now={}'.format(datetime.now()))
-
         triggered_packages = []
         for package in packages:
-            logger.debug('Managing downstream build of {} ...'.format(package))
-
             branch = 'master'
 
             # get summary of recent builds
@@ -2178,8 +2149,6 @@ class BuildHelper(object):
                         str(build['build_num']) == upstream_build_num and \
                         build['build_num'] != self.build_num:
                     already_queued = True
-                    logger.debug('already_queued=True for {} becuase package triggered the build cascade'.format(
-                        package))
                     break
 
                 # don't trigger a build if the package already been triggered from the same upstream commit
@@ -2188,20 +2157,15 @@ class BuildHelper(object):
                         build_parameters['UPSTREAM_REPONAME'] == upstream_repo_name and \
                         build_parameters['UPSTREAM_BUILD_NUM'] == upstream_build_num:
                     already_queued = True
-                    logger.debug('already_queued=True for {} becuase package has already been tested from the same upstream commit'.format(
-                        package))
                     break
 
                 # don't trigger a build if the package has already been more recently tested than the commit time
                 build_start_time = build['start_time']
                 if build_start_time is None or dateutil.parser.parse(build['start_time']) > upstream_build_time:
                     already_queued = True
-                    logger.debug('already_queued=True for {} because package has already been tested (build={} @ {}'.format(
-                        package, build['build_num'], build_start_time))
                     break
 
             if already_queued:
-                logger.debug('downstream build not triggered for {}'.format(package))
                 continue
 
             # trigger build
@@ -2212,7 +2176,6 @@ class BuildHelper(object):
                 }
             })
             triggered_packages.append(package)
-            logger.debug('Downstream build triggered for {}'.format(package))
 
         return triggered_packages
 
