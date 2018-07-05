@@ -2017,7 +2017,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         requests_get_1 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
-            'json': lambda: {'all_commit_details': [{'committer_date': '2017-01-01T01:01:01-05:00'}]},
+            'json': lambda: {'start_time': '2017-01-01T01:01:01-05:00'},
         })
         requests_get_2 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
@@ -2065,7 +2065,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         requests_get_1 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
-            'json': lambda: {'all_commit_details': [{'committer_date': '2017-01-01T01:01:01-05:00'}]},
+            'json': lambda: {'start_time': '2017-01-01T01:01:01-05:00'},
         })
         requests_get_2 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
@@ -2124,7 +2124,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         requests_get_1 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
-            'json': lambda: {'all_commit_details': [{'committer_date': '2017-01-01T01:01:01-05:00'}]},
+            'json': lambda: {'start_time': '2017-01-01T01:01:01-05:00'},
         })
         requests_get_2 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
@@ -2177,7 +2177,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         requests_get_1 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
-            'json': lambda: {'all_commit_details': [{'committer_date': '2017-01-01T01:01:01-05:00'}]},
+            'json': lambda: {'start_time': '2017-01-01T01:01:01-05:00'},
         })
         requests_get_2 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
@@ -2208,7 +2208,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         requests_get_1 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
-            'json': lambda: {'all_commit_details': [{'committer_date': '2019-01-01T01:01:01-05:00'}]},
+            'json': lambda: {'start_time': '2019-01-01T01:01:01-05:00'},
         })
         with env:
             with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2]):

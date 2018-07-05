@@ -2152,7 +2152,7 @@ class BuildHelper(object):
             upstream_build_num = str(self.build_num)
 
         result = self.run_circleci_api('/' + str(upstream_build_num), repo_name=upstream_repo_name)
-        upstream_build_time = dateutil.parser.parse(result['all_commit_details'][0]['committer_date'])
+        upstream_build_time = dateutil.parser.parse(result['start_time'])
 
         logger.debug('upstream_repo_name={}'.format(upstream_repo_name))
         logger.debug('upstream_build_num={}'.format(upstream_build_num))
