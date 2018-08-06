@@ -2256,6 +2256,9 @@ class BuildHelper(object):
             messages (:obj:`list` of :obj:`str`, optional): list of Pylint checks to perform
             config_filename (:obj:`str`, optional): path to Pylist configuration file (rcfile)
             verbose (:obj:`bool`, optional): if :obj:`True`, display extra Pylint information
+
+        Returns:
+            :obj:`int`: pylint return code
         """
 
         if messages is None:
@@ -2288,7 +2291,7 @@ class BuildHelper(object):
             other_opts.append('--rcfile={}'.format(config_filename))
         if verbose:            
             other_opts.append('--verbose')
-        epylint.lint(package_name, msg_opts + report_opts + other_opts)
+        return epylint.lint(package_name, msg_opts + report_opts + other_opts)
 
     def find_missing_requirements(self, package_name, dirname='.', ignore_files=None):
         """ Finding missing requirements
