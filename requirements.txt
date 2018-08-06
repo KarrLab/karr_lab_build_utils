@@ -20,7 +20,7 @@ pip_check_reqs >= 2.0.3
 git+https://github.com/KarrLab/pkg_utils.git#egg=pkg_utils-0.0.3[all]
 pygithub
 pylint >= 2.1.1
-0ppytest
+pytest
 python_dateutil
 pyyaml
 requests
