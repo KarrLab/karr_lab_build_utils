@@ -2240,7 +2240,7 @@ class BuildHelper(object):
             sys.stderr.flush()
             sys.exit(1)
 
-    def analyze_package(self, package_name, messages=None):
+    def analyze_package(self, package_name, messages=None, config_filename=None, verbose=False):
         """ Perform static analyses of a package using Pylint.
 
         The default options will identify the following issues:
@@ -2253,7 +2253,9 @@ class BuildHelper(object):
 
         Args:
             package_name (:obj:`str`): name of the package to analyze
-            messages (:obj:`list` of :obj:`str`): list of Pylint checks to perform
+            messages (:obj:`list` of :obj:`str`, optional): list of Pylint checks to perform
+            config_filename (:obj:`str`, optional): path to Pylist configuration file (rcfile)
+            verbose (:obj:`bool`, optional): if :obj:`True`, display extra Pylint information
         """
 
         if messages is None:
@@ -2279,10 +2281,14 @@ class BuildHelper(object):
 
         report_opts = [
             '--reports=n',
-            '--score=n',
+            '--score=n',            
         ]
-        # TODO: debug, does not work:
-        epylint.lint(package_name, msg_opts + report_opts)
+        other_opts = []
+        if config_filename:
+            other_opts.append('--rcfile={}'.format(config_filename))
+        if verbose:            
+            other_opts.append('--verbose')
+        epylint.lint(package_name, msg_opts + report_opts + other_opts)
 
     def find_missing_requirements(self, package_name, dirname='.', ignore_files=None):
         """ Finding missing requirements

@@ -2229,10 +2229,24 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     def test_analyze_package(self):
         # test api
         build_helper = core.BuildHelper()
+        
         with capturer.CaptureOutput(merged=False, relay=False) as captured:
             build_helper.analyze_package('karr_lab_build_utils')
             self.assertRegexpMatches(captured.stdout.get_text(), '\* Module karr_lab_build_utils.core')
+            self.assertEqual(captured.stderr.get_text().strip(), '')        
+
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
+            build_helper.analyze_package('karr_lab_build_utils', verbose=True)
+            self.assertRegexpMatches(captured.stdout.get_text(), '\* Module karr_lab_build_utils.core')
             self.assertEqual(captured.stderr.get_text().strip(), 'No config file found, using default configuration')
+
+        config_filename = os.path.join(self.tmp_dirname, 'pylintrc')
+        with open(config_filename, 'w') as file:
+            file.write('\n')
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:            
+            build_helper.analyze_package('karr_lab_build_utils', verbose=True, config_filename=config_filename)
+            self.assertRegexpMatches(captured.stdout.get_text(), '\* Module karr_lab_build_utils.core')
+            self.assertEqual(captured.stderr.get_text().strip(), 'Using config file {}'.format(config_filename)) 
 
         # test cli
         with self.construct_environment():
@@ -2240,14 +2254,14 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 with __main__.App(argv=['analyze-package', 'karr_lab_build_utils']) as app:
                     app.run()
                     self.assertRegexpMatches(captured.stdout.get_text(), '\* Module karr_lab_build_utils.core')
-                    self.assertEqual(captured.stderr.get_text().strip(), 'No config file found, using default configuration')
+                    self.assertEqual(captured.stderr.get_text().strip(), '')
 
         with self.construct_environment():
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
                 with __main__.App(argv=['analyze-package', 'karr_lab_build_utils', '--messages', 'W0611']) as app:
                     app.run()
                     self.assertRegexpMatches(captured.stdout.get_text(), '\* Module karr_lab_build_utils.core')
-                    self.assertEqual(captured.stderr.get_text().strip(), 'No config file found, using default configuration')
+                    self.assertEqual(captured.stderr.get_text().strip(), '')
 
     def test_find_missing_requirements(self):
         # test api
