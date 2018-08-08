@@ -11,9 +11,9 @@ jobs:
       # Load packages from cache
       - restore_cache:
           keys:
-            - cache-v17-{{ .Branch }}-{{ checksum "requirements.txt" }}
-            - cache-v17-{{ .Branch }}-
-            - cache-v17-
+            - cache-v18-{{ .Branch }}-{{ checksum "requirements.txt" }}
+            - cache-v18-{{ .Branch }}-
+            - cache-v18-
 
       # Python 3 installation tasks
       - run:
@@ -28,7 +28,7 @@ jobs:
 
       # Save packages to cache
       - save_cache:
-          key: cache-v17-{{ .Branch }}-{{ checksum "requirements.txt" }}
+          key: cache-v18-{{ .Branch }}-{{ checksum "requirements.txt" }}
           paths:
             - /usr/local/lib/python3.6/site-packages
 
