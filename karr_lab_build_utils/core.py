@@ -876,7 +876,7 @@ class BuildHelper(object):
     ########################
     def run_tests(self, dirname='.', test_path='tests', verbose=False, with_xunit=False, with_coverage=False, coverage_dirname='.',
                   coverage_type=CoverageType.branch, environment=Environment.local, exit_on_failure=True,
-                  ssh_key_filename='~/.ssh/id_rsa'):
+                  ssh_key_filename='~/.ssh/id_rsa', remove_docker_container=True):
         """ Run unit tests located at `test_path`.
 
         Optionally, generate a coverage report.
@@ -897,6 +897,7 @@ class BuildHelper(object):
             environment (:obj:`str`, optional): environment to run tests (local, docker, or circleci-local-executor)
             exit_on_failure (:obj:`bool`, optional): whether or not to exit on test failure
             ssh_key_filename (:obj:`str`, optional): path to GitHub SSH key; needed for Docker environment
+            remove_docker_container (:obj:`bool`, optional): if :obj:`True`, remove Docker container
 
         Raises:
             :obj:`BuildHelperError`: If the environment is not supported or the package directory not set
@@ -908,7 +909,8 @@ class BuildHelper(object):
         elif environment == Environment.docker:
             self._run_tests_docker(dirname=dirname, test_path=test_path, verbose=verbose, with_xunit=with_xunit,
                                    with_coverage=with_coverage, coverage_dirname=coverage_dirname,
-                                   coverage_type=coverage_type, ssh_key_filename=ssh_key_filename)
+                                   coverage_type=coverage_type, ssh_key_filename=ssh_key_filename,
+                                   remove_container=remove_docker_container)
         elif environment == Environment.circleci:
             self._run_tests_circleci(dirname=dirname, test_path=test_path, verbose=verbose, ssh_key_filename=ssh_key_filename)
         else:
@@ -1023,7 +1025,7 @@ class BuildHelper(object):
             sys.exit(1)
 
     def _run_tests_docker(self, dirname='.', test_path='tests', verbose=False, with_xunit=False, with_coverage=False, coverage_dirname='.',
-                          coverage_type=CoverageType.branch, ssh_key_filename='~/.ssh/id_rsa'):
+                          coverage_type=CoverageType.branch, ssh_key_filename='~/.ssh/id_rsa', remove_container=True):
         """ Run unit tests located at `test_path` using a Docker image:
 
         #. Create a container based on the build image (e.g, karrlab/build:latest)
@@ -1044,12 +1046,14 @@ class BuildHelper(object):
             coverage_dirname (:obj:`str`, optional): directory to save coverage data
             coverage_type (:obj:`CoverageType`, optional): type of coverage to run when :obj:`with_coverage` is :obj:`True`
             ssh_key_filename (:obj:`str`, optional): path to GitHub SSH key
+            remove_container (:obj:`bool`, optional): if :obj:`True`, remove Docker container
         """
         container = self.create_docker_container(ssh_key_filename=ssh_key_filename)
         self.install_package_to_docker_container(container, dirname=dirname)
         self.run_tests_in_docker_container(container, test_path=test_path, verbose=verbose, with_xunit=with_xunit,
                                            with_coverage=with_coverage, coverage_dirname=coverage_dirname, coverage_type=coverage_type)
-        self.remove_docker_container(container)
+        if remove_container:
+            self.remove_docker_container(container)
 
     def create_docker_container(self, ssh_key_filename='~/.ssh/id_rsa'):
         """ Create a docker container 

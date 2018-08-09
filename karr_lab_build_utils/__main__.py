@@ -199,6 +199,8 @@ class RunTestsController(CementBaseController):
                 help="Environment to run tests (local, docker, or circleci); default='local'")),
             (['--ssh-key-filename'], dict(
                 type=str, default='~/.ssh/id_rsa', help='Path to GitHub SSH key')),
+            (['--keep-docker-container'], dict(
+                dest='remove_docker_container', action='store_false', default=True, help='Keep Docker container')),
         ]
 
     @expose(hide=True)
@@ -225,7 +227,7 @@ class RunTestsController(CementBaseController):
         buildHelper.run_tests(dirname=args.dirname, test_path=test_path, verbose=verbose, with_xunit=args.with_xunit,
                               with_coverage=args.with_coverage, coverage_dirname=args.coverage_dirname,
                               coverage_type=coverage_type, environment=karr_lab_build_utils.core.Environment[args.environment],
-                              ssh_key_filename=args.ssh_key_filename)
+                              ssh_key_filename=args.ssh_key_filename, remove_docker_container=args.remove_docker_container)
 
 
 class DockerController(CementBaseController):
