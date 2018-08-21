@@ -211,7 +211,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         dirname = os.path.join(tempdirname, 'test_c')
 
         with self.construct_environment():
-            with __main__.MyApp(argv=['create-package']) as app:
+            with __main__.App(argv=['create-package']) as app:
                 confirm_side_effects = [True, False] + 29 * [True]
                 prompt_side_effects = [
                     name, description, ', '.join(keywords), ', '.join(dependencies), dirname, '0.0.1',
@@ -282,7 +282,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with __main__.MyApp(argv=['create-repository', 'test_b', '--dirname', os.path.join(tempdirname, 'test_b')]) as app:
+            with __main__.App(argv=['create-repository', 'test_b', '--dirname', os.path.join(tempdirname, 'test_b')]) as app:
                 app.run()
 
         self.assertTrue(os.path.isdir(os.path.join(tempdirname, 'test_b', '.git')))
@@ -333,7 +333,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with __main__.MyApp(argv=['setup-repository', 'b',
+            with __main__.App(argv=['setup-repository', 'b',
                                     '--dirname', os.path.join(tempdirname, 'b'),
                                     '--keyword', 'abc',
                                     '--keyword', 'def',
@@ -374,7 +374,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with __main__.MyApp(argv=['follow-circleci-build']) as app:
+            with __main__.App(argv=['follow-circleci-build']) as app:
                 app.run()
 
     def test_follow_circleci_build_error(self):
@@ -405,7 +405,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         """ test CLI """
         with self.construct_environment():
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                with __main__.MyApp(argv=['get-circleci-environment-variables']) as app:
+                with __main__.App(argv=['get-circleci-environment-variables']) as app:
                     app.run()
                     self.assertRegexpMatches(captured.stdout.get_text(), 'COVERALLS_REPO_TOKEN=')
                     self.assertEqual(captured.stderr.get_text(), '')
@@ -431,13 +431,13 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with __main__.MyApp(argv=['set-circleci-environment-variable', '__TEST1__', 'test value 1c']) as app:
+            with __main__.App(argv=['set-circleci-environment-variable', '__TEST1__', 'test value 1c']) as app:
                 with capturer.CaptureOutput(merged=False, relay=False) as captured:
                     app.run()
                     self.assertEqual(captured.stdout.get_text(), '')
                     self.assertEqual(captured.stderr.get_text(), '')
 
-            with __main__.MyApp(argv=['get-circleci-environment-variables']) as app:
+            with __main__.App(argv=['get-circleci-environment-variables']) as app:
                 with capturer.CaptureOutput(merged=False, relay=False) as captured:
                     app.run()
                     self.assertRegexpMatches(captured.stdout.get_text(), '__TEST1__=xxxxe 1c')
@@ -471,7 +471,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.assertTrue('__TEST1__' in vars)
 
         with self.construct_environment():
-            with __main__.MyApp(argv=['delete-circleci-environment-variable', '__TEST1__']) as app:
+            with __main__.App(argv=['delete-circleci-environment-variable', '__TEST1__']) as app:
                 with capturer.CaptureOutput(merged=False, relay=False) as captured:
                     app.run()
                     self.assertEqual(captured.stdout.get_text(), '')
@@ -491,7 +491,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with __main__.MyApp(argv=['create-code-climate-github-webhook']) as app:
+            with __main__.App(argv=['create-code-climate-github-webhook']) as app:
                 try:
                     app.run()
                 except ValueError as err:
@@ -505,7 +505,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with __main__.MyApp(argv=['install-requirements']) as app:
+            with __main__.App(argv=['install-requirements']) as app:
                 app.run()
 
     def test_install_requirements_no_file(self):
@@ -527,7 +527,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with __main__.MyApp(argv=['upgrade-requirements']) as app:
+            with __main__.App(argv=['upgrade-requirements']) as app:
                 app.run()
 
     def test_upgrade_requirements_karr_lab_reqs(self):
@@ -591,7 +591,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         """ test CLI """
         argv = ['run-tests', '--test-path', self.DUMMY_TEST, '--with-xunit', '--with-coverage']
         with self.construct_environment():
-            with __main__.MyApp(argv=argv) as app:
+            with __main__.App(argv=argv) as app:
                 app.run()
                 self.assertEqual(self.DUMMY_TEST, app.pargs.test_path)
                 self.assertTrue(app.pargs.with_xunit)
@@ -601,7 +601,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
     def test_run_tests_default_path(self):
         with self.construct_environment():
-            with __main__.MyApp(argv=['run-tests']) as app:
+            with __main__.App(argv=['run-tests']) as app:
                 with mock.patch.object(core.BuildHelper, 'run_tests', return_value=None):
                     app.run()
 
@@ -609,7 +609,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         env = self.construct_environment()
         env.set('test_path', self.DUMMY_TEST)
         with env:
-            with __main__.MyApp(argv=['run-tests']) as app:
+            with __main__.App(argv=['run-tests']) as app:
                 app.run()
 
     def test_run_tests_with_verbose(self):
@@ -645,7 +645,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         shutil.rmtree(tempdirname)
 
     def test_docker_help(self):
-        with __main__.MyApp(argv=['docker']) as app:
+        with __main__.App(argv=['docker']) as app:
             app.run()
 
     @unittest.skipIf(whichcraft.which('docker') is None, (
@@ -654,20 +654,20 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     ))
     def test_low_level_docker_commands(self):
         with capturer.CaptureOutput(merged=False, relay=True) as captured:
-            with __main__.MyApp(argv=['docker', 'create-container']) as app:
+            with __main__.App(argv=['docker', 'create-container']) as app:
                 app.run()
                 stdout = captured.stdout.get_text()
                 self.assertRegexpMatches(stdout, ('Created Docker container (build[\-0-9]+) with volume (build[\-0-9]+)'))
         match = re.search('Created Docker container (build[\-0-9]+) ', stdout, re.IGNORECASE)
         container = match.group(1)
 
-        with __main__.MyApp(argv=['docker', 'install-package-to-container', container]) as app:
+        with __main__.App(argv=['docker', 'install-package-to-container', container]) as app:
             app.run()
 
-        with __main__.MyApp(argv=['docker', 'run-tests-in-container', container, '--test-path', self.DUMMY_TEST]) as app:
+        with __main__.App(argv=['docker', 'run-tests-in-container', container, '--test-path', self.DUMMY_TEST]) as app:
             app.run()
 
-        with __main__.MyApp(argv=['docker', 'remove-container', container]) as app:
+        with __main__.App(argv=['docker', 'remove-container', container]) as app:
             app.run()
 
     @unittest.skipIf(whichcraft.which('docker') is None, (
@@ -726,7 +726,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     # test cli
                     with self.construct_environment():
                         with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                            with __main__.MyApp(argv=['do-post-test-tasks', '0', '0']) as app:
+                            with __main__.App(argv=['do-post-test-tasks', '0', '0']) as app:
                                 app.run()
 
                                 time.sleep(0.1)
@@ -750,7 +750,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 with mock.patch.object(core.BuildHelper, 'send_email_notifications', return_value=notify_return):
                     with self.construct_environment():
                         with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                            with __main__.MyApp(argv=['do-post-test-tasks', '0', '1']) as app:
+                            with __main__.App(argv=['do-post-test-tasks', '0', '1']) as app:
                                 with self.assertRaisesRegexp(core.BuildHelperError, 'Post-test tasks were not successful'):
                                     app.run()
                                 self.assertEqual(app.pargs.installation_exit_code, 0)
@@ -789,7 +789,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     with mock.patch('smtplib.SMTP', return_value=smtp):
                         with self.construct_environment():
                             with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                                with __main__.MyApp(argv=['do-post-test-tasks', '0', '0']) as app:
+                                with __main__.App(argv=['do-post-test-tasks', '0', '0']) as app:
                                     with self.assertRaisesRegexp(core.BuildHelperError, 'Post-test tasks were not successful'):
                                         app.run()
                                     self.assertRegexpMatches(captured.stdout.get_text(), '1 notifications were sent')
@@ -1462,7 +1462,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with __main__.MyApp(argv=['make-and-archive-reports', '--coverage-dirname', self.tmp_dirname, '--dry-run']) as app:
+            with __main__.App(argv=['make-and-archive-reports', '--coverage-dirname', self.tmp_dirname, '--dry-run']) as app:
                 app.run()
 
     def test_make_and_archive_reports_with_missing_req(self):
@@ -1506,7 +1506,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with __main__.MyApp(argv=['archive-test-report']) as app:
+            with __main__.App(argv=['archive-test-report']) as app:
                 app.run()
 
     def test_archive_test_report_no_repo(self):
@@ -1563,7 +1563,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage.2')))
 
         with self.construct_environment():
-            with __main__.MyApp(argv=['combine-coverage-reports', '--coverage-dirname', self.tmp_dirname]) as app:
+            with __main__.App(argv=['combine-coverage-reports', '--coverage-dirname', self.tmp_dirname]) as app:
                 app.run()
 
         self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage')))
@@ -1591,7 +1591,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with __main__.MyApp(argv=['archive-coverage-report', '--coverage-dirname', self.tmp_dirname, '--dry-run']) as app:
+            with __main__.App(argv=['archive-coverage-report', '--coverage-dirname', self.tmp_dirname, '--dry-run']) as app:
                 app.run()
 
     def test_upload_coverage_report_to_coveralls(self):
@@ -1609,7 +1609,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with __main__.MyApp(
+            with __main__.App(
                     argv=['upload-coverage-report-to-coveralls',
                           '--coverage-dirname', self.tmp_dirname,
                           '--dry-run'
@@ -1640,7 +1640,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with __main__.MyApp(
+            with __main__.App(
                     argv=['upload-coverage-report-to-code-climate',
                           '--coverage-dirname', self.tmp_dirname,
                           ]) as app:
@@ -1684,7 +1684,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         template.stream(name=name).dump(os.path.join(tempdirname, 'setup.cfg'))
 
         with self.construct_environment():
-            with __main__.MyApp(argv=['create-documentation-template', '--dirname', tempdirname]) as app:
+            with __main__.App(argv=['create-documentation-template', '--dirname', tempdirname]) as app:
                 app.run()
 
         for filename in filenames:
@@ -1724,7 +1724,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with __main__.MyApp(argv=['make-documentation']) as app:
+            with __main__.App(argv=['make-documentation']) as app:
                 app.run()
 
     def test_make_documentation_error(self):
@@ -1735,7 +1735,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             shutil.rmtree(build_helper.proj_docs_build_html_dir)
         if os.path.isdir(build_helper.proj_docs_static_dir):
             shutil.rmtree(build_helper.proj_docs_static_dir)
-        
+
         with self.assertRaisesRegexp(Exception, 'Test exception'):
             with mock.patch.object(Sphinx, '__init__', side_effect=Exception('Test exception')):
                 build_helper.make_documentation()
@@ -1834,14 +1834,14 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         # test cli
         with self.construct_environment():
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                with __main__.MyApp(argv=['compile-downstream-dependencies', '--packages-parent-dir', packages_parent_dir]) as app:
+                with __main__.App(argv=['compile-downstream-dependencies', '--packages-parent-dir', packages_parent_dir]) as app:
                     app.run()
                     self.assertRegexpMatches(captured.stdout.get_text(), 'The following downstream dependencies were found')
                     self.assertEqual(captured.stderr.get_text(), '')
 
         with self.construct_environment():
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                with __main__.MyApp(argv=['compile-downstream-dependencies',
+                with __main__.App(argv=['compile-downstream-dependencies',
                                         '--packages-parent-dir', os.path.join(packages_parent_dir, 'pkg_1')]) as app:
                     app.run()
                     self.assertRegexpMatches(captured.stdout.get_text(), 'No downstream packages were found.')
@@ -1882,7 +1882,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         # test cli
         with self.construct_environment():
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                with __main__.MyApp(argv=['are-package-dependencies-acyclic',
+                with __main__.App(argv=['are-package-dependencies-acyclic',
                                         '--packages-parent-dir', packages_parent_dir]) as app:
                     app.run()
                     self.assertRegexpMatches(captured.stdout.get_text(), 'The dependencies are acyclic.')
@@ -1901,7 +1901,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         # test cli
         with self.construct_environment():
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                with __main__.MyApp(argv=['are-package-dependencies-acyclic',
+                with __main__.App(argv=['are-package-dependencies-acyclic',
                                         '--packages-parent-dir', packages_parent_dir]) as app:
                     app.run()
                     self.assertRegexpMatches(captured.stdout.get_text(), 'The dependencies are cyclic.')
@@ -1945,7 +1945,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         # test cli
         with self.construct_environment():
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                with __main__.MyApp(argv=['visualize-package-dependencies',
+                with __main__.App(argv=['visualize-package-dependencies',
                                         '--packages-parent-dir', packages_parent_dir,
                                         '--out-filename', out_filename]) as app:
                     app.run()
@@ -2041,7 +2041,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
                 # test cli
                 with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_2]):
-                    with __main__.MyApp(argv=['trigger-tests-of-downstream-dependencies',
+                    with __main__.App(argv=['trigger-tests-of-downstream-dependencies',
                                             '--config-filename', config_filename]) as app:
                         with capturer.CaptureOutput(merged=False, relay=False) as captured:
                             app.run()
@@ -2100,7 +2100,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
                 # test cli
                 with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_2]):
-                    with __main__.MyApp(argv=['trigger-tests-of-downstream-dependencies',
+                    with __main__.App(argv=['trigger-tests-of-downstream-dependencies',
                                             '--config-filename', config_filename]) as app:
                         with capturer.CaptureOutput(merged=False, relay=False) as captured:
                             app.run()
@@ -2229,11 +2229,11 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     def test_analyze_package(self):
         # test api
         build_helper = core.BuildHelper()
-        
+
         with capturer.CaptureOutput(merged=False, relay=False) as captured:
             build_helper.analyze_package('karr_lab_build_utils')
             self.assertRegexpMatches(captured.stdout.get_text(), '\* Module karr_lab_build_utils.core')
-            self.assertEqual(captured.stderr.get_text().strip(), '')        
+            self.assertEqual(captured.stderr.get_text().strip(), '')
 
         with capturer.CaptureOutput(merged=False, relay=False) as captured:
             build_helper.analyze_package('karr_lab_build_utils', verbose=True)
@@ -2243,22 +2243,22 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         config_filename = os.path.join(self.tmp_dirname, 'pylintrc')
         with open(config_filename, 'w') as file:
             file.write('\n')
-        with capturer.CaptureOutput(merged=False, relay=False) as captured:            
+        with capturer.CaptureOutput(merged=False, relay=False) as captured:
             build_helper.analyze_package('karr_lab_build_utils', verbose=True, config_filename=config_filename)
             self.assertRegexpMatches(captured.stdout.get_text(), '\* Module karr_lab_build_utils.core')
-            self.assertEqual(captured.stderr.get_text().strip(), 'Using config file {}'.format(config_filename)) 
+            self.assertEqual(captured.stderr.get_text().strip(), 'Using config file {}'.format(config_filename))
 
         # test cli
         with self.construct_environment():
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                with __main__.MyApp(argv=['analyze-package', 'karr_lab_build_utils']) as app:
+                with __main__.App(argv=['analyze-package', 'karr_lab_build_utils']) as app:
                     app.run()
                     self.assertRegexpMatches(captured.stdout.get_text(), '\* Module karr_lab_build_utils.core')
                     self.assertEqual(captured.stderr.get_text().strip(), '')
 
         with self.construct_environment():
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                with __main__.MyApp(argv=['analyze-package', 'karr_lab_build_utils', '--messages', 'W0611']) as app:
+                with __main__.App(argv=['analyze-package', 'karr_lab_build_utils', '--messages', 'W0611']) as app:
                     app.run()
                     self.assertRegexpMatches(captured.stdout.get_text(), '\* Module karr_lab_build_utils.core')
                     self.assertEqual(captured.stderr.get_text().strip(), '')
@@ -2272,7 +2272,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         # test cli
         with self.construct_environment():
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                with __main__.MyApp(argv=[
+                with __main__.App(argv=[
                         'find-missing-requirements', 'karr_lab_build_utils',
                         '--ignore-files', 'karr_lab_build_utils/templates/*']) as app:
                     app.run()
@@ -2285,7 +2285,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         try:
             with self.construct_environment():
                 with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                    with __main__.MyApp(argv=[
+                    with __main__.App(argv=[
                             'find-missing-requirements', 'karr_lab_build_utils',
                             '--ignore-files', 'karr_lab_build_utils/templates/*']) as app:
                         app.run()
@@ -2316,7 +2316,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         # test cli
         with self.construct_environment():
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                with __main__.MyApp(argv=[
+                with __main__.App(argv=[
                         'find-unused-requirements', 'karr_lab_build_utils',
                         '--ignore-file', 'karr_lab_build_utils/templates/*']) as app:
                     app.run()
@@ -2331,7 +2331,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             pass
         with self.construct_environment():
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                with __main__.MyApp(argv=[
+                with __main__.App(argv=[
                         'find-unused-requirements', 'karr_lab_build_utils',
                         '--ignore-file', 'karr_lab_build_utils/templates/*',
                 ]) as app:
@@ -2360,7 +2360,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         # test cli
         with self.construct_environment():
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                with __main__.MyApp(argv=['upload-package-to-pypi',
+                with __main__.App(argv=['upload-package-to-pypi',
                                         '--dirname', dirname,
                                         '--repository', 'testpypi']) as app:
                     app.run()
@@ -2429,14 +2429,14 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         """ test CLI """
         with self.construct_environment():
-            with __main__.MyApp(argv=['-v']) as app:
+            with __main__.App(argv=['-v']) as app:
                 with capturer.CaptureOutput(merged=False, relay=False) as captured:
                     with self.assertRaises(SystemExit):
                         app.run()
                     self.assertEqual(captured.stdout.get_text(), karr_lab_build_utils.__version__)
                     self.assertEqual(captured.stderr.get_text(), '')
 
-            with __main__.MyApp(argv=['--version']) as app:
+            with __main__.App(argv=['--version']) as app:
                 with capturer.CaptureOutput(merged=False, relay=False) as captured:
                     with self.assertRaises(SystemExit):
                         app.run()

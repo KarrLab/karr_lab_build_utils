@@ -6,14 +6,14 @@
 :License: MIT
 """
 
-from cement import App, Controller, ex
+import cement
 from karr_lab_build_utils.core import BuildHelper, BuildHelperError
 import karr_lab_build_utils
 import os
 import sys
 
 
-class BaseController(Controller):
+class BaseController(cement.Controller):
     """ Base controller for command line application """
 
     class Meta:
@@ -23,30 +23,30 @@ class BaseController(Controller):
             (['-v', '--version'], dict(action='version', version=karr_lab_build_utils.__version__)),
         ]
 
-    @ex(help='Archive test report')
+    @cement.ex(help='Archive test report')
     def archive_test_report(self):
         """ Upload test report to history server """
         buildHelper = BuildHelper()
         buildHelper.archive_test_report()
 
-    @ex(help='Install requirements')
+    @cement.ex(help='Install requirements')
     def install_requirements(self):
         """ Install requirements """
         buildHelper = BuildHelper()
         buildHelper.install_requirements()
 
-    @ex(help="Upgrade requirements from the Karr Lab's GitHub organization")
+    @cement.ex(help="Upgrade requirements from the Karr Lab's GitHub organization")
     def upgrade_requirements(self):
         """ Upgrade requirements from the Karr Lab's GitHub organization """
         buildHelper = BuildHelper()
         buildHelper.upgrade_requirements()
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         self.app.args.print_help()
 
 
-class CreatePackageController(Controller):
+class CreatePackageController(cement.Controller):
     """ Create a package
 
     * Create local and remote Git repositories;
@@ -67,14 +67,14 @@ class CreatePackageController(Controller):
         stacked_type = 'nested'
         arguments = []
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         buildHelper.create_package()
 
 
-class CreateRepositoryController(Controller):
+class CreateRepositoryController(cement.Controller):
     """ Create a GitHub repository and clone the repository locally """
 
     class Meta:
@@ -93,14 +93,14 @@ class CreateRepositoryController(Controller):
                 default=None, type=str, help='Path for the repository')),
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         buildHelper.create_repository(args.name, description=args.description, private=(not args.public), dirname=args.dirname)
 
 
-class SetupRepositoryController(Controller):
+class SetupRepositoryController(cement.Controller):
     """ Setup a local Git repository with the default directory structure """
 
     class Meta:
@@ -131,7 +131,7 @@ class SetupRepositoryController(Controller):
                 default=None, type=str, help='Code Climate badge token for the repository')),
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
@@ -142,7 +142,7 @@ class SetupRepositoryController(Controller):
             code_climate_repo_id=args.code_climate_repo_id, code_climate_repo_badge_token=args.code_climate_repo_badge_token)
 
 
-class CreateDocumentationTemplateController(Controller):
+class CreateDocumentationTemplateController(cement.Controller):
     """ Create a Sphinx documentation template for a package """
 
     class Meta:
@@ -155,15 +155,15 @@ class CreateDocumentationTemplateController(Controller):
                 default='.', type=str, help="Path to the package; default='.'")),
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         buildHelper.create_documentation_template(dirname=args.dirname)
 
 
-class RunTestsController(Controller):
-    """ Controller for run_tests.
+class RunTestsController(cement.Controller):
+    """ cement.Controller for run_tests.
 
     Run unit tests located at `test-path`.
     Optionally, generate a coverage report.
@@ -202,7 +202,7 @@ class RunTestsController(Controller):
                 dest='remove_docker_container', action='store_false', default=True, help='Keep Docker container')),
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         args = self.app.pargs
 
@@ -229,7 +229,7 @@ class RunTestsController(Controller):
                               ssh_key_filename=args.ssh_key_filename, remove_docker_container=args.remove_docker_container)
 
 
-class DockerController(Controller):
+class DockerController(cement.Controller):
     """ Base controller for Docker tasks """
 
     class Meta:
@@ -239,12 +239,12 @@ class DockerController(Controller):
         stacked_type = 'nested'
         arguments = []
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         self.app.args.print_help()
 
 
-class DockerCreateContainerController(Controller):
+class DockerCreateContainerController(cement.Controller):
     """ Create a Docker container for running tests """
 
     class Meta:
@@ -257,7 +257,7 @@ class DockerCreateContainerController(Controller):
                 type=str, default='~/.ssh/id_rsa', help='Path to GitHub SSH key')),
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
@@ -265,7 +265,7 @@ class DockerCreateContainerController(Controller):
         print('Created Docker container {0} with volume {0}'.format(container))
 
 
-class InstallPackageToDockerContainerController(Controller):
+class InstallPackageToDockerContainerController(cement.Controller):
     """ Copy and install a package to a Docker container """
     class Meta:
         label = 'install-package-to-container'
@@ -278,14 +278,14 @@ class InstallPackageToDockerContainerController(Controller):
                 type=str, default='.', help="Path to package to test; default='.'")),
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         buildHelper.install_package_to_docker_container(args.container, dirname=args.dirname)
 
 
-class RunTestsInDockerContainerController(Controller):
+class RunTestsInDockerContainerController(cement.Controller):
     """ Run tests in a Docker container """
 
     class Meta:
@@ -312,7 +312,7 @@ class RunTestsInDockerContainerController(Controller):
                 help="Type of coverage analysis to run {statement, branch, or multiple-decision}; default='branch'")),
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         # if `test_path` was not specified at the command line, try to get it from the `test_path` environment variable
         # which can be set in CircleCI via build parameters
@@ -337,7 +337,7 @@ class RunTestsInDockerContainerController(Controller):
                                                   coverage_type=coverage_type)
 
 
-class DockerRemoveContainerController(Controller):
+class DockerRemoveContainerController(cement.Controller):
     """ Remove a Docker container """
 
     class Meta:
@@ -349,14 +349,14 @@ class DockerRemoveContainerController(Controller):
             (['container'], dict(type=str, help="Container id")),
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         buildHelper.remove_docker_container(args.container)
 
 
-class FollowCircleciBuildController(Controller):
+class FollowCircleciBuildController(cement.Controller):
     """ Follow a CircleCI build for a repository """
     class Meta:
         label = 'follow-circleci-build'
@@ -376,7 +376,7 @@ class FollowCircleciBuildController(Controller):
                       'another private repository'))),
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
@@ -386,7 +386,7 @@ class FollowCircleciBuildController(Controller):
             has_private_dependencies=args.has_private_dependencies)
 
 
-class GetCircleciEnvironmentVariablesController(Controller):
+class GetCircleciEnvironmentVariablesController(cement.Controller):
     """ Get the CircleCI environment variables for a repository and their partial values"""
     class Meta:
         label = 'get-circleci-environment-variables'
@@ -402,7 +402,7 @@ class GetCircleciEnvironmentVariablesController(Controller):
                 type=str, default=None, help='Name of the repository to build. This defaults to the name of the current repository.')),
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
@@ -413,7 +413,7 @@ class GetCircleciEnvironmentVariablesController(Controller):
             print('{}={}'.format(key, val))
 
 
-class SetCircleciEnvironmentVariableController(Controller):
+class SetCircleciEnvironmentVariableController(cement.Controller):
     """ Set a CircleCI environment variable for a repository """
     class Meta:
         label = 'set-circleci-environment-variable'
@@ -433,7 +433,7 @@ class SetCircleciEnvironmentVariableController(Controller):
                 type=str, default=None, help='Name of the repository to build. This defaults to the name of the current repository.')),
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
@@ -443,7 +443,7 @@ class SetCircleciEnvironmentVariableController(Controller):
             repo_name=args.repo_name)
 
 
-class DeleteCircleciEnvironmentVariableController(Controller):
+class DeleteCircleciEnvironmentVariableController(cement.Controller):
     """ Delete a CircleCI environment variable for a repository """
     class Meta:
         label = 'delete-circleci-environment-variable'
@@ -461,7 +461,7 @@ class DeleteCircleciEnvironmentVariableController(Controller):
                 type=str, default=None, help='Name of the repository to build. This defaults to the name of the current repository.')),
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
@@ -470,7 +470,7 @@ class DeleteCircleciEnvironmentVariableController(Controller):
                                                          repo_name=args.repo_name)
 
 
-class CreateCodeClimateGithubWebhookController(Controller):
+class CreateCodeClimateGithubWebhookController(cement.Controller):
     """ Create Code Climate GitHub webhook for the current repository """
     class Meta:
         label = 'create-code-climate-github-webhook'
@@ -486,7 +486,7 @@ class CreateCodeClimateGithubWebhookController(Controller):
                 type=str, default=None, help='Name of the repository to build. This defaults to the name of the current repository.')),
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
@@ -494,7 +494,7 @@ class CreateCodeClimateGithubWebhookController(Controller):
             repo_type=args.repo_type, repo_owner=args.repo_owner, repo_name=args.repo_name)
 
 
-class DoPostTestTasksController(Controller):
+class DoPostTestTasksController(cement.Controller):
     """ Do all post-test tasks for CircleCI """
 
     class Meta:
@@ -511,7 +511,7 @@ class DoPostTestTasksController(Controller):
                 default=False, dest='dry_run', action='store_true', help='If set, do not send results to Coveralls and Code Climate')),
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         args = self.app.pargs
         dry_run = args.dry_run or bool(int(os.getenv('dry_run', '0')))
@@ -555,7 +555,7 @@ class DoPostTestTasksController(Controller):
             raise BuildHelperError('Post-test tasks were not successful')
 
 
-class MakeAndArchiveReportsController(Controller):
+class MakeAndArchiveReportsController(cement.Controller):
     """ Make and archive reports:
 
     * Generate HTML test history reports
@@ -575,7 +575,7 @@ class MakeAndArchiveReportsController(Controller):
                 default=False, dest='dry_run', action='store_true', help='If set, do not send results to Coveralls and Code Climate')),
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         args = self.app.pargs
 
@@ -585,7 +585,7 @@ class MakeAndArchiveReportsController(Controller):
         buildHelper.make_and_archive_reports(coverage_dirname=args.coverage_dirname, dry_run=dry_run)
 
 
-class CombineCoverageReportsController(Controller):
+class CombineCoverageReportsController(cement.Controller):
     """ Combine coverage reports """
 
     class Meta:
@@ -598,14 +598,14 @@ class CombineCoverageReportsController(Controller):
                 default='.', type=str, help="Directory to save coverage reports, which defaults to '.'.")),
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         buildHelper.combine_coverage_reports(coverage_dirname=args.coverage_dirname)
 
 
-class ArchiveCoverageReportController(Controller):
+class ArchiveCoverageReportController(cement.Controller):
     """ Archive a coverage report:
 
     * Upload report to Coveralls and Code Climate
@@ -623,7 +623,7 @@ class ArchiveCoverageReportController(Controller):
                 default=False, dest='dry_run', action='store_true', help='If set, do not send results to Coveralls and Code Climate')),
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         """ Archive a coverage report:
 
@@ -635,7 +635,7 @@ class ArchiveCoverageReportController(Controller):
         buildHelper.archive_coverage_report(coverage_dirname=args.coverage_dirname, dry_run=dry_run)
 
 
-class UploadCoverageReportToCoverallsController(Controller):
+class UploadCoverageReportToCoverallsController(cement.Controller):
     """ Upload coverage report to Code Climate """
 
     class Meta:
@@ -650,7 +650,7 @@ class UploadCoverageReportToCoverallsController(Controller):
                 default=False, dest='dry_run', action='store_true', help='If set, do not send results to Coveralls')),
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         """ Upload coverage report to Coveralls """
         args = self.app.pargs
@@ -659,7 +659,7 @@ class UploadCoverageReportToCoverallsController(Controller):
         buildHelper.upload_coverage_report_to_coveralls(coverage_dirname=args.coverage_dirname, dry_run=dry_run)
 
 
-class UploadCoverageReportToCodeClimateController(Controller):
+class UploadCoverageReportToCodeClimateController(cement.Controller):
     """ Upload coverage report to Code Climate """
 
     class Meta:
@@ -674,7 +674,7 @@ class UploadCoverageReportToCodeClimateController(Controller):
                 default=False, dest='dry_run', action='store_true', help='If set, do not send results to Code Climate')),
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         """ Upload coverage report to Code Climate """
         args = self.app.pargs
@@ -683,8 +683,8 @@ class UploadCoverageReportToCodeClimateController(Controller):
         buildHelper.upload_coverage_report_to_code_climate(coverage_dirname=args.coverage_dirname, dry_run=dry_run)
 
 
-class MakeDocumentationController(Controller):
-    """ Controller for make_documentation.
+class MakeDocumentationController(cement.Controller):
+    """ cement.Controller for make_documentation.
 
     Make HTML documentation. Optionally, spell check documentation.
     """
@@ -699,14 +699,14 @@ class MakeDocumentationController(Controller):
                 default=False, dest='spell_check', action='store_true', help='If set, spell check documentation')),
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         buildHelper.make_documentation(spell_check=args.spell_check)
 
 
-class CompileDownstreamDependenciesController(Controller):
+class CompileDownstreamDependenciesController(cement.Controller):
     """ Compile the downstream dependencies of a package by analyzing the requirements files of other packages """
 
     class Meta:
@@ -723,7 +723,7 @@ class CompileDownstreamDependenciesController(Controller):
                 type=str, default=None, help='Path to save the configuration including downstream dependencies in YAML format')),
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
@@ -740,7 +740,7 @@ class CompileDownstreamDependenciesController(Controller):
             print('No downstream packages were found.')
 
 
-class ArePackageDependenciesAcyclicController(Controller):
+class ArePackageDependenciesAcyclicController(cement.Controller):
     """ Check if the package dependencies are acyclic so they are supported by CircleCI """
 
     class Meta:
@@ -753,7 +753,7 @@ class ArePackageDependenciesAcyclicController(Controller):
                 type=str, default='..', help='Path to the parent directory of the other packages')),
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
@@ -763,7 +763,7 @@ class ArePackageDependenciesAcyclicController(Controller):
             print('The dependencies are cyclic. This must be corrected for CircleCI.')
 
 
-class VisualizePackageDependenciesController(Controller):
+class VisualizePackageDependenciesController(cement.Controller):
     """ Visualize downstream package dependencies as a graph """
 
     class Meta:
@@ -778,14 +778,14 @@ class VisualizePackageDependenciesController(Controller):
                 type=str, default='../package_dependencies.pdf', help='Path to save the visualization')),
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         buildHelper.visualize_package_dependencies(packages_parent_dir=args.packages_parent_dir, out_filename=args.out_filename)
 
 
-class TriggerTestsOfDownstreamDependenciesController(Controller):
+class TriggerTestsOfDownstreamDependenciesController(cement.Controller):
     """ Trigger CircleCI to test downstream dependencies """
 
     class Meta:
@@ -798,7 +798,7 @@ class TriggerTestsOfDownstreamDependenciesController(Controller):
                                          help='Path to YAML-formatted configuration including list of downstream dependencies')),
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
@@ -812,7 +812,7 @@ class TriggerTestsOfDownstreamDependenciesController(Controller):
             print('No dependent builds were triggered.')
 
 
-class AnalyzePackageController(Controller):
+class AnalyzePackageController(cement.Controller):
     """ Perform static analyses of a package using Pylint """
 
     class Meta:
@@ -827,7 +827,7 @@ class AnalyzePackageController(Controller):
                 type=str, default='', help='comma-separated list of ids of Pylint checks to run')),
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
@@ -838,8 +838,8 @@ class AnalyzePackageController(Controller):
         buildHelper.analyze_package(args.package_name, messages=messages)
 
 
-class FindMissingRequirementsController(Controller):
-    """ Controller for finding missing requirements """
+class FindMissingRequirementsController(cement.Controller):
+    """ cement.Controller for finding missing requirements """
 
     class Meta:
         label = 'find-missing-requirements'
@@ -856,7 +856,7 @@ class FindMissingRequirementsController(Controller):
 
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
@@ -874,8 +874,8 @@ class FindMissingRequirementsController(Controller):
             print('requirements.txt appears to contain all of the dependencies')
 
 
-class FindUnusedRequirementsController(Controller):
-    """ Controller for finding unused requirements """
+class FindUnusedRequirementsController(cement.Controller):
+    """ cement.Controller for finding unused requirements """
 
     class Meta:
         label = 'find-unused-requirements'
@@ -891,7 +891,7 @@ class FindUnusedRequirementsController(Controller):
                 dest='ignore_files', action="append", default=[], help='Paths to ignore')),
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
@@ -906,7 +906,7 @@ class FindUnusedRequirementsController(Controller):
             print('All of the dependencies appear to be necessary')
 
 
-class UploadPackageToPypiController(Controller):
+class UploadPackageToPypiController(cement.Controller):
     """ Upload package to PyPI
     """
 
@@ -922,7 +922,7 @@ class UploadPackageToPypiController(Controller):
                 type=str, default='pypi', help='Repository upload package (e.g. pypi or testpypi)')),
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
@@ -931,7 +931,7 @@ class UploadPackageToPypiController(Controller):
             repository=args.repository)
 
 
-class MyApp(App):
+class App(cement.App):
     """ Command line application """
     class Meta:
         label = 'karr_lab_build_utils'
@@ -972,5 +972,5 @@ class MyApp(App):
 
 
 def main():
-    with MyApp() as app:
+    with App() as app:
         app.run()
