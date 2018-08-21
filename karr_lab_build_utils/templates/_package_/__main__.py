@@ -22,12 +22,12 @@ class BaseController(Controller):
         ]
 
     @ex(help='command_1 description')
-    def command_1(self):
+    def cmd1(self):
         """ command_1 description """
         print('command_1 output')
 
     @ex(help='command_2 description')
-    def command_2(self):
+    def cmd2(self):
         """ command_2 description """
         print('command_2 output')
 

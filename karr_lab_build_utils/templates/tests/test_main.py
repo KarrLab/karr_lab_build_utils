@@ -23,18 +23,18 @@ class TestCore(unittest.TestCase):
 
     def test_help(self):
         with self.assertRaises(SystemExit):
-            with __main__.App(argv=['--help']) as app:
+            with __main__.MyApp(argv=['--help']) as app:
                 app.run()
 
-    def test_version(self):        
-        with __main__.App(argv=['-v']) as app:
+    def test_version(self):
+        with __main__.MyApp(argv=['-v']) as app:
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
                 with self.assertRaises(SystemExit):
                     app.run()
                 self.assertEqual(captured.stdout.get_text(), {{ name }}.__version__)
                 self.assertEqual(captured.stderr.get_text(), '')
 
-        with __main__.App(argv=['--version']) as app:
+        with __main__.MyApp(argv=['--version']) as app:
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
                 with self.assertRaises(SystemExit):
                     app.run()
@@ -43,7 +43,7 @@ class TestCore(unittest.TestCase):
 
     def test_command_1(self):
         with capturer.CaptureOutput(merged=False, relay=False) as captured:
-            with __main__.App(argv=['command-1']) as app:
+            with __main__.MyApp(argv=['command-1']) as app:
                 # run app
                 app.run()
 
@@ -53,7 +53,7 @@ class TestCore(unittest.TestCase):
 
     def test_command_1(self):
         with capturer.CaptureOutput(merged=False, relay=False) as captured:
-            with __main__.App(argv=['command-2']) as app:
+            with __main__.MyApp(argv=['command-2']) as app:
                 # run app
                 app.run()
 
@@ -63,7 +63,7 @@ class TestCore(unittest.TestCase):
 
     def test_command_3(self):
         with capturer.CaptureOutput(merged=False, relay=False) as captured:
-            with __main__.App(argv=['command-3',
+            with __main__.MyApp(argv=['command-3',
                                     'arg-1 value',
                                     'arg-2 value',
                                     '--opt-arg-3', 'opt-arg-3 value',
