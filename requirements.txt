@@ -1,6 +1,6 @@
 abduct
 attrdict
-cement
+cement >= 3.0.0
 click
 configobj
 coverage
