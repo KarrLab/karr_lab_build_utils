@@ -32,7 +32,7 @@ class BaseController(Controller):
         print('command_2 output')
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         self.app.args.print_help()
 
 
@@ -56,7 +56,7 @@ class Command3WithArgumentsController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         args = self.app.pargs
         args.arg_1
         args.arg_2
@@ -64,7 +64,7 @@ class Command3WithArgumentsController(Controller):
         args.opt_arg_4
 
 
-class App(App):
+class MyApp(App):
     """ Command line application """
     class Meta:
         label = '{{ name }}'
@@ -76,5 +76,5 @@ class App(App):
 
 
 def main():
-    with App() as app:
+    with MyApp() as app:
         app.run()

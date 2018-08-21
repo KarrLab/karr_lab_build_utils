@@ -42,7 +42,7 @@ class BaseController(Controller):
         buildHelper.upgrade_requirements()
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         self.app.args.print_help()
 
 
@@ -68,7 +68,7 @@ class CreatePackageController(Controller):
         arguments = []
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         buildHelper.create_package()
@@ -94,7 +94,7 @@ class CreateRepositoryController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         buildHelper.create_repository(args.name, description=args.description, private=(not args.public), dirname=args.dirname)
@@ -132,7 +132,7 @@ class SetupRepositoryController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         buildHelper.setup_repository(
@@ -156,7 +156,7 @@ class CreateDocumentationTemplateController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         buildHelper.create_documentation_template(dirname=args.dirname)
@@ -203,7 +203,7 @@ class RunTestsController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         args = self.app.pargs
 
         # if `test_path` was not specified at the command line, try to get it from the `test_path` environment variable
@@ -240,7 +240,7 @@ class DockerController(Controller):
         arguments = []
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         self.app.args.print_help()
 
 
@@ -258,7 +258,7 @@ class DockerCreateContainerController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         container = buildHelper.create_docker_container(ssh_key_filename=args.ssh_key_filename)
@@ -279,7 +279,7 @@ class InstallPackageToDockerContainerController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         buildHelper.install_package_to_docker_container(args.container, dirname=args.dirname)
@@ -313,7 +313,7 @@ class RunTestsInDockerContainerController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         # if `test_path` was not specified at the command line, try to get it from the `test_path` environment variable
         # which can be set in CircleCI via build parameters
         args = self.app.pargs
@@ -350,7 +350,7 @@ class DockerRemoveContainerController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         buildHelper.remove_docker_container(args.container)
@@ -377,7 +377,7 @@ class FollowCircleciBuildController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         buildHelper.follow_circleci_build(
@@ -403,7 +403,7 @@ class GetCircleciEnvironmentVariablesController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         vars = buildHelper.get_circleci_environment_variables(
@@ -434,7 +434,7 @@ class SetCircleciEnvironmentVariableController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         buildHelper.set_circleci_environment_variables(
@@ -462,7 +462,7 @@ class DeleteCircleciEnvironmentVariableController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         buildHelper.delete_circleci_environment_variable(args.name,
@@ -487,7 +487,7 @@ class CreateCodeClimateGithubWebhookController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         buildHelper.create_code_climate_github_webhook(
@@ -512,7 +512,7 @@ class DoPostTestTasksController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         args = self.app.pargs
         dry_run = args.dry_run or bool(int(os.getenv('dry_run', '0')))
 
@@ -576,7 +576,7 @@ class MakeAndArchiveReportsController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         args = self.app.pargs
 
         dry_run = args.dry_run or bool(int(os.getenv('dry_run', '0')))
@@ -599,7 +599,7 @@ class CombineCoverageReportsController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         buildHelper.combine_coverage_reports(coverage_dirname=args.coverage_dirname)
@@ -624,7 +624,7 @@ class ArchiveCoverageReportController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         """ Archive a coverage report:
 
         * Upload report to Coveralls and Code Climate
@@ -651,7 +651,7 @@ class UploadCoverageReportToCoverallsController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         """ Upload coverage report to Coveralls """
         args = self.app.pargs
         dry_run = args.dry_run or bool(int(os.getenv('dry_run', '0')))
@@ -675,7 +675,7 @@ class UploadCoverageReportToCodeClimateController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         """ Upload coverage report to Code Climate """
         args = self.app.pargs
         dry_run = args.dry_run or bool(int(os.getenv('dry_run', '0')))
@@ -700,7 +700,7 @@ class MakeDocumentationController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         buildHelper.make_documentation(spell_check=args.spell_check)
@@ -724,7 +724,7 @@ class CompileDownstreamDependenciesController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         packages = buildHelper.compile_downstream_dependencies(
@@ -754,7 +754,7 @@ class ArePackageDependenciesAcyclicController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         if buildHelper.are_package_dependencies_acyclic(packages_parent_dir=args.packages_parent_dir):
@@ -779,7 +779,7 @@ class VisualizePackageDependenciesController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         buildHelper.visualize_package_dependencies(packages_parent_dir=args.packages_parent_dir, out_filename=args.out_filename)
@@ -799,7 +799,7 @@ class TriggerTestsOfDownstreamDependenciesController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         packages = buildHelper.trigger_tests_of_downstream_dependencies(
@@ -828,7 +828,7 @@ class AnalyzePackageController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         if args.messages:
@@ -857,7 +857,7 @@ class FindMissingRequirementsController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         missing = buildHelper.find_missing_requirements(
@@ -892,7 +892,7 @@ class FindUnusedRequirementsController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         unuseds = buildHelper.find_unused_requirements(
@@ -923,7 +923,7 @@ class UploadPackageToPypiController(Controller):
         ]
 
     @ex(hide=True)
-    def default(self):
+    def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
         buildHelper.upload_package_to_pypi(
@@ -931,7 +931,7 @@ class UploadPackageToPypiController(Controller):
             repository=args.repository)
 
 
-class App(App):
+class MyApp(App):
     """ Command line application """
     class Meta:
         label = 'karr_lab_build_utils'
@@ -972,5 +972,5 @@ class App(App):
 
 
 def main():
-    with App() as app:
+    with MyApp() as app:
         app.run()
