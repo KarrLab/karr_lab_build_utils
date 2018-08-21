@@ -37,3 +37,6 @@ circleci_docker_context/
 
 # logs
 logs/
+
+#environment
+.venv/
