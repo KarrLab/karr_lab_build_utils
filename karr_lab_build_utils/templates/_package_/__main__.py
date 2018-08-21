@@ -6,12 +6,12 @@
 :License: MIT
 """
 
-from cement import App, Controller, ex
+import cement
 import {{name}}
 import {{name}}.core
 
 
-class BaseController(Controller):
+class BaseController(cement.Controller):
     """ Base controller for command line application """
 
     class Meta:
@@ -21,22 +21,22 @@ class BaseController(Controller):
             (['-v', '--version'], dict(action='version', version={{ name }}.__version__)),
         ]
 
-    @ex(help='command_1 description')
+    @cement.ex(help='command_1 description')
     def cmd1(self):
         """ command_1 description """
         print('command_1 output')
 
-    @ex(help='command_2 description')
+    @cement.ex(help='command_2 description')
     def cmd2(self):
         """ command_2 description """
         print('command_2 output')
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         self.app.args.print_help()
 
 
-class Command3WithArgumentsController(Controller):
+class Command3WithArgumentsController(cement.Controller):
     """ Command3 description """
 
     class Meta:
@@ -55,7 +55,7 @@ class Command3WithArgumentsController(Controller):
                 type=float, default=float('nan'), help='Description of opt-arg-4')),
         ]
 
-    @ex(hide=True)
+    @cement.ex(hide=True)
     def _default(self):
         args = self.app.pargs
         args.arg_1
@@ -64,7 +64,7 @@ class Command3WithArgumentsController(Controller):
         args.opt_arg_4
 
 
-class MyApp(App):
+class App(cement.App):
     """ Command line application """
     class Meta:
         label = '{{ name }}'
@@ -74,7 +74,6 @@ class MyApp(App):
             Command3WithArgumentsController,
         ]
 
-
 def main():
-    with MyApp() as app:
+    with App() as app:
         app.run()
