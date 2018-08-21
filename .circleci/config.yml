@@ -17,8 +17,8 @@ jobs:
 
       # Python 3 installation tasks
       - run:
-        name: Update Cement
-        command: pip3 install -U cement
+          name: Update Cement
+          command: pip3 install -U cement
       - run:
           name: Install pkg_utils (Python 3)
           command: pip3 install -U --process-dependency-links git+https://github.com/KarrLab/pkg_utils.git#egg=pkg_utils
