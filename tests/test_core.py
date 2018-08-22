@@ -2367,13 +2367,13 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     self.assertRegexpMatches(captured.stdout.get_text(), 'Uploading distributions to https://test\.pypi\.org/legacy/')
                     self.assertEqual(captured.stderr.get_text().strip(), '')
 
-    def test_download_package_configs(self):
+    def test_download_package_config_files(self):
         build_helper = self.construct_build_helper()
         build_helper.configs_repo_path = tempfile.mkdtemp()
         shutil.rmtree(build_helper.configs_repo_path)
 
         # download package configs
-        build_helper.download_package_configs()
+        build_helper.download_package_config_files()
         self.assertTrue(os.path.isdir(build_helper.configs_repo_path))
 
         shutil.rmtree(build_helper.configs_repo_path)
@@ -2387,16 +2387,16 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             else:
                 default_func(src, dest)
         with mock.patch('git.Repo.clone_from', side_effect=side_effect):
-            build_helper.download_package_configs()
+            build_helper.download_package_config_files()
         self.assertTrue(os.path.isdir(build_helper.configs_repo_path))
 
         # update package configs
-        build_helper.download_package_configs()
+        build_helper.download_package_config_files()
 
         # cleanup
         shutil.rmtree(build_helper.configs_repo_path)
 
-    def test_set_third_party_configs(self):
+    def test_install_package_config_files(self):
         build_helper = self.construct_build_helper()
         tmp_dir = build_helper.configs_repo_path = tempfile.mkdtemp()
         os.mkdir(os.path.join(tmp_dir, 'third_party'))
@@ -2409,7 +2409,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         # update package configs
         with EnvironmentVarGuard() as env:
-            build_helper.set_third_party_configs()
+            build_helper.install_package_config_files()
 
         # test
         with open(dest, 'r') as file:
@@ -2417,6 +2417,11 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         # cleanup
         shutil.rmtree(build_helper.configs_repo_path)
+
+    def test_download_install_package_config_files(self):
+        with self.construct_environment():
+            with __main__.App(argv=['download-install-package-config-files']) as app:
+                app.run()
 
     def test_get_version(self):
         self.assertIsInstance(karr_lab_build_utils.__init__.__version__, str)

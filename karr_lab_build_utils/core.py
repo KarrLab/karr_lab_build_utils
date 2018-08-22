@@ -217,8 +217,8 @@ class BuildHelper(object):
         self.configs_repo_password = config['configs_repo_password']
         self.configs_repo_path = os.path.expanduser(config['configs_repo_path'])
 
-        self.download_package_configs()
-        self.set_third_party_configs()
+        self.download_package_config_files()
+        self.install_package_config_files()
         config = karr_lab_build_utils.config.core.get_config()['karr_lab_build_utils']
         self.configs_repo_url = config['configs_repo_url']
         self.configs_repo_username = config['configs_repo_username']
@@ -2469,7 +2469,7 @@ class BuildHelper(object):
         with open('.karr_lab_build_utils.yml', 'r') as file:
             return yaml.load(file)
 
-    def download_package_configs(self):
+    def download_package_config_files(self):
         """ Download the configuration repository 
 
         Args:
@@ -2487,7 +2487,7 @@ class BuildHelper(object):
                     self.configs_repo_username, self.configs_repo_password))
                 git.Repo.clone_from(url, self.configs_repo_path)
 
-    def set_third_party_configs(self, overwrite=False):
+    def install_package_config_files(self, overwrite=False):
         """ Copy third party configs to their appropriate paths from the configs repository 
 
         Args:

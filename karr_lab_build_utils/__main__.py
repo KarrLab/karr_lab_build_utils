@@ -162,6 +162,24 @@ class CreateDocumentationTemplateController(cement.Controller):
         buildHelper.create_documentation_template(dirname=args.dirname)
 
 
+class DownloadInstallPackageConfigFilesController(cement.Controller):
+    """ Download and install configuration files from GitHub configuration repository """
+
+    class Meta:
+        label = 'download-install-package-config-files'
+        description = 'Download and install configuration files from GitHub configuration repository'
+        stacked_on = 'base'
+        stacked_type = 'nested'
+        arguments = []
+
+    @cement.ex(hide=True)
+    def _default(self):
+        args = self.app.pargs
+        buildHelper = BuildHelper()
+        buildHelper.download_package_config_files()
+        buildHelper.install_package_config_files()
+
+
 class RunTestsController(cement.Controller):
     """ cement.Controller for run_tests.
 
@@ -942,6 +960,7 @@ class App(cement.App):
             CreateRepositoryController,
             SetupRepositoryController,
             CreateDocumentationTemplateController,
+            DownloadInstallPackageConfigFilesController,
             RunTestsController,
             DockerController,
             DockerCreateContainerController,
