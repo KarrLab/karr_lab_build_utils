@@ -5,7 +5,7 @@ jobs:
     working_directory: /root/project
     docker:
 {% endraw %}
-      - image: karrlab/build:latest
+      - image: karrlab/wc_env_dependencies:latest
 {% raw %}
     steps:
       # Clone repository

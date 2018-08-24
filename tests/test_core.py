@@ -15,8 +15,8 @@
       ``karr_lab_docker_images/build/Dockerfile``)
     * Run the Docker image with privileged mode or with socket mounting, e.g.
 
-        * docker run --privileged karrlab/build:latest
-        * docker run -v /var/run/docker.sock:/var/run/docker.sock karrlab/build:latest
+        * docker run --privileged karrlab/wc_env_dependencies:latest
+        * docker run -v /var/run/docker.sock:/var/run/docker.sock karrlab/wc_env_dependencies:latest
 
         Both of these approaches would require:
 

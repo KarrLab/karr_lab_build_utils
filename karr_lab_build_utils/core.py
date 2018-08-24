@@ -169,7 +169,7 @@ class BuildHelper(object):
     DEFAULT_PROJ_DOCS_BUILD_DOCTREES_DIR = 'docs/_build/doctrees'
     DEFAULT_PROJ_DOCS_BUILD_HTML_DIR = 'docs/_build/html'
     DEFAULT_PROJ_DOCS_BUILD_SPELLING_DIR = 'docs/_build/spelling'
-    DEFAULT_BUILD_IMAGE = 'karrlab/build:latest'
+    DEFAULT_BUILD_IMAGE = 'karrlab/wc_env_dependencies:latest'
 
     GITHUB_API_ENDPOINT = 'https://api.github.com'
     CIRCLE_API_ENDPOINT = 'https://circleci.com/api/v1.1'
@@ -1028,7 +1028,7 @@ class BuildHelper(object):
                           coverage_type=CoverageType.branch, ssh_key_filename='~/.ssh/id_rsa', remove_container=True):
         """ Run unit tests located at `test_path` using a Docker image:
 
-        #. Create a container based on the build image (e.g, karrlab/build:latest)
+        #. Create a container based on the build image (e.g, karrlab/wc_env_dependencies:latest)
         #. Copy your GitHub SSH key to the container
         #. Remove Python cache directories (``__pycache__``) from the package
         #. Copy the package to the container at ``/root/projects``
