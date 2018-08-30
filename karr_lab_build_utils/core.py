@@ -2288,12 +2288,12 @@ class BuildHelper(object):
 
         report_opts = [
             '--reports=n',
-            '--score=n',            
+            '--score=n',
         ]
         other_opts = []
         if config_filename:
             other_opts.append('--rcfile={}'.format(config_filename))
-        if verbose:            
+        if verbose:
             other_opts.append('--verbose')
         return epylint.lint(package_name, msg_opts + report_opts + other_opts)
 
@@ -2477,8 +2477,15 @@ class BuildHelper(object):
         """
         # clone or update repo
         if os.path.isdir(self.configs_repo_path):
-            repo = git.Repo(path=self.configs_repo_path)
-            repo.remotes['origin'].pull()
+            try:
+                repo = git.Repo(path=self.configs_repo_path)
+                repo.remotes['origin'].pull()
+            except InvalidGitRepositoryError:
+                temp_dir_name = tempfile.mkdtemp()
+                git.Repo.clone_from(self.configs_repo_url, temp_dir_name)
+                shutil.copytree_to_existing_destination(self.configs_repo_url, temp_dir_name)
+                shutil.rmtree(self.configs_repo_url)
+                os.rename(temp_dir_name, self.configs_repo_url)
         else:
             try:
                 git.Repo.clone_from(self.configs_repo_url, self.configs_repo_path)
