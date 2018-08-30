@@ -2480,7 +2480,7 @@ class BuildHelper(object):
             try:
                 repo = git.Repo(path=self.configs_repo_path)
                 repo.remotes['origin'].pull()
-            except InvalidGitRepositoryError:
+            except git.exc.InvalidGitRepositoryError:
                 temp_dir_name = tempfile.mkdtemp()
                 git.Repo.clone_from(self.configs_repo_url, temp_dir_name)
                 shutil.copytree_to_existing_destination(self.configs_repo_url, temp_dir_name)
