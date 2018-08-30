@@ -2483,9 +2483,9 @@ class BuildHelper(object):
             except git.exc.InvalidGitRepositoryError:
                 temp_dir_name = tempfile.mkdtemp()
                 git.Repo.clone_from(self.configs_repo_url, temp_dir_name)
-                wc_utils.util.files.copytree_to_existing_destination(self.configs_repo_url, temp_dir_name)
-                shutil.rmtree(self.configs_repo_url)
-                os.rename(temp_dir_name, self.configs_repo_url)
+                wc_utils.util.files.copytree_to_existing_destination(self.configs_repo_path, temp_dir_name)
+                shutil.rmtree(self.configs_repo_path)
+                os.rename(temp_dir_name, self.configs_repo_path)
         else:
             try:
                 git.Repo.clone_from(self.configs_repo_url, self.configs_repo_path)
