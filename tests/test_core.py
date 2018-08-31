@@ -550,7 +550,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with mock.patch('pip._internal.commands.show.search_packages_info', side_effect=show):
                 with mock.patch('pip._internal.operations.freeze.freeze', return_value=freeze):
                     build_helper = self.construct_build_helper()
-                    reqs = build_helper.upgrade_requirements()
+                    reqs = build_helper.upgrade_karr_lab_packages()
         self.assertEqual(reqs, ['git+https://github.com/KarrLab/pkg3.git#egg=pkg3[all]',
                                 'git+https://github.com/KarrLab/pkg5.git#egg=pkg5[all]'])
 
