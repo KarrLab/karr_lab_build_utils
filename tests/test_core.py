@@ -519,15 +519,15 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         shutil.rmtree(tempdirname)
 
-    def test_upgrade_requirements(self):
+    def test_upgrade_karr_lab_packages(self):
         build_helper = self.construct_build_helper()
 
         """ test API """
-        build_helper.upgrade_requirements()
+        build_helper.upgrade_karr_lab_packages()
 
         """ test CLI """
         with self.construct_environment():
-            with __main__.App(argv=['upgrade-requirements']) as app:
+            with __main__.App(argv=['upgrade-karr-lab-packages']) as app:
                 app.run()
 
     def test_upgrade_requirements_karr_lab_reqs(self):

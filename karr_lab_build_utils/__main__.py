@@ -35,11 +35,11 @@ class BaseController(cement.Controller):
         buildHelper = BuildHelper()
         buildHelper.install_requirements()
 
-    @cement.ex(help="Upgrade requirements from the Karr Lab's GitHub organization")
-    def upgrade_requirements(self):
-        """ Upgrade requirements from the Karr Lab's GitHub organization """
+    @cement.ex(help="Upgrade the packages from the Karr Lab's GitHub organization")
+    def upgrade_karr_lab_packages(self):
+        """ Upgrade the packages from the Karr Lab's GitHub organization """
         buildHelper = BuildHelper()
-        buildHelper.upgrade_requirements()
+        buildHelper.upgrade_karr_lab_packages()
 
     @cement.ex(hide=True)
     def _default(self):

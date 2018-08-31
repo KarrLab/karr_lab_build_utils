@@ -775,31 +775,44 @@ class BuildHelper(object):
     #########################
     # Installing dependencies
     #########################
-    def install_requirements(self):
-        """ Install requirements """
+    def install_requirements(self, upgrade=False):
+        """ Install requirements
+
+        Args:
+            upgrade (:obj:`bool`, optional): if :obj:`True`, upgrade requirements
+        """
 
         # upgrade pip, setuptools
         py_v = '{}.{}'.format(sys.version_info[0], sys.version_info[1])
-        subprocess.check_call(['pip' + py_v, 'install', '-U', 'setuptools'])
-        subprocess.check_call(['pip' + py_v, 'install', '-U', 'pip'])
+        
+        cmd = ['pip' + py_v, 'install', 'setuptools']
+        if upgrade:
+            cmd.append('-U')
+        subprocess.check_call(cmd)
+        
+        cmd = ['pip' + py_v, 'install', 'pip']
+        if upgrade:
+            cmd.append('-U')
+        subprocess.check_call(cmd)
 
         # requirements for package
-        self._install_requirements_helper('requirements.txt')
-        self._install_requirements_helper('requirements.optional.txt', ignore_options=True)
-        self._install_requirements_helper(os.path.join(self.proj_tests_dir, 'requirements.txt'))
-        self._install_requirements_helper(os.path.join(self.proj_docs_dir, 'requirements.txt'))
+        self._install_requirements_helper('requirements.txt', upgrade=upgrade)
+        self._install_requirements_helper('requirements.optional.txt', ignore_options=True, upgrade=upgrade)
+        self._install_requirements_helper(os.path.join(self.proj_tests_dir, 'requirements.txt'), upgrade=upgrade)
+        self._install_requirements_helper(os.path.join(self.proj_docs_dir, 'requirements.txt'), upgrade=upgrade)
 
         # upgrade CircleCI
-        if whichcraft.which('docker') and whichcraft.which('circleci'):
+        if upgrade and whichcraft.which('docker') and whichcraft.which('circleci'):
             subprocess.check_call(['circleci', 'update'])
 
-    def _install_requirements_helper(self, filename, ignore_options=False):
+    def _install_requirements_helper(self, filename, ignore_options=False, upgrade=False):
         """ Install the packages in a requirements.txt file, including all optional dependencies
 
         Args:
             filename (:obj:`str`): path to requirements file
             ignore_options (:obj:`bool`, optional): if :obj:`True`, ignore option headings
                 (e.g. for requirements.optional.txt)
+            upgrade (:obj:`bool`, optional): if :obj:`True`, upgrade requirements
         """
         if not os.path.isfile(filename):
             return
@@ -820,21 +833,21 @@ class BuildHelper(object):
             filename = sanitized_filename
 
         py_v = '{}.{}'.format(sys.version_info[0], sys.version_info[1])
-        subprocess.check_call(['pip' + py_v, 'install', '-U', '--process-dependency-links', '-r', filename])
+        cmd = ['pip' + py_v, 'install', '--process-dependency-links', '-r', filename]
+        if upgrade:
+            cmd.append('-U')
+        subprocess.check_call(cmd)
 
         # cleanup temporary file
         if ignore_options:
             os.remove(sanitized_filename)
 
-    def upgrade_requirements(self):
-        """ Upgrade requirements from the Karr Lab's GitHub organization
+    def upgrade_karr_lab_packages(self):
+        """ Upgrade the packages from the Karr Lab's GitHub organization
 
         Returns:
             :obj:`list` of :obj:`str`: upgraded requirements from the Karr Lab's GitHub organization
         """
-        # upgrade PyPI requirements
-        self.install_requirements()
-
         # get Karr Lab requirements
         lines = pip._internal.operations.freeze.freeze()
         reqs = []
@@ -860,10 +873,6 @@ class BuildHelper(object):
         if reqs:
             subprocess.check_call(['pip{}.{}'.format(sys.version_info[0], sys.version_info[1]),
                                    'install', '-U', '--process-dependency-links'] + reqs)
-
-        # upgrade CircleCI
-        if whichcraft.which('docker') and whichcraft.which('circleci'):
-            subprocess.check_call(['circleci', 'update'])
 
         return reqs
 
