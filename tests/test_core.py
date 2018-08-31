@@ -697,6 +697,17 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         'Test requires Docker and Docker isn''t installed. '
         'See installation instructions at `https://docs.karrlab.org/intro_to_wc_modeling/latest/installation.html`'
     ))
+    def test__run_docker_command_capture_stdout(self):
+        build_helper = self.construct_build_helper()
+        with capturer.CaptureOutput(merged=False, relay=False) as capture_output:
+            out = build_helper._run_docker_command(['images'])
+            self.assertRegex(out, '^REPOSITORY')
+            self.assertEqual(capture_output.stdout.get_text(), '')
+
+    @unittest.skipIf(whichcraft.which('docker') is None, (
+        'Test requires Docker and Docker isn''t installed. '
+        'See installation instructions at `https://docs.karrlab.org/intro_to_wc_modeling/latest/installation.html`'
+    ))
     def test__run_docker_command_exception(self):
         build_helper = self.construct_build_helper()
         with self.assertRaisesRegexp(core.BuildHelperError, 'is not a docker command'):
@@ -2544,6 +2555,7 @@ class TestCircleCi(unittest.TestCase):
                 return_value = attrdict.AttrDict({
                     'poll': lambda: True,
                     'returncode': 0,
+                    'communicate': lambda: (b'', b''),
                 })
                 with mock.patch('subprocess.Popen', return_value=return_value):
                     build_helper.run_tests(test_path=TestKarrLabBuildUtils.DUMMY_TEST, environment=core.Environment.circleci)

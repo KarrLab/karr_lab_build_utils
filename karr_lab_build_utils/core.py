@@ -14,10 +14,6 @@ from six.moves import configparser
 from xml.dom import minidom
 import abduct
 import attrdict
-try:
-    import capturer
-except ImportError:
-    pass
 import click
 import coverage
 import coveralls
@@ -1256,15 +1252,14 @@ class BuildHelper(object):
         Raises:
             :obj:`BuildHelperError`: if the docker command fails
         """
-        with capturer.CaptureOutput() as captured:
-            process = subprocess.Popen(['docker'] + cmd, cwd=cwd)
-            while process.poll() is None:
-                time.sleep(0.5)
-            out = captured.get_text()
+        process = subprocess.Popen(['docker'] + cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        while process.poll() is None:
+            time.sleep(0.5)
+        out, err = process.communicate()
         if process.returncode != 0 and raise_error:
-            raise BuildHelperError(out)
+            raise BuildHelperError(err.decode())
 
-        return out
+        return out.decode()
 
     def _run_tests_circleci(self, dirname='.', test_path='tests', verbose=False, ssh_key_filename='~/.ssh/id_rsa'):
         """ Run unit tests located at `test_path` using the CircleCI local executor. This will run the same commands defined in
@@ -1333,17 +1328,16 @@ class BuildHelper(object):
                                  cwd=karr_lab_build_utils_dirname)
 
         # test package
-        with capturer.CaptureOutput() as captured:
-            process = subprocess.Popen(['circleci',
-                                        '--env', 'test_path={}'.format(test_path),
-                                        '--env', 'verbose={:d}'.format(verbose),
-                                        '--env', 'dry_run=1',
-                                        '--env', 'CONFIG__DOT__karr_lab_build_utils__DOT__configs_repo_password={}'.format(
-                                            self.configs_repo_password),
-                                        'build'], cwd=dirname)
-            while process.poll() is None:
-                time.sleep(0.5)
-            out = captured.get_text()
+        process = subprocess.Popen(['circleci',
+                                    '--env', 'test_path={}'.format(test_path),
+                                    '--env', 'verbose={:d}'.format(verbose),
+                                    '--env', 'dry_run=1',
+                                    '--env', 'CONFIG__DOT__karr_lab_build_utils__DOT__configs_repo_password={}'.format(
+                                        self.configs_repo_password),
+                                    'build'], cwd=dirname, stderr=subprocess.PIPE)
+        while process.poll() is None:
+            time.sleep(0.5)
+        err = process.communicate()[1].decode()
 
         # revert CircleCI configuration file
         os.remove(circleci_config_filename)
@@ -1356,8 +1350,8 @@ class BuildHelper(object):
         shutil.rmtree(circleci_context_dirname)
 
         # raise error if tests didn't pass
-        if process.returncode != 0 or 'Task failed' in out:
-            raise BuildHelperError(out.encode('utf-8'))
+        if process.returncode != 0 or 'Task failed' in err:
+            raise BuildHelperError(err)
 
     def get_test_results(self):
         """ Load test results from a set of XML files
