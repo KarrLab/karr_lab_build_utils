@@ -1337,13 +1337,13 @@ class BuildHelper(object):
                                  cwd=karr_lab_build_utils_dirname)
 
         # test package
-        process = subprocess.Popen(['circleci',
+        process = subprocess.Popen(['circleci', 'local', 'execute',
                                     '--env', 'test_path={}'.format(test_path),
                                     '--env', 'verbose={:d}'.format(verbose),
                                     '--env', 'dry_run=1',
                                     '--env', 'CONFIG__DOT__karr_lab_build_utils__DOT__configs_repo_password={}'.format(
                                         self.configs_repo_password),
-                                    'build'], cwd=dirname, stderr=subprocess.PIPE)
+                                    ], cwd=dirname, stderr=subprocess.PIPE)
         while process.poll() is None:
             time.sleep(0.5)
         err = process.communicate()[1].decode()
