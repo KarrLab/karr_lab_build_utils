@@ -88,9 +88,9 @@ jobs:
           destination: docs
 {% endraw %}
 
-workflows:
-  version: 2
-  build:
-    jobs:
-      - build:
-          context: karr_lab
+# workflows:
+#  version: 2
+#  build:
+#    jobs:
+#      - build:
+#          context: karr_lab
