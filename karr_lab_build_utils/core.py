@@ -803,7 +803,8 @@ class BuildHelper(object):
 
         # upgrade CircleCI
         if upgrade and whichcraft.which('docker') and whichcraft.which('circleci'):
-            subprocess.check_call(['circleci', 'update'])
+            subprocess.check_call(['circleci', 'update', 'install'])
+            subprocess.check_call(['circleci', 'update', 'build-agent'])
 
     def _install_requirements_helper(self, filename, ignore_options=False, upgrade=False):
         """ Install the packages in a requirements.txt file, including all optional dependencies
