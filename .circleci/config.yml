@@ -4,7 +4,7 @@ jobs:
     docker:
     - image: karrlab/wc_env_dependencies:latest
     working_directory: /root/project
-    parallelism: 2
+    parallelism: 1
     steps:
       # Clone repository
       - checkout
