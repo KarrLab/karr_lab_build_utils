@@ -200,6 +200,10 @@ class RunTestsController(cement.Controller):
                     'If the `test_path` environment variable is not defined, TEST_PATH defaults to `tests`.'))),
             (['--dirname'], dict(
                 type=str, default='.', help="Path to package to test; default='.'")),
+            (['--n-workers'], dict(
+                type=int, default=1, help='Numbers of workers to run tests`')),
+            (['--i-worker'], dict(
+                type=int, default=0, help='Index of worker within {0 .. n-workers - 1}')),
             (['--verbose'], dict(
                 default=False, action='store_true', help='if set display test output')),
             (['--with-xunit'], dict(
@@ -207,7 +211,7 @@ class RunTestsController(cement.Controller):
             (['--with-coverage'], dict(
                 default=False, action='store_true', help='if set assess code coverage')),
             (['--coverage-dirname'], dict(
-                type=str, default='.', help="Directory to store coverage data; default='.'")),
+                type=str, default='tests/results', help="Directory to store coverage data; default='tests/results'")),
             (['--coverage-type'], dict(
                 type=str, default='branch',
                 help="Type of coverage analysis to run {statement, branch, or multiple-decision}; default='branch'")),
@@ -241,7 +245,9 @@ class RunTestsController(cement.Controller):
 
         # run tests
         buildHelper = BuildHelper()
-        buildHelper.run_tests(dirname=args.dirname, test_path=test_path, verbose=verbose, with_xunit=args.with_xunit,
+        buildHelper.run_tests(dirname=args.dirname, test_path=test_path,
+                              n_workers=args.n_workers, i_worker=args.i_worker,
+                              verbose=verbose, with_xunit=args.with_xunit,
                               with_coverage=args.with_coverage, coverage_dirname=args.coverage_dirname,
                               coverage_type=coverage_type, environment=karr_lab_build_utils.core.Environment[args.environment],
                               ssh_key_filename=args.ssh_key_filename, remove_docker_container=args.remove_docker_container)
@@ -317,6 +323,10 @@ class RunTestsInDockerContainerController(cement.Controller):
                 type=str, default=None, help=(
                     'Path to tests to run. '
                     'If the `test_path` environment variable is not defined, TEST_PATH defaults to `tests`.'))),
+            (['--n-workers'], dict(
+                type=int, default=1, help='Numbers of workers to run tests`')),
+            (['--i-worker'], dict(
+                type=int, default=0, help='Index of worker within {0 .. n-workers - 1}')),
             (['--verbose'], dict(
                 default=False, action='store_true', help='if set display test output')),
             (['--with-xunit'], dict(
@@ -324,7 +334,7 @@ class RunTestsInDockerContainerController(cement.Controller):
             (['--with-coverage'], dict(
                 default=False, action='store_true', help='if set assess code coverage')),
             (['--coverage-dirname'], dict(
-                type=str, default='.', help="Directory to store coverage data; default='.'")),
+                type=str, default='tests/results', help="Directory to store coverage data; default='tests/results'")),
             (['--coverage-type'], dict(
                 type=str, default='branch',
                 help="Type of coverage analysis to run {statement, branch, or multiple-decision}; default='branch'")),
@@ -350,7 +360,9 @@ class RunTestsInDockerContainerController(cement.Controller):
 
         # run tests
         buildHelper = BuildHelper()
-        buildHelper.run_tests_in_docker_container(args.container, test_path=test_path, verbose=verbose, with_xunit=args.with_xunit,
+        buildHelper.run_tests_in_docker_container(args.container, test_path=test_path,
+                                                  n_workers=args.n_workers, i_worker=args.i_worker,
+                                                  verbose=verbose, with_xunit=args.with_xunit,
                                                   with_coverage=args.with_coverage, coverage_dirname=args.coverage_dirname,
                                                   coverage_type=coverage_type)
 
@@ -588,7 +600,7 @@ class MakeAndArchiveReportsController(cement.Controller):
         stacked_type = 'nested'
         arguments = [
             (['--coverage-dirname'], dict(
-                default='.', type=str, help="Directory to save coverage reports, which defaults to '.'.")),
+                type=str, default='tests/results', help="Directory to store coverage data; default='tests/results'")),
             (['--dry-run'], dict(
                 default=False, dest='dry_run', action='store_true', help='If set, do not send results to Coveralls and Code Climate')),
         ]
@@ -613,7 +625,7 @@ class CombineCoverageReportsController(cement.Controller):
         stacked_type = 'nested'
         arguments = [
             (['--coverage-dirname'], dict(
-                default='.', type=str, help="Directory to save coverage reports, which defaults to '.'.")),
+                type=str, default='tests/results', help="Directory to store coverage data; default='tests/results'")),
         ]
 
     @cement.ex(hide=True)
@@ -636,7 +648,7 @@ class ArchiveCoverageReportController(cement.Controller):
         stacked_type = 'nested'
         arguments = [
             (['--coverage-dirname'], dict(
-                default='.', type=str, help="Directory to save coverage reports, which defaults to '.'.")),
+                type=str, default='tests/results', help="Directory to store coverage data; default='tests/results'")),
             (['--dry-run'], dict(
                 default=False, dest='dry_run', action='store_true', help='If set, do not send results to Coveralls and Code Climate')),
         ]
@@ -663,7 +675,7 @@ class UploadCoverageReportToCoverallsController(cement.Controller):
         stacked_type = 'nested'
         arguments = [
             (['--coverage-dirname'], dict(
-                default='.', type=str, help="Directory to save coverage reports, which defaults to '.'.")),
+                type=str, default='tests/results', help="Directory to store coverage data; default='tests/results'")),
             (['--dry-run'], dict(
                 default=False, dest='dry_run', action='store_true', help='If set, do not send results to Coveralls')),
         ]
@@ -687,7 +699,7 @@ class UploadCoverageReportToCodeClimateController(cement.Controller):
         stacked_type = 'nested'
         arguments = [
             (['--coverage-dirname'], dict(
-                default='.', type=str, help="Directory to save coverage reports, which defaults to '.'.")),
+                type=str, default='tests/results', help="Directory to store coverage data; default='tests/results'")),
             (['--dry-run'], dict(
                 default=False, dest='dry_run', action='store_true', help='If set, do not send results to Code Climate')),
         ]

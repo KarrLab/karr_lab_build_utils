@@ -570,9 +570,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         build_helper.proj_tests_xml_dir = tempdirname
 
         """ test API """
-        latest_results_filename = os.path.join(build_helper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
-            build_helper.proj_tests_xml_latest_filename, py_v))
-        lastest_cov_filename = os.path.join(self.tmp_dirname, '.coverage.{}'.format(py_v))
+        latest_results_filename = os.path.join(build_helper.proj_tests_xml_dir, '{}.{}-{}.{}.xml'.format(
+            build_helper.proj_tests_xml_latest_filename, 0, 1, py_v))
+        lastest_cov_filename = os.path.join(self.tmp_dirname, '.coverage.{}-{}.{}'.format(0, 1, py_v))
         if os.path.isdir(build_helper.proj_tests_xml_dir):
             shutil.rmtree(build_helper.proj_tests_xml_dir)
         if os.path.isfile(latest_results_filename):
@@ -580,16 +580,22 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         if os.path.isfile(lastest_cov_filename):
             os.remove(lastest_cov_filename)
 
-        build_helper.run_tests(test_path=self.DUMMY_TEST,
-                               with_xunit=True,
-                               with_coverage=True, coverage_dirname=self.tmp_dirname,
-                               coverage_type=coverage_type)
+        build_helper.run_tests(
+            test_path=self.DUMMY_TEST,
+            with_xunit=True,
+            with_coverage=True, coverage_dirname=self.tmp_dirname,
+            coverage_type=coverage_type)
 
         self.assertTrue(os.path.isfile(latest_results_filename))
         self.assertTrue(os.path.isfile(lastest_cov_filename))
 
         """ test CLI """
-        argv = ['run-tests', '--test-path', self.DUMMY_TEST, '--with-xunit', '--with-coverage']
+        argv = [
+            'run-tests',
+            '--test-path', self.DUMMY_TEST,
+            '--with-xunit',
+            '--with-coverage', '--coverage-dirname', tempdirname,
+        ]
         with self.construct_environment():
             with __main__.App(argv=argv) as app:
                 app.run()
@@ -598,6 +604,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 self.assertTrue(app.pargs.with_coverage)
 
         shutil.rmtree(tempdirname)
+
+    @unittest.skip('Todo')
+    def test_run_tests_multiple_workers(self):
+        pass
 
     def test_run_tests_default_path(self):
         with self.construct_environment():
@@ -644,6 +654,43 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         shutil.rmtree(tempdirname)
 
+    def test__get_test_cases(self):
+        build_helper = self.construct_build_helper()
+
+        dummy_test_case = os.path.join(os.path.basename(os.path.dirname(__file__)), os.path.basename(__file__)) + \
+            '::TestKarrLabBuildUtils::test_dummy_test'
+
+        self.assertEqual(
+            build_helper._get_test_cases(test_path=dummy_test_case, n_workers=1, i_worker=0),
+            [dummy_test_case])
+        self.assertEqual(
+            build_helper._get_test_cases(test_path=dummy_test_case, n_workers=2, i_worker=0),
+            [dummy_test_case])
+        self.assertEqual(
+            build_helper._get_test_cases(test_path=dummy_test_case, n_workers=2, i_worker=1),
+            [])
+
+        test_cases = [
+            'tests/test_api.py::ApiTestCase',
+            'tests/test_core.py::TestCircleCi',
+            'tests/test_core.py::TestKarrLabBuildUtils',
+        ]
+        self.assertEqual(
+            build_helper._get_test_cases(test_path='tests', n_workers=1, i_worker=0),
+            test_cases)
+        self.assertEqual(
+            build_helper._get_test_cases(test_path='tests', n_workers=2, i_worker=0),
+            [test_cases[0], test_cases[2]])
+        self.assertEqual(
+            build_helper._get_test_cases(test_path='tests', n_workers=2, i_worker=1),
+            [test_cases[1]])
+        self.assertEqual(
+            build_helper._get_test_cases(test_path='tests', n_workers=4, i_worker=3),
+            [])
+
+        with self.assertRaisesRegexp(core.BuildHelperError, 'less than'):
+            build_helper._get_test_cases(n_workers=1, i_worker=1)
+
     def test_docker_help(self):
         with __main__.App(argv=['docker']) as app:
             app.run()
@@ -682,14 +729,17 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         build_helper.proj_tests_xml_dir = self.tmp_dirname
 
         # test success
-        build_helper.run_tests(test_path=self.DUMMY_TEST,
-                               with_xunit=True, with_coverage=True, coverage_dirname=self.tmp_dirname,
-                               environment=core.Environment.docker, verbose=True)
+        build_helper.run_tests(
+            test_path=self.DUMMY_TEST,
+            with_xunit=True,
+            with_coverage=True, coverage_dirname=self.tmp_dirname,
+            environment=core.Environment.docker, verbose=True)
 
         py_v = '{}.{}'.format(sys.version_info[0], sys.version_info[1])
-        self.assertEqual(len(list(glob(os.path.join(self.tmp_dirname, '.coverage.{}.*'.format(py_v))))), 1)
-        self.assertEqual(len(list(glob(os.path.join(self.tmp_dirname,
-                                                    '{}.{}.*.xml'.format(build_helper.proj_tests_xml_latest_filename, py_v))))), 1)
+        self.assertEqual(len(list(glob(os.path.join(
+            self.tmp_dirname, '.coverage.{}-{}.{}.*'.format(0, 1, py_v))))), 1)
+        self.assertEqual(len(list(glob(os.path.join(
+            self.tmp_dirname, '{}.{}-{}.{}.*.xml'.format(build_helper.proj_tests_xml_latest_filename, 0, 1, py_v))))), 1)
 
         # :todo: test failure
 
@@ -812,12 +862,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         # mock test results
         filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
-                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+                                        '{0}.*-*.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
         for filename in glob(filename_pattern):
             os.remove(filename)
 
         filename = os.path.join(build_helper.proj_tests_xml_dir,
-                                '{0}.2.7.12.xml'.format(build_helper.proj_tests_xml_latest_filename))
+                                '{0}.0-1.2.7.12.xml'.format(build_helper.proj_tests_xml_latest_filename))
         with open(filename, 'w') as file:
             file.write('<?xml version="1.0" encoding="utf-8"?>')
             file.write('<testsuite errors="0" failures="0" skips="0" tests="4">')
@@ -846,12 +896,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         # mock test results
         filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
-                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+                                        '{0}.*-*.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
         for filename in glob(filename_pattern):
             os.remove(filename)
 
         filename = os.path.join(build_helper.proj_tests_xml_dir,
-                                '{0}.2.7.12.xml'.format(build_helper.proj_tests_xml_latest_filename))
+                                '{0}.0-1.2.7.12.xml'.format(build_helper.proj_tests_xml_latest_filename))
         with open(filename, 'w') as file:
             file.write('<?xml version="1.0" encoding="utf-8"?>')
             file.write('<testsuite errors="0" failures="0" skips="0" tests="4">')
@@ -923,12 +973,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         # mock test results
         filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
-                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+                                        '{0}.*-*.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
         for filename in glob(filename_pattern):
             os.remove(filename)
 
         filename = os.path.join(build_helper.proj_tests_xml_dir,
-                                '{0}.2.7.12.xml'.format(build_helper.proj_tests_xml_latest_filename))
+                                '{0}.0-1.2.7.12.xml'.format(build_helper.proj_tests_xml_latest_filename))
         with open(filename, 'w') as file:
             file.write('<?xml version="1.0" encoding="utf-8"?>')
             file.write('<testsuite errors="0" failures="0" skips="0" tests="4">')
@@ -1012,12 +1062,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         # mock test results
         filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
-                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+                                        '{0}.*-*.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
         for filename in glob(filename_pattern):
             os.remove(filename)
 
         filename = os.path.join(build_helper.proj_tests_xml_dir,
-                                '{}.2.7.12.xml'.format(build_helper.proj_tests_xml_latest_filename))
+                                '{}.0-1.2.7.12.xml'.format(build_helper.proj_tests_xml_latest_filename))
         with open(filename, 'w') as file:
             file.write('<?xml version="1.0" encoding="utf-8"?>')
             file.write('<testsuite errors="1" failures="1" skips="0" tests="3">')
@@ -1090,12 +1140,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         # mock test results
         filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
-                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+                                        '{0}.*-*.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
         for filename in glob(filename_pattern):
             os.remove(filename)
 
         filename = os.path.join(build_helper.proj_tests_xml_dir,
-                                '{}.2.7.12.xml'.format(build_helper.proj_tests_xml_latest_filename))
+                                '{}.0-1.2.7.12.xml'.format(build_helper.proj_tests_xml_latest_filename))
         with open(filename, 'w') as file:
             file.write('<?xml version="1.0" encoding="utf-8"?>')
             file.write('<testsuite errors="1" failures="1" skips="0" tests="3">')
@@ -1178,12 +1228,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         # mock test results
         filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
-                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+                                        '{0}.*-*.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
         for filename in glob(filename_pattern):
             os.remove(filename)
 
         filename = os.path.join(build_helper.proj_tests_xml_dir,
-                                '{}.2.7.12.xml'.format(build_helper.proj_tests_xml_latest_filename))
+                                '{}.0-1.2.7.12.xml'.format(build_helper.proj_tests_xml_latest_filename))
         with open(filename, 'w') as file:
             file.write('<?xml version="1.0" encoding="utf-8"?>')
             file.write('<testsuite errors="1" failures="1" skips="0" tests="3">')
@@ -1270,7 +1320,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         # mock test results
         filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
-                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+                                        '{0}.*-*.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
         for filename in glob(filename_pattern):
             os.remove(filename)
 
@@ -1330,12 +1380,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         # mock test results
         filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
-                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+                                        '{0}.*-*.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
         for filename in glob(filename_pattern):
             os.remove(filename)
 
         filename = os.path.join(build_helper.proj_tests_xml_dir,
-                                '{}.2.7.12.xml'.format(build_helper.proj_tests_xml_latest_filename))
+                                '{}.0-1.2.7.12.xml'.format(build_helper.proj_tests_xml_latest_filename))
         with open(filename, 'w') as file:
             file.write('<?xml version="1.0" encoding="utf-8"?>')
             file.write('<testsuite errors="1" failures="1" skips="0" tests="3">')
@@ -1433,7 +1483,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         build_helper = self.construct_build_helper()
 
         filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
-                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+                                        '{0}.*-*.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
         for filename in glob(filename_pattern):
             os.remove(filename)
 
@@ -1452,20 +1502,23 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
     def test_make_and_archive_reports(self):
         build_helper = self.construct_build_helper()
-        build_helper.run_tests(test_path=self.DUMMY_TEST,
-                               with_xunit=True,
-                               with_coverage=True, coverage_dirname=self.tmp_dirname)
+        build_helper.run_tests(
+            test_path=self.DUMMY_TEST,
+            with_xunit=True,
+            with_coverage=True, coverage_dirname=self.tmp_dirname)
 
         py_v = build_helper.get_python_version()
         shutil.copyfile(
-            os.path.join(build_helper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
-                build_helper.proj_tests_xml_latest_filename, py_v)),
-            os.path.join(build_helper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(10000000000000001, py_v))
+            os.path.join(build_helper.proj_tests_xml_dir, '{}.{}-{}.{}.xml'.format(
+                build_helper.proj_tests_xml_latest_filename, 0, 1, py_v)),
+            os.path.join(build_helper.proj_tests_xml_dir, '{}.{}-{}.{}.xml'.format(
+                10000000000000001, 0, 1, py_v))
         )
         shutil.copyfile(
-            os.path.join(build_helper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
-                build_helper.proj_tests_xml_latest_filename, py_v)),
-            os.path.join(build_helper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(10000000000000002, py_v))
+            os.path.join(build_helper.proj_tests_xml_dir, '{}.{}-{}.{}.xml'.format(
+                build_helper.proj_tests_xml_latest_filename, 0, 1, py_v)),
+            os.path.join(build_helper.proj_tests_xml_dir, '{}.{}-{}.{}.xml'.format(
+                10000000000000002, 0, 1, py_v))
         )
 
         """ test API """
@@ -1478,20 +1531,23 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
     def test_make_and_archive_reports_with_missing_req(self):
         build_helper = self.construct_build_helper()
-        build_helper.run_tests(test_path=self.DUMMY_TEST,
-                               with_xunit=True,
-                               with_coverage=True, coverage_dirname=self.tmp_dirname)
+        build_helper.run_tests(
+            test_path=self.DUMMY_TEST,
+            with_xunit=True,
+            with_coverage=True, coverage_dirname=self.tmp_dirname)
 
         py_v = build_helper.get_python_version()
         shutil.copyfile(
-            os.path.join(build_helper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
-                build_helper.proj_tests_xml_latest_filename, py_v)),
-            os.path.join(build_helper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(10000000000000001, py_v))
+            os.path.join(build_helper.proj_tests_xml_dir, '{}.{}-{}.{}.xml'.format(
+                build_helper.proj_tests_xml_latest_filename, 0, 1, py_v)),
+            os.path.join(build_helper.proj_tests_xml_dir, '{}.{}-{}.{}.xml'.format(
+                10000000000000001, 0, 1, py_v))
         )
         shutil.copyfile(
-            os.path.join(build_helper.proj_tests_xml_dir, '{0:s}.{1:s}.xml'.format(
-                build_helper.proj_tests_xml_latest_filename, py_v)),
-            os.path.join(build_helper.proj_tests_xml_dir, '{0:d}.{1:s}.xml'.format(10000000000000002, py_v))
+            os.path.join(build_helper.proj_tests_xml_dir, '{}.{}-{}.{}.xml'.format(
+                build_helper.proj_tests_xml_latest_filename, 0, 1, py_v)),
+            os.path.join(build_helper.proj_tests_xml_dir, '{}.{}-{}.{}.xml'.format(
+                10000000000000002, 0, 1, py_v))
         )
 
         shutil.copy('requirements.txt', 'requirements.txt.save')
@@ -1508,9 +1564,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
     def test_archive_test_report(self):
         build_helper = self.construct_build_helper()
-        build_helper.run_tests(test_path=self.DUMMY_TEST,
-                               with_xunit=True,
-                               with_coverage=True, coverage_dirname=self.tmp_dirname)
+        build_helper.run_tests(
+            test_path=self.DUMMY_TEST,
+            with_xunit=True,
+            with_coverage=True, coverage_dirname=self.tmp_dirname)
 
         """ test API """
         build_helper.archive_test_report()
@@ -1527,9 +1584,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
     def test_archive_test_report_err(self):
         build_helper = self.construct_build_helper()
-        build_helper.run_tests(test_path=self.DUMMY_TEST,
-                               with_xunit=True,
-                               with_coverage=True, coverage_dirname=self.tmp_dirname)
+        build_helper.run_tests(
+            test_path=self.DUMMY_TEST,
+            with_xunit=True,
+            with_coverage=True, coverage_dirname=self.tmp_dirname)
 
         class Result(object):
 
@@ -1545,55 +1603,57 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
     def test_combine_coverage_reports(self):
         build_helper = self.construct_build_helper()
-        build_helper.run_tests(test_path=self.DUMMY_TEST,
-                               with_xunit=True,
-                               with_coverage=True, coverage_dirname=self.tmp_dirname)
+        build_helper.run_tests(
+            test_path=self.DUMMY_TEST,
+            with_xunit=True,
+            with_coverage=True, coverage_dirname=self.tmp_dirname)
         shutil.move(
-            os.path.join(self.tmp_dirname, '.coverage.{}'.format(build_helper.get_python_version())),
-            os.path.join(self.tmp_dirname, '.coverage.1'))
+            os.path.join(self.tmp_dirname, '.coverage.0-1.{}'.format(build_helper.get_python_version())),
+            os.path.join(self.tmp_dirname, '.coverage.0-1.1'))
         shutil.copyfile(
-            os.path.join(self.tmp_dirname, '.coverage.1'),
-            os.path.join(self.tmp_dirname, '.coverage.2'))
+            os.path.join(self.tmp_dirname, '.coverage.0-1.1'),
+            os.path.join(self.tmp_dirname, '.coverage.0-1.2'))
 
         """ test API """
         if os.path.isfile(os.path.join(self.tmp_dirname, '.coverage')):
             os.remove(os.path.join(self.tmp_dirname, '.coverage'))
-        self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage.1')))
-        self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage.2')))
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage.0-1.1')))
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage.0-1.2')))
 
         build_helper.combine_coverage_reports(coverage_dirname=self.tmp_dirname)
 
         self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage')))
-        self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage.1')))
-        self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage.2')))
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage.0-1.1')))
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage.0-1.2')))
 
         """ test CLI """
         if os.path.isfile(os.path.join(self.tmp_dirname, '.coverage')):
             os.remove(os.path.join(self.tmp_dirname, '.coverage'))
-        self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage.1')))
-        self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage.2')))
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage.0-1.1')))
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage.0-1.2')))
 
         with self.construct_environment():
             with __main__.App(argv=['combine-coverage-reports', '--coverage-dirname', self.tmp_dirname]) as app:
                 app.run()
 
         self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage')))
-        self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage.1')))
-        self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage.2')))
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage.0-1.1')))
+        self.assertTrue(os.path.isfile(os.path.join(self.tmp_dirname, '.coverage.0-1.2')))
 
     def test_combine_coverage_reports_no_files(self):
         build_helper = self.construct_build_helper()
 
-        self.assertEqual(glob(os.path.join(self.tmp_dirname, '.coverage.*')), [])
+        self.assertEqual(glob(os.path.join(self.tmp_dirname, '.coverage.*-*.*')), [])
 
         with pytest.warns(UserWarning, match='No coverage files exist to combine'):
             build_helper.combine_coverage_reports(coverage_dirname=self.tmp_dirname)
 
     def test_archive_coverage_report(self):
         build_helper = self.construct_build_helper()
-        build_helper.run_tests(test_path=self.DUMMY_TEST,
-                               with_xunit=True,
-                               with_coverage=True, coverage_dirname=self.tmp_dirname)
+        build_helper.run_tests(
+            test_path=self.DUMMY_TEST,
+            with_xunit=True,
+            with_coverage=True, coverage_dirname=self.tmp_dirname)
 
         build_helper.combine_coverage_reports(coverage_dirname=self.tmp_dirname)
 
@@ -1607,12 +1667,13 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
     def test_upload_coverage_report_to_coveralls(self):
         build_helper = self.construct_build_helper()
-        build_helper.run_tests(test_path=self.DUMMY_TEST,
-                               with_xunit=True,
-                               with_coverage=True, coverage_dirname=self.tmp_dirname)
+        build_helper.run_tests(
+            test_path=self.DUMMY_TEST,
+            with_xunit=True,
+            with_coverage=True, coverage_dirname=self.tmp_dirname)
 
         shutil.move(
-            os.path.join(self.tmp_dirname, '.coverage.{}'.format(build_helper.get_python_version())),
+            os.path.join(self.tmp_dirname, '.coverage.{}-{}.{}'.format(0, 1, build_helper.get_python_version())),
             os.path.join(self.tmp_dirname, '.coverage'))
 
         """ test API """
@@ -1637,12 +1698,13 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
     def test_upload_coverage_report_to_code_climate(self):
         build_helper = self.construct_build_helper()
-        build_helper.run_tests(test_path=self.DUMMY_TEST,
-                               with_xunit=True,
-                               with_coverage=True, coverage_dirname=self.tmp_dirname)
+        build_helper.run_tests(
+            test_path=self.DUMMY_TEST,
+            with_xunit=True,
+            with_coverage=True, coverage_dirname=self.tmp_dirname)
 
         shutil.move(
-            os.path.join(self.tmp_dirname, '.coverage.{}'.format(build_helper.get_python_version())),
+            os.path.join(self.tmp_dirname, '.coverage.{}-{}.{}'.format(0, 1, build_helper.get_python_version())),
             os.path.join(self.tmp_dirname, '.coverage'))
 
         """ test API """
@@ -1971,12 +2033,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     def test_trigger_tests_of_downstream_dependencies_with_error(self):
         build_helper = core.BuildHelper()
         filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
-                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+                                        '{0}.*-*.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
         for filename in glob(filename_pattern):
             os.remove(filename)
 
         filename = os.path.join(build_helper.proj_tests_xml_dir,
-                                '{}.2.7.12.xml'.format(build_helper.proj_tests_xml_latest_filename))
+                                '{}.0-1.2.7.12.xml'.format(build_helper.proj_tests_xml_latest_filename))
         with open(filename, 'w') as file:
             file.write('<?xml version="1.0" encoding="utf-8"?>')
             file.write('<testsuite errors="1" failures="1" skips="0" tests="3">')
@@ -2000,7 +2062,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     def test_trigger_tests_of_downstream_dependencies_no_downstream(self):
         build_helper = core.BuildHelper()
         filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
-                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+                                        '{0}.*-*.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
         for filename in glob(filename_pattern):
             os.remove(filename)
 
@@ -2017,7 +2079,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     def test_trigger_tests_of_downstream_dependencies_no_upstream(self):
         build_helper = core.BuildHelper()
         filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
-                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+                                        '{0}.*-*.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
         for filename in glob(filename_pattern):
             os.remove(filename)
 
@@ -2065,7 +2127,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     def test_trigger_tests_of_downstream_dependencies_with_upstream(self):
         build_helper = core.BuildHelper()
         filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
-                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+                                        '{0}.*-*.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
         for filename in glob(filename_pattern):
             os.remove(filename)
 
@@ -2124,7 +2186,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     def test_trigger_tests_of_downstream_dependencies_trigger_original_upstream(self):
         build_helper = core.BuildHelper()
         filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
-                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+                                        '{0}.*-*.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
         for filename in glob(filename_pattern):
             os.remove(filename)
 
@@ -2177,7 +2239,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     def test_trigger_tests_of_downstream_dependencies_already_queued(self):
         build_helper = core.BuildHelper()
         filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
-                                        '{0}.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+                                        '{0}.*-*.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
         for filename in glob(filename_pattern):
             os.remove(filename)
 

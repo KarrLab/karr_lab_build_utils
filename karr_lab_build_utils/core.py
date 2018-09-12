@@ -784,12 +784,12 @@ class BuildHelper(object):
 
         # upgrade pip, setuptools
         py_v = '{}.{}'.format(sys.version_info[0], sys.version_info[1])
-        
+
         cmd = ['pip' + py_v, 'install', 'setuptools']
         if upgrade:
             cmd.append('-U')
         subprocess.check_call(cmd)
-        
+
         cmd = ['pip' + py_v, 'install', 'pip']
         if upgrade:
             cmd.append('-U')
@@ -879,7 +879,10 @@ class BuildHelper(object):
     ########################
     # Running tests
     ########################
-    def run_tests(self, dirname='.', test_path='tests', verbose=False, with_xunit=False, with_coverage=False, coverage_dirname='.',
+    def run_tests(self, dirname='.', test_path='tests',
+                  n_workers=1, i_worker=0,
+                  verbose=False, with_xunit=False,
+                  with_coverage=False, coverage_dirname='tests/reports',
                   coverage_type=CoverageType.branch, environment=Environment.local, exit_on_failure=True,
                   ssh_key_filename='~/.ssh/id_rsa', remove_docker_container=True):
         """ Run unit tests located at `test_path`.
@@ -894,6 +897,8 @@ class BuildHelper(object):
         Args:
             dirname (:obj:`str`, optional): path to package that should be tested
             test_path (:obj:`str`, optional): path to tests that should be run
+            n_workers (:obj:`int`, optional): number of workers to run tests
+            i_worker (:obj:`int`, optional): index of worker within {0 .. :obj:`n_workers` - 1}
             verbose (:obj:`str`, optional): if :obj:`True`, display stdout from tests
             with_xunit (:obj:`bool`, optional): whether or not to save test results
             with_coverage (:obj:`bool`, optional): whether or not coverage should be assessed
@@ -908,20 +913,29 @@ class BuildHelper(object):
             :obj:`BuildHelperError`: If the environment is not supported or the package directory not set
         """
         if environment == Environment.local:
-            self._run_tests_local(dirname=dirname, test_path=test_path, verbose=verbose, with_xunit=with_xunit,
+            self._run_tests_local(dirname=dirname, test_path=test_path,
+                                  n_workers=n_workers, i_worker=i_worker,
+                                  verbose=verbose, with_xunit=with_xunit,
                                   with_coverage=with_coverage, coverage_dirname=coverage_dirname,
                                   coverage_type=coverage_type, exit_on_failure=exit_on_failure)
         elif environment == Environment.docker:
-            self._run_tests_docker(dirname=dirname, test_path=test_path, verbose=verbose, with_xunit=with_xunit,
+            self._run_tests_docker(dirname=dirname, test_path=test_path,
+                                   n_workers=n_workers, i_worker=i_worker,
+                                   verbose=verbose, with_xunit=with_xunit,
                                    with_coverage=with_coverage, coverage_dirname=coverage_dirname,
                                    coverage_type=coverage_type, ssh_key_filename=ssh_key_filename,
                                    remove_container=remove_docker_container)
         elif environment == Environment.circleci:
-            self._run_tests_circleci(dirname=dirname, test_path=test_path, verbose=verbose, ssh_key_filename=ssh_key_filename)
+            self._run_tests_circleci(dirname=dirname, test_path=test_path,
+                                     n_workers=n_workers, i_worker=i_worker,
+                                     verbose=verbose, ssh_key_filename=ssh_key_filename)
         else:
             raise BuildHelperError('Unsupported environment: {}'.format(environment))
 
-    def _run_tests_local(self, dirname='.', test_path='tests', verbose=False, with_xunit=False, with_coverage=False, coverage_dirname='.',
+    def _run_tests_local(self, dirname='.', test_path='tests',
+                         n_workers=1, i_worker=0,
+                         verbose=False, with_xunit=False,
+                         with_coverage=False, coverage_dirname='tests/reports',
                          coverage_type=CoverageType.branch, exit_on_failure=True):
         """ Run unit tests located at `test_path` locally
 
@@ -935,6 +949,8 @@ class BuildHelper(object):
         Args:
             dirname (:obj:`str`, optional): path to package that should be tested
             test_path (:obj:`str`, optional): path to tests that should be run
+            n_workers (:obj:`int`, optional): number of workers to run tests
+            i_worker (:obj:`int`, optional): index of worker within {0 .. :obj:`n_workers` - 1}
             verbose (:obj:`str`, optional): if :obj:`True`, display stdout from tests
             with_xunit (:obj:`bool`, optional): whether or not to save test results
             with_coverage (:obj:`bool`, optional): whether or not coverage should be assessed
@@ -945,19 +961,25 @@ class BuildHelper(object):
         Raises:
             :obj:`BuildHelperError`: If the package directory not set
         """
-
         py_v = self.get_python_version()
         abs_xml_latest_filename = os.path.join(
-            self.proj_tests_xml_dir, '{0}.{1}.xml'.format(self.proj_tests_xml_latest_filename, py_v))
+            self.proj_tests_xml_dir, '{}.{}-{}.{}.xml'.format(
+                self.proj_tests_xml_latest_filename,
+                os.getenv('CIRCLE_NODE_INDEX', 0),
+                os.getenv('CIRCLE_NODE_TOTAL', 1),
+                py_v))
 
         if with_coverage:
+            if not os.path.isdir(coverage_dirname):
+                os.makedirs(coverage_dirname)
+            data_suffix = '{}-{}.{}'.format(i_worker, n_workers, py_v)
             if coverage_type == CoverageType.statement:
                 cov = coverage.Coverage(data_file=os.path.join(coverage_dirname, '.coverage'),
-                                        data_suffix=py_v, config_file=True)
+                                        data_suffix=data_suffix, config_file=True)
                 cov.start()
             elif coverage_type == CoverageType.branch:
                 cov = coverage.Coverage(data_file=os.path.join(coverage_dirname, '.coverage'),
-                                        data_suffix=py_v, config_file=True, branch=True)
+                                        data_suffix=data_suffix, config_file=True, branch=True)
                 cov.start()
             # elif coverage_type == CoverageType.multiple_condition:
             #     # :todo: support instrumental once its dependency astkit is updated for Python 3
@@ -998,7 +1020,6 @@ class BuildHelper(object):
                 os.mkdir('logs')
 
             argv = [
-                test_path,
                 '--log-file', 'logs/tests.log',
                 '--log-level', 'DEBUG',
             ]
@@ -1007,8 +1028,18 @@ class BuildHelper(object):
             if with_xunit:
                 argv.append('--junitxml=' + abs_xml_latest_filename)
 
-            result = pytest.main(argv)
+            # collect tests            
+            test_cases = self._get_test_cases(test_path=test_path,
+                                              n_workers=n_workers, i_worker=i_worker)
+            # run tests
+            if test_cases:
+                result = pytest.main(argv + test_cases)
+            else:
+                result = 0
         elif self.test_runner == 'nose':
+            if n_workers > 1 or i_worker != 0:
+                raise BuildHelperError('Only 1 worker supported with nose')
+
             test_path = test_path.replace('::', ':', 1)
             test_path = test_path.replace('::', '.', 1)
 
@@ -1029,7 +1060,37 @@ class BuildHelper(object):
         if exit_on_failure and result != 0:
             sys.exit(1)
 
-    def _run_tests_docker(self, dirname='.', test_path='tests', verbose=False, with_xunit=False, with_coverage=False, coverage_dirname='.',
+    def _get_test_cases(self, test_path='tests', n_workers=1, i_worker=0):
+        """ Get test cases for worker *i* of *n* workers
+
+        Args:
+            test_path (:obj:`str`, optional): path to tests that should be run
+            n_workers (:obj:`int`, optional): number of workers to run tests
+            i_worker (:obj:`int`, optional): index of worker within {0 .. :obj:`n_workers` - 1}
+
+        Returns:
+            :obj:`list` of :obj:`str`: sorted list of test cases
+        """
+        if i_worker >= n_workers:
+            raise BuildHelperError('`i_worker` must be less than `n_workers`')
+
+        if test_path.count('::') >= 2:
+            if i_worker == 0:
+                cases = [test_path]
+            else:
+                cases = []
+        else:
+            plugin = PyTestTestCaseCollectionPlugin()
+            pytest.main(['--collect-only', test_path, '--quiet'], plugins=[plugin])
+            cases = sorted(plugin.collected)
+            cases = cases[i_worker::n_workers]
+
+        return cases
+
+    def _run_tests_docker(self, dirname='.', test_path='tests',
+                          n_workers=1, i_worker=0,
+                          verbose=False, with_xunit=False,
+                          with_coverage=False, coverage_dirname='tests/reports',
                           coverage_type=CoverageType.branch, ssh_key_filename='~/.ssh/id_rsa', remove_container=True):
         """ Run unit tests located at `test_path` using a Docker image:
 
@@ -1045,6 +1106,8 @@ class BuildHelper(object):
         Args:
             dirname (:obj:`str`, optional): path to package that should be tested
             test_path (:obj:`str`, optional): path to tests that should be run
+            n_workers (:obj:`int`, optional): number of workers to run tests
+            i_worker (:obj:`int`, optional): index of worker within {0 .. :obj:`n_workers` - 1}
             verbose (:obj:`str`, optional): if :obj:`True`, display stdout from tests
             with_xunit (:obj:`bool`, optional): whether or not to save test results
             with_coverage (:obj:`bool`, optional): whether or not coverage should be assessed
@@ -1055,7 +1118,9 @@ class BuildHelper(object):
         """
         container = self.create_docker_container(ssh_key_filename=ssh_key_filename)
         self.install_package_to_docker_container(container, dirname=dirname)
-        self.run_tests_in_docker_container(container, test_path=test_path, verbose=verbose, with_xunit=with_xunit,
+        self.run_tests_in_docker_container(container, test_path=test_path,
+                                           n_workers=n_workers, i_worker=i_worker,
+                                           verbose=verbose, with_xunit=with_xunit,
                                            with_coverage=with_coverage, coverage_dirname=coverage_dirname, coverage_type=coverage_type)
         if remove_container:
             self.remove_docker_container(container)
@@ -1095,6 +1160,7 @@ class BuildHelper(object):
         print('=====================================')
         print('== Copying SSH key to container')
         print('=====================================')
+        self._run_docker_command(['exec', container, 'mkdir', '/root/.ssh/'])
         self._run_docker_command(['cp', ssh_key_filename, container + ':/root/.ssh/'])
 
         # install pkg_utils
@@ -1157,7 +1223,7 @@ class BuildHelper(object):
         # install dependencies
         print('\n\n')
         print('=====================================')
-        print('== Upgrade dependencies')
+        print('== Install and upgrade dependencies')
         print('=====================================')
         self._run_docker_command(['exec',
                                   '--env', 'CONFIG__DOT__karr_lab_build_utils__DOT__configs_repo_password={}'.format(
@@ -1167,16 +1233,21 @@ class BuildHelper(object):
                                   'bash', '-c', (
                                       'eval $(ssh-agent -s) && '
                                       'ssh-add /root/.ssh/id_rsa && '
-                                      'karr_lab_build_utils{} upgrade-requirements'.format(py_v)),
+                                      'karr_lab_build_utils{0} install-requirements && '
+                                      'karr_lab_build_utils{0} upgrade-karr-lab-packages'.format(py_v)),
                                   ])
 
-    def run_tests_in_docker_container(self, container, test_path='tests', verbose=False, with_xunit=False, with_coverage=False,
-                                      coverage_dirname='.', coverage_type=CoverageType.branch):
+    def run_tests_in_docker_container(self, container, test_path='tests',
+                                      n_workers=1, i_worker=0,
+                                      verbose=False, with_xunit=False, with_coverage=False,
+                                      coverage_dirname='tests/reports', coverage_type=CoverageType.branch):
         """ Test a package in a docker container
 
         Args:
             container (:obj:`str`): container id
             test_path (:obj:`str`, optional): path to tests that should be run
+            n_workers (:obj:`int`, optional): number of workers to run tests
+            i_worker (:obj:`int`, optional): index of worker within {0 .. :obj:`n_workers` - 1}
             verbose (:obj:`str`, optional): if :obj:`True`, display stdout from tests
             with_xunit (:obj:`bool`, optional): whether or not to save test results
             with_coverage (:obj:`bool`, optional): whether or not coverage should be assessed
@@ -1191,10 +1262,18 @@ class BuildHelper(object):
         print('=====================================')
         options = []
 
-        options += ['--test-path', test_path]
+        options += [
+            '--test-path', test_path,
+            '--n-workers', str(n_workers),
+            '--i-worker', str(i_worker),
+        ]
 
         if with_coverage:
-            options += ['--with-coverage', '--coverage-type', coverage_type.name]
+            options += [
+                '--with-coverage',
+                '--coverage-type', coverage_type.name,
+                '--coverage-dirname', 'tests/reports',
+            ]
 
         if with_xunit:
             options.append('--with-xunit')
@@ -1220,18 +1299,27 @@ class BuildHelper(object):
         shutil.rmtree(temp_dirname)
 
         if with_coverage:
-            out = self._run_docker_command(['exec', container, 'bash', '-c', 'ls -la ' +
-                                            os.path.join('/root', 'project', '.coverage.{}.*'.format(py_v))])
-            match = re.search('/root/project/(\.coverage\.\d+\.\d+\.\d+)', out)
-            self._run_docker_command(['cp', container + ':' + match.group(0), os.path.join(coverage_dirname, match.group(1))])
+            out = self._run_docker_command([
+                'exec', container, 'bash', '-c',
+                'ls -la ' + os.path.join('/root', 'project', 'tests', 'reports', '.coverage.*-*.{}.*'.format(py_v)),
+            ])
+            match = re.search('/root/project/tests/reports/(\.coverage\.\d+\-\d+\.\d+\.\d+\.\d+)', out)
+            self._run_docker_command(['cp',
+                                      container + ':' + match.group(0),
+                                      os.path.join(coverage_dirname, match.group(1)),
+                                      ])
 
         if with_xunit:
             out = self._run_docker_command(['exec', container, 'bash', '-c', 'ls -la ' +
                                             os.path.join('/root', 'project', self.DEFAULT_PROJ_TESTS_XML_DIR,
-                                                         '{}.{}.*.xml'.format(self.DEFAULT_PROJ_TESTS_XML_LATEST_FILENAME, py_v))])
-            match = re.search('/root/project/{}/({}\.\d+\.\d+\.\d+.xml)'.format(self.DEFAULT_PROJ_TESTS_XML_DIR,
-                                                                                self.DEFAULT_PROJ_TESTS_XML_LATEST_FILENAME), out)
-            self._run_docker_command(['cp', container + ':' + match.group(0), os.path.join(self.proj_tests_xml_dir, match.group(1))])
+                                                         '{}.*-*.{}.*.xml'.format(self.DEFAULT_PROJ_TESTS_XML_LATEST_FILENAME, py_v))])
+            match = re.search('/root/project/{}/({}\.\d+\-\d+\.\d+\.\d+\.\d+.xml)'.format(
+                self.DEFAULT_PROJ_TESTS_XML_DIR,
+                self.DEFAULT_PROJ_TESTS_XML_LATEST_FILENAME), out)
+            self._run_docker_command(['cp',
+                                      container + ':' + match.group(0),
+                                      os.path.join(self.proj_tests_xml_dir, match.group(1)),
+                                      ])
 
     def remove_docker_container(self, container):
         """ Stop and remove a docker container
@@ -1270,13 +1358,17 @@ class BuildHelper(object):
 
         return out.decode()
 
-    def _run_tests_circleci(self, dirname='.', test_path='tests', verbose=False, ssh_key_filename='~/.ssh/id_rsa'):
+    def _run_tests_circleci(self, dirname='.', test_path='tests',
+                            n_workers=1, i_worker=0,
+                            verbose=False, ssh_key_filename='~/.ssh/id_rsa'):
         """ Run unit tests located at `test_path` using the CircleCI local executor. This will run the same commands defined in
         ``.circle/config.yml`` as the cloud version of CircleCI.
 
         Args:
             dirname (:obj:`str`, optional): path to package that should be tested
             test_path (:obj:`str`, optional): path to tests that should be run
+            n_workers (:obj:`int`, optional): number of workers to run tests
+            i_worker (:obj:`int`, optional): index of worker within {0 .. :obj:`n_workers` - 1}
             verbose (:obj:`str`, optional): if :obj:`True`, display stdout from tests
             ssh_key_filename (:obj:`str`, optional): path to GitHub SSH key
 
@@ -1298,14 +1390,15 @@ class BuildHelper(object):
         with open(circleci_config_filename, 'r') as file:
             config = yaml.load(file)
 
-        if 'steps' in config['jobs']['build']:
-            for i_step, step in enumerate(config['jobs']['build']['steps']):
+        job = config['jobs']['build']
+        if 'steps' in job:
+            for i_step, step in enumerate(job['steps']):
                 if 'run' in step and 'command' in step['run']:
                     step['run']['command'] = 'eval $(ssh-agent -s) && ssh-add /root/.ssh/id_rsa\n' \
                         + step['run']['command']
-                config['jobs']['build']['steps'][i_step] = step
+                job['steps'][i_step] = step
 
-        image_name = config['jobs']['build']['docker'][0]['image']
+        image_name = job['docker'][0]['image']
         if image_name.endswith('.with_ssh_key'):
             image_with_ssh_key_name = image_name
             image_name = image_name[:-13]
@@ -1313,7 +1406,7 @@ class BuildHelper(object):
             image_with_ssh_key_name = image_name + '.with_ssh_key'
 
         shutil.copyfile(circleci_config_filename, backup_circleci_config_filename)
-        config['jobs']['build']['docker'][0]['image'] = image_with_ssh_key_name
+        job['docker'][0]['image'] = image_with_ssh_key_name
         with open(circleci_config_filename, 'w') as file:
             yaml.dump(config, file, default_flow_style=False)
 
@@ -1339,6 +1432,8 @@ class BuildHelper(object):
         # test package
         process = subprocess.Popen(['circleci', 'local', 'execute',
                                     '--env', 'test_path={}'.format(test_path),
+                                    '--env', 'CIRCLE_NODE_TOTAL={}'.format(n_workers),
+                                    '--env', 'CIRCLE_NODE_INDEX={}'.format(i_worker),
                                     '--env', 'verbose={:d}'.format(verbose),
                                     '--env', 'dry_run=1',
                                     '--env', 'CONFIG__DOT__karr_lab_build_utils__DOT__configs_repo_password={}'.format(
@@ -1371,10 +1466,10 @@ class BuildHelper(object):
         test_results = TestResults()
 
         filename_pattern = os.path.join(self.proj_tests_xml_dir,
-                                        '{0}.*.xml'.format(self.proj_tests_xml_latest_filename))
+                                        '{0}.*-*.*.xml'.format(self.proj_tests_xml_latest_filename))
         for filename in glob.glob(filename_pattern):
-            match = re.match('^{}\.(.*?)\.xml$'.format(self.proj_tests_xml_latest_filename), os.path.basename(filename))
-            python_version = match.group(1)
+            match = re.match('^{}\.(.*?)\-(.*?)\.(.*?)\.xml$'.format(self.proj_tests_xml_latest_filename), os.path.basename(filename))
+            python_version = match.group(3)
 
             doc = minidom.parse(filename)
             suite = doc.getElementsByTagName('testsuite')[0]
@@ -1647,7 +1742,7 @@ class BuildHelper(object):
             smtp.sendmail(from_addr, recipients, msg.as_string())
             smtp.quit()
 
-    def make_and_archive_reports(self, coverage_dirname='.', dry_run=False):
+    def make_and_archive_reports(self, coverage_dirname='tests/reports', dry_run=False):
         """ Make and archive reports:
 
         * Upload test report to history server
@@ -1719,10 +1814,10 @@ class BuildHelper(object):
             return
 
         abs_xml_latest_filename_pattern = os.path.join(
-            self.proj_tests_xml_dir, '{0}.*.xml'.format(self.proj_tests_xml_latest_filename))
+            self.proj_tests_xml_dir, '{0}.*-*.*.xml'.format(self.proj_tests_xml_latest_filename))
         for abs_xml_latest_filename in glob.glob(abs_xml_latest_filename_pattern):
-            match = re.match('^.*?\.(\d+\.\d+\.\d+)\.xml$', abs_xml_latest_filename)
-            pyv = match.group(1)
+            match = re.match('^.*?\.(\d+)\-(\d+)\.(\d+\.\d+\.\d+)\.xml$', abs_xml_latest_filename)
+            pyv = match.group(3)
             r = requests.post('http://tests.karrlab.org/rest/submit_report',
                               data={
                                   'token': self.test_server_token,
@@ -1744,7 +1839,7 @@ class BuildHelper(object):
     ########################
     # Coverage reports
     ########################
-    def combine_coverage_reports(self, coverage_dirname='.'):
+    def combine_coverage_reports(self, coverage_dirname='tests/reports'):
         """
         Args:
             coverage_dirname (:obj:`str`, optional): directory to merge coverage files
@@ -1764,7 +1859,7 @@ class BuildHelper(object):
         coverage_doc.combine(data_paths=data_paths)
         coverage_doc.save()
 
-    def archive_coverage_report(self, coverage_dirname='.', dry_run=False):
+    def archive_coverage_report(self, coverage_dirname='test/coverage', dry_run=False):
         """ Archive coverage report:
 
         * Upload report to Coveralls
@@ -1783,7 +1878,7 @@ class BuildHelper(object):
         if self.CODE_CLIMATE_ENABLED:
             self.upload_coverage_report_to_code_climate(coverage_dirname=coverage_dirname, dry_run=dry_run)
 
-    def upload_coverage_report_to_coveralls(self, coverage_dirname='.', dry_run=False):
+    def upload_coverage_report_to_coveralls(self, coverage_dirname='tests/reports', dry_run=False):
         """ Upload coverage report to Coveralls
 
         Args:
@@ -1809,7 +1904,7 @@ class BuildHelper(object):
             with patch.object(coveralls.Coveralls, 'get_coverage', return_value=get_coverage()):
                 runner.wear(dry_run=dry_run)
 
-    def upload_coverage_report_to_code_climate(self, coverage_dirname='.', dry_run=False):
+    def upload_coverage_report_to_code_climate(self, coverage_dirname='tests/reports', dry_run=False):
         """ Upload coverage report to Code Climate
 
         Args:
@@ -2634,3 +2729,13 @@ class TestCaseResultType(enum.Enum):
 class BuildHelperError(Exception):
     """ Represents :obj:`BuildHelper` errors """
     pass
+
+
+class PyTestTestCaseCollectionPlugin(object):
+    def __init__(self):
+        self.collected = set()
+
+    def pytest_collection_modifyitems(self, items):
+        for item in items:
+            test_class, _, _ = item.nodeid.rpartition('::')
+            self.collected.add(test_class)
