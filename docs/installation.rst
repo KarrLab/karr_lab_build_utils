@@ -43,7 +43,7 @@ Pre-requisites
 
     pip install -U pip setuptools
 
-#. Optionally, create ``~/.wc/karr_lab_build_utils.cfg`` to configure the package (see configuration options in ``karr_lab_build_utils/config/core.schema.cfg``). We recommend that Karr Lab members start by copying the shared configuration file from ``karr_lab_config/karr_lab_build_utils.cfg``.
+#. Optionally, create ``~/.wc/karr_lab_build_utils.cfg`` to configure the package (see configuration options in ``karr_lab_build_utils/config/core.schema.cfg``). We recommend that Karr Lab members start by copying the shared configuration file from ``karr_lab_build_config/karr_lab_build_utils.cfg``.
 
 #. Optionally, create an SSH key for GitHub. This is needed to run tests using Docker and CircleCI.
 

@@ -98,11 +98,11 @@ Compiling the downstream dependencies of a package
 Configuring packages
 ---------------------------
 
-The ``karr_lab_config`` repository should contain all of the whole-cell modeling and third party configuration files needed to run your tests. This should include all usernames, passwords, and tokens needed to run your tests.
+The ``karr_lab_build_config`` repository should contain all of the whole-cell modeling and third party configuration files needed to run your tests. This should include all usernames, passwords, and tokens needed to run your tests.
 
-Configuration files for whole-cell modeling software should be saved to the top-level directory of the ``karr_lab_config`` repository with the file pattern ``<package_name>.cfg``. 
+Configuration files for whole-cell modeling software should be saved to the top-level directory of the ``karr_lab_build_config`` repository with the file pattern ``<package_name>.cfg``. 
 
-All configuration files for third-party software should be saved to the ``third_party`` subdirectory of the ``karr_lab_config`` repository. In addition, ``third_party/paths.yml`` should contain a YAML-formatted dictionary whose keys are the names of the files in the ``third_party`` subdirectory and whose values are the locations that these files should be copied to.
+All configuration files for third-party software should be saved to the ``third_party`` subdirectory of the ``karr_lab_build_config`` repository. In addition, ``third_party/paths.yml`` should contain a YAML-formatted dictionary whose keys are the names of the files in the ``third_party`` subdirectory and whose values are the locations that these files should be copied to.
 
 
 Testing with pytest, coverage, instrumental, Docker, and CircleCI
