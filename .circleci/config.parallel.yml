@@ -69,7 +69,38 @@ jobs:
       - store_artifacts:
           path: /root/project/logs
           destination: logs
-  
+      - persist_to_workspace:
+          root: /root/project
+          paths:
+            - tests/reports
+
+  report:
+    docker:
+    - image: karrlab/wc_env_dependencies:latest
+    working_directory: /root/project
+    parallelism: 1
+    steps:
+      # Clone repository
+      - checkout
+
+      # Load packages from cache
+      - *restore_req_cache
+
+      # Python 3 installation tasks
+      - *install_pkg_utils
+      - *install_karr_lab_build_utils
+      - *install_reqs
+      - *install_config
+
+      # access reports saved by test job(s)
+      - attach_workspace:
+          at: /tmp/workspace
+      - run:
+          name: Copy workspace
+          when: always
+          command: |
+            cp -R /tmp/workspace/tests/reports /root/project/tests/reports
+
       # Generate reports, archive results, and send notifications
       - run:
           name: Generate reports, archive results, and send notifications
@@ -90,9 +121,11 @@ jobs:
           path: /root/project/docs/_build/html
           destination: docs
 
-#workflows:
-#  version: 2
-#  build:
-#    jobs:
-#      - build:
-#          context: karr_lab
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build:
+          context: karr_lab
+      - report:
+          context: karr_lab
