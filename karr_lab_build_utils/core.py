@@ -1029,7 +1029,7 @@ class BuildHelper(object):
             if with_xunit:
                 argv.append('--junitxml=' + abs_xml_latest_filename)
 
-            # collect tests            
+            # collect tests
             test_cases = self._get_test_cases(test_path=test_path,
                                               n_workers=n_workers, i_worker=i_worker)
             # run tests
@@ -2020,11 +2020,12 @@ class BuildHelper(object):
             raise
 
         with patch('sphinx.cmdline.handle_exception', handle_exception):
-            sphinx_main([self.proj_docs_dir, self.proj_docs_build_html_dir])
+            self.run_method_and_capture_stderr(sphinx_main,
+                                               [self.proj_docs_dir, self.proj_docs_build_html_dir])
 
             # run spell check
             if spell_check:
-                sphinx_main([
+                self.run_method_and_capture_stderr(sphinx_main, [
                     '-b', 'spelling',
                     '-d', self.proj_docs_build_doctrees_dir,
                     self.proj_docs_dir,
