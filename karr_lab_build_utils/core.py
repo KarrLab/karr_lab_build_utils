@@ -2041,7 +2041,7 @@ class BuildHelper(object):
         with ftputil.FTPHost(self.docs_server_hostname, self.docs_server_username, self.docs_server_password) as ftp:
             with open(os.path.join(dirname, self.repo_name, 'VERSION'), 'r') as file:
                 version = file.read().strip()
-            remote_root = ftp.path.join(self.docs_server_directory, self.repo_name, version)
+            remote_root = ftp.path.join(self.docs_server_directory, self.repo_name, self.repo_branch, version)
 
             # delete old files
             if ftp.path.isdir(remote_root):
@@ -2068,12 +2068,25 @@ class BuildHelper(object):
                     ftp.upload(local_filename, remote_filename)
 
             # update
+            master_dirname = ftp.path.join(self.docs_server_directory, self.repo_name, 'master')
+            if ftp.path.isdir(master_dirname):
+                lastest_branch = 'master'
+            else:
+                lastest_branch = self.repo_branch
+
+            dirname = ftp.path.join(self.docs_server_directory, self.repo_name, lastest_branch)
+            versions = ftp.listdir(dirname)
+            if versions:
+                lastest_version = sorted(versions, reverse=True).pop()
+
             filename = ftp.path.join(self.docs_server_directory, self.repo_name, '.htaccess')
             with ftp.open(filename, 'w') as fobj:
                 fobj.write(u'RewriteEngine On\n')
                 fobj.write(u'RewriteBase /{}/\n'.format(self.repo_name))
-                fobj.write(u'RewriteRule ^$ latest/ [R=301,L]\n')
-                fobj.write(u'RewriteRule ^latest(/.*)$ {}$1 [L]\n'.format(version))
+                fobj.write(u'RewriteRule ^$ {0}/{1}/ [R=303]\n'.format(lastest_branch, lastest_version))
+                fobj.write(u'RewriteRule ^{0}(/?)$ {0}/{1}/ [R=303]\n'.format(lastest_branch, lastest_version))
+                fobj.write(u'RewriteRule ^{0}/latest(/?)$ {0}/{1} [R=303]\n'.format(lastest_branch, lastest_version))
+                fobj.write(u'RewriteRule ^{0}/latest/(.*)$ {0}/{1}/$1 [R=303,L]\n'.format(lastest_branch, lastest_version))
 
     def compile_downstream_dependencies(self, dirname='.', packages_parent_dir='..', config_filename=None):
         """ Compile the downstream dependencies of a package and save them to :obj:`config_filename`

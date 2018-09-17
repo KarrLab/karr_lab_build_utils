@@ -1816,6 +1816,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     def test_upload_documentation_to_docs_server(self):
         bh = self.construct_build_helper()
         bh.repo_name = 'test_repo'
+        bh.repo_branch = 'master'
         repo_version = '0.0.1a'
 
         os.makedirs(os.path.join(self.tmp_dirname, bh.repo_name))
@@ -1833,18 +1834,18 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         with ftputil.FTPHost(bh.docs_server_hostname, bh.docs_server_username, bh.docs_server_password) as ftp:
             # check documentation uploaded
-            remote_filename = ftp.path.join(bh.docs_server_directory, bh.repo_name, repo_version, 'index.html')
+            remote_filename = ftp.path.join(bh.docs_server_directory, bh.repo_name, bh.repo_branch, repo_version, 'index.html')
             with ftp.open(remote_filename, 'r') as file:
                 self.assertEqual(file.read(), 'Test documentation')
 
-            remote_filename = ftp.path.join(bh.docs_server_directory, bh.repo_name, repo_version, 'a', 'b', 'c', 'index.html')
+            remote_filename = ftp.path.join(bh.docs_server_directory, bh.repo_name, bh.repo_branch, repo_version, 'a', 'b', 'c', 'index.html')
             with ftp.open(remote_filename, 'r') as file:
                 self.assertEqual(file.read(), 'Test!')
 
             remote_filename = ftp.path.join(bh.docs_server_directory, bh.repo_name, '.htaccess')
             with ftp.open(remote_filename, 'r') as file:
-                self.assertRegexpMatches(file.read(), 'RewriteRule \^latest\(\/\.\*\)\$ {}\$1 \[L\]'.format(
-                    repo_version))
+                self.assertRegexpMatches(file.read(), 'RewriteRule \^{0}/latest/\(\.\*\)\$ {0}/{1}/\$1 \[R=303,L\]'.format(
+                    bh.repo_branch, repo_version))
 
             # cleanup
             ftp.rmtree(ftp.path.join(bh.docs_server_directory, bh.repo_name))
