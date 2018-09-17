@@ -30,7 +30,7 @@ sphinx >= 1.8
 sphinx_rtd_theme
 git+https://github.com/KarrLab/sphinxcontrib-addmetahtml.git#egg=sphinxcontrib_addmetahtml-0.1.1 >= 0.1.1
 sphinxcontrib_bibtex
-git+https://github.com/KarrLab/sphinxcontrib-googleanalytics#egg=sphinxcontrib_googleanalytics-0.1.1 >= 0.1.1
+git+https://github.com/KarrLab/sphinxcontrib-googleanalytics.git#egg=sphinxcontrib_googleanalytics-0.1.1 >= 0.1.1
 sphinxcontrib_spelling
 twine
 git+https://github.com/KarrLab/wc_utils.git#egg=wc_utils-0.0.1a5[all]
