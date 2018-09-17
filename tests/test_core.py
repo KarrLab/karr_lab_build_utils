@@ -1555,7 +1555,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             pass
         try:
             with self.assertRaisesRegexp(core.BuildHelperError, 'The following requirements are missing:\n  '):
-                warning = 'The following requirements appear to be unused:\n  robpol86_sphinxcontrib_googleanalytics'
+                warning = 'The following requirements appear to be unused:\n  sphinxcontrib_googleanalytics'
                 with pytest.warns(UserWarning, match=warning):
                     build_helper.make_and_archive_reports(coverage_dirname=self.tmp_dirname, dry_run=True)
         finally:
@@ -1809,7 +1809,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         if os.path.isdir(build_helper.proj_docs_static_dir):
             shutil.rmtree(build_helper.proj_docs_static_dir)
 
-        with self.assertRaisesRegexp(Exception, 'Test exception'):
+        with self.assertRaises(SystemExit):
             with mock.patch.object(Sphinx, '__init__', side_effect=Exception('Test exception')):
                 build_helper.make_documentation()
 
@@ -2374,11 +2374,11 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         unused = build_helper.find_unused_requirements('karr_lab_build_utils', ignore_files=['karr_lab_build_utils/templates/*'])
         unused.sort()
 
-        expected_unused = [
-            'robpol86_sphinxcontrib_googleanalytics',
+        expected_unused = [            
             'sphinx_rtd_theme',
             'sphinxcontrib_addmetahtml',
             'sphinxcontrib_bibtex',
+            'sphinxcontrib_googleanalytics',
             'sphinxcontrib_spelling',
             'wheel',
         ]
@@ -2396,7 +2396,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     self.assertRegexpMatches(captured.stdout.get_text(),
                                              'The following requirements from requirements.txt may not be necessary:')
                     self.assertRegexpMatches(captured.stdout.get_text(),
-                                             'robpol86_sphinxcontrib_googleanalytics')
+                                             'sphinxcontrib_googleanalytics')
                     self.assertEqual(captured.stderr.get_text(), '')
 
         os.rename('requirements.txt', 'requirements.txt.save')
