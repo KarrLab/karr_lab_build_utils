@@ -548,7 +548,7 @@ class DoPostTestTasksController(cement.Controller):
 
         """ Do all post-test tasks for CircleCI """
         buildHelper = BuildHelper()
-        triggered_packages, status = buildHelper.do_post_test_tasks(
+        triggered_packages, status, other_exception = buildHelper.do_post_test_tasks(
             args.installation_exit_code != 0, args.tests_exit_code != 0, dry_run=dry_run)
 
         # downstream triggered tests
@@ -582,7 +582,7 @@ class DoPostTestTasksController(cement.Controller):
             print('No notifications were sent.')
 
         if status['is_other_error']:
-            raise BuildHelperError('Post-test tasks were not successful')
+            raise BuildHelperError('Post-test tasks were not successful') from other_exception
 
 
 class MakeAndArchiveReportsController(cement.Controller):

@@ -1611,17 +1611,20 @@ class BuildHelper(object):
         Returns:
             :obj:`list` of :obj:`str`: names of triggered packages
             :obj:`dict`: status of a set of results
+            :obj:`Exception`: exception from `make_and_archive_reports`
         """
         try:
             static_analyses = self.make_and_archive_reports(dry_run=dry_run)
             other_error = False
+            other_exception = None
         except Exception as exception:
             static_analyses = {'missing_requirements': [], 'unused_requirements': []}
             other_error = True
+            other_exception = exception
 
         triggered_packages = self.trigger_tests_of_downstream_dependencies(dry_run=dry_run)
         status = self.send_email_notifications(installation_error, tests_error, other_error, static_analyses, dry_run=dry_run)
-        return (triggered_packages, status)
+        return (triggered_packages, status, other_exception)
 
     def send_email_notifications(self, installation_error, tests_error, other_error, static_analyses, dry_run=False):
         """ Send email notifications of failures, fixes, and downstream failures
