@@ -47,6 +47,7 @@ import pip_check_reqs.find_missing_reqs
 # :todo: figure out how to fix this
 import pkg_resources
 import pytest
+import _pytest
 import re
 import requests
 import sphinx.ext.apidoc
@@ -1083,7 +1084,7 @@ class BuildHelper(object):
         else:
             plugin = PyTestTestCaseCollectionPlugin()
             pytest.main(['--collect-only', test_path, '--quiet'], plugins=[plugin])
-            cases = sorted(plugin.collected)
+            cases = sorted(plugin.classes)
             cases = cases[i_worker::n_workers]
 
         return cases
@@ -2750,10 +2751,22 @@ class BuildHelperError(Exception):
 
 
 class PyTestTestCaseCollectionPlugin(object):
+    """ PyTest plugin to collect list of test classes (e.g. for splitting
+    test execution across multiple containers)
+
+    Attributes:
+        classes (:obj:`set` of :obj:`str`): test classes
+    """
+
     def __init__(self):
-        self.collected = set()
+        self.classes = set()
 
     def pytest_collection_modifyitems(self, items):
+        """ Collect test classes
+        
+        Args:
+            items (:obj:`list` of :obj:`_pytest.unittest.TestCaseFunction`):
+                test case functions
+        """
         for item in items:
-            test_class, _, _ = item.nodeid.rpartition('::')
-            self.collected.add(test_class)
+            self.classes.add(os.path.relpath(item.fspath, '.') + '::' + item.parent.name)
