@@ -12,7 +12,7 @@ jobs:
       # Load packages from cache
       - restore_cache: &restore_req_cache
           keys:
-            - v24-{{ arch }}-{{ .Branch }}-{{ checksum "/etc/docker-image-tag" }}-{{ checksum "requirements.txt" }}
+            - v25-{{ arch }}-{{ .Branch }}-{{ checksum "/etc/docker-image-tag" }}-{{ checksum "requirements.txt" }}
 
       # Python 3 installation tasks
       - run: &install_pkg_utils
@@ -33,7 +33,7 @@ jobs:
 
       # Save packages to cache
       - save_cache: &save_req_cache
-          key: v24-{{ arch }}-{{ .Branch }}-{{ checksum "/etc/docker-image-tag" }}-{{ checksum "requirements.txt" }}
+          key: v25-{{ arch }}-{{ .Branch }}-{{ checksum "/etc/docker-image-tag" }}-{{ checksum "requirements.txt" }}
           paths:
             - /usr/local/lib/python3.6/site-packages
 
