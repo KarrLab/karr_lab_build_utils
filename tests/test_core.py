@@ -390,7 +390,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 return {'following': False}
 
         with mock.patch.object(requests, 'post', return_value=Result()):
-            with self.assertRaisesRegexp(ValueError, '^Unable to follow CircleCI build for repository'):
+            with self.assertRaisesRegex(ValueError, '^Unable to follow CircleCI build for repository'):
                 build_helper.follow_circleci_build()
 
     def test_get_circleci_environment_variables(self):
@@ -557,7 +557,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     def test_run_tests(self):
         self.help_run('pytest', coverage_type=core.CoverageType.branch)
         self.help_run('nose', coverage_type=core.CoverageType.branch)
-        with self.assertRaisesRegexp(core.BuildHelperError, '^Unsupported coverage type: '):
+        with self.assertRaisesRegex(core.BuildHelperError, '^Unsupported coverage type: '):
             self.help_run('pytest', coverage_type=core.CoverageType.multiple_condition)
 
     def help_run(self, test_runner, coverage_type=core.CoverageType.branch):
@@ -639,7 +639,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         build_helper.proj_tests_xml_dir = tempdirname
 
         build_helper.test_runner = 'unsupported_runner'
-        with self.assertRaisesRegexp(core.BuildHelperError, '^Unsupported test runner'):
+        with self.assertRaisesRegex(core.BuildHelperError, '^Unsupported test runner'):
             build_helper.run_tests(test_path=self.DUMMY_TEST, with_xunit=True)
 
         build_helper.test_runner = 'pytest'
@@ -688,7 +688,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             build_helper._get_test_cases(test_path='tests', n_workers=4, i_worker=3),
             [])
 
-        with self.assertRaisesRegexp(core.BuildHelperError, 'less than'):
+        with self.assertRaisesRegex(core.BuildHelperError, 'less than'):
             build_helper._get_test_cases(n_workers=1, i_worker=1)
 
     def test_docker_help(self):
@@ -760,12 +760,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     ))
     def test__run_docker_command_exception(self):
         build_helper = self.construct_build_helper()
-        with self.assertRaisesRegexp(core.BuildHelperError, 'is not a docker command'):
+        with self.assertRaisesRegex(core.BuildHelperError, 'is not a docker command'):
             build_helper._run_docker_command(['XXXXX'])
 
     def test_run_tests_unsupported_env(self):
         build_helper = self.construct_build_helper()
-        with self.assertRaisesRegexp(core.BuildHelperError, '^Unsupported environment:'):
+        with self.assertRaisesRegex(core.BuildHelperError, '^Unsupported environment:'):
             build_helper.run_tests(test_path=self.DUMMY_TEST, environment=None)
 
     def test_do_post_test_tasks(self):
@@ -812,7 +812,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     with self.construct_environment():
                         with capturer.CaptureOutput(merged=False, relay=False) as captured:
                             with __main__.App(argv=['do-post-test-tasks', '0', '1']) as app:
-                                with self.assertRaisesRegexp(core.BuildHelperError, 'Post-test tasks were not successful'):
+                                with self.assertRaisesRegex(core.BuildHelperError, 'Post-test tasks were not successful'):
                                     app.run()
                                 self.assertEqual(app.pargs.installation_exit_code, 0)
                                 self.assertEqual(app.pargs.tests_exit_code, 1)
@@ -851,7 +851,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                         with self.construct_environment():
                             with capturer.CaptureOutput(merged=False, relay=False) as captured:
                                 with __main__.App(argv=['do-post-test-tasks', '0', '0']) as app:
-                                    with self.assertRaisesRegexp(core.BuildHelperError, 'Post-test tasks were not successful'):
+                                    with self.assertRaisesRegex(core.BuildHelperError, 'Post-test tasks were not successful'):
                                         app.run()
                                     self.assertRegex(captured.stdout.get_text(), '1 notifications were sent')
                                     self.assertRegex(captured.stdout.get_text(), '  Other error')
@@ -1554,7 +1554,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with open('requirements.txt', 'w') as file:
             pass
         try:
-            with self.assertRaisesRegexp(core.BuildHelperError, 'The following requirements are missing:\n  '):
+            with self.assertRaisesRegex(core.BuildHelperError, 'The following requirements are missing:\n  '):
                 warning = 'The following requirements appear to be unused:\n  sphinxcontrib_googleanalytics'
                 with pytest.warns(UserWarning, match=warning):
                     build_helper.make_and_archive_reports(coverage_dirname=self.tmp_dirname, dry_run=True)
@@ -1598,7 +1598,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 return {'success': False, 'message': 'Error!'}
 
         with mock.patch.object(requests, 'post', return_value=Result()):
-            with self.assertRaisesRegexp(core.BuildHelperError, '^Error uploading report to test history server:'):
+            with self.assertRaisesRegex(core.BuildHelperError, '^Error uploading report to test history server:'):
                 build_helper.archive_test_report()
 
     def test_combine_coverage_reports(self):
@@ -1777,7 +1777,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with open(os.path.join(tempdirname, 'setup.cfg'), 'w') as file:
             parser.write(file)
 
-        with self.assertRaisesRegexp(ValueError, '^Sphinx configuration auto-generation only supports'):
+        with self.assertRaisesRegex(ValueError, '^Sphinx configuration auto-generation only supports'):
             build_helper.create_documentation_template(tempdirname)
 
         shutil.rmtree(tempdirname)
@@ -1899,7 +1899,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             file.write('source = \n')
             file.write('    pkg_1\n')
             file.write('    mod_2\n')
-        with self.assertRaisesRegexp(core.BuildHelperError, 'Package should have only one module'):
+        with self.assertRaisesRegex(core.BuildHelperError, 'Package should have only one module'):
             deps = build_helper.compile_downstream_dependencies(
                 dirname=os.path.join(packages_parent_dir, 'pkg_1'),
                 packages_parent_dir=packages_parent_dir,
@@ -2535,7 +2535,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 self.assertEqual(captured.stderr.get_text(), '')
 
     def test_unsupported_test_runner(self):
-        with self.assertRaisesRegexp(core.BuildHelperError, 'Unsupported test runner'):
+        with self.assertRaisesRegex(core.BuildHelperError, 'Unsupported test runner'):
             env = EnvironmentVarGuard()
             env.set('TEST_RUNNER', 'unsupported')
             with env:
