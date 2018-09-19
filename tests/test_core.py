@@ -407,7 +407,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
                 with __main__.App(argv=['get-circleci-environment-variables']) as app:
                     app.run()
-                    self.assertRegexpMatches(captured.stdout.get_text(), 'COVERALLS_REPO_TOKEN=')
+                    self.assertRegex(captured.stdout.get_text(), 'COVERALLS_REPO_TOKEN=')
                     self.assertEqual(captured.stderr.get_text(), '')
 
     def test_set_circleci_environment_variables(self):
@@ -440,7 +440,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with __main__.App(argv=['get-circleci-environment-variables']) as app:
                 with capturer.CaptureOutput(merged=False, relay=False) as captured:
                     app.run()
-                    self.assertRegexpMatches(captured.stdout.get_text(), '__TEST1__=xxxxe 1c')
+                    self.assertRegex(captured.stdout.get_text(), '__TEST1__=xxxxe 1c')
                     self.assertEqual(captured.stderr.get_text(), '')
 
         # cleanup
@@ -704,7 +704,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with __main__.App(argv=['docker', 'create-container']) as app:
                 app.run()
                 stdout = captured.stdout.get_text()
-                self.assertRegexpMatches(stdout, ('Created Docker container (build[\-0-9]+) with volume (build[\-0-9]+)'))
+                self.assertRegex(stdout, ('Created Docker container (build[\-0-9]+) with volume (build[\-0-9]+)'))
         match = re.search('Created Docker container (build[\-0-9]+) ', stdout, re.IGNORECASE)
         container = match.group(1)
 
@@ -794,8 +794,8 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
                                 self.assertEqual(app.pargs.installation_exit_code, 0)
                                 self.assertEqual(app.pargs.tests_exit_code, 0)
-                                self.assertRegexpMatches(captured.stdout.get_text(), 'No downstream builds were triggered.')
-                                self.assertRegexpMatches(captured.stdout.get_text(), 'No notifications were sent.')
+                                self.assertRegex(captured.stdout.get_text(), 'No downstream builds were triggered.')
+                                self.assertRegex(captured.stdout.get_text(), 'No notifications were sent.')
                                 self.assertEqual(captured.stderr.get_text(), '')
 
         down_pkgs_return = ['pkg_1', 'pkg_2']
@@ -816,15 +816,15 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                                     app.run()
                                 self.assertEqual(app.pargs.installation_exit_code, 0)
                                 self.assertEqual(app.pargs.tests_exit_code, 1)
-                                self.assertRegexpMatches(captured.stdout.get_text(), '2 downstream builds were triggered')
-                                self.assertRegexpMatches(captured.stdout.get_text(), '  pkg_1')
-                                self.assertRegexpMatches(captured.stdout.get_text(), '  pkg_2')
-                                self.assertRegexpMatches(captured.stdout.get_text(), '5 notifications were sent')
-                                self.assertRegexpMatches(captured.stdout.get_text(), '  Build fixed')
-                                self.assertRegexpMatches(captured.stdout.get_text(), '  Recurring error')
-                                self.assertRegexpMatches(captured.stdout.get_text(), '  New error')
-                                self.assertRegexpMatches(captured.stdout.get_text(), '  Other error')
-                                self.assertRegexpMatches(captured.stdout.get_text(), '  Downstream error')
+                                self.assertRegex(captured.stdout.get_text(), '2 downstream builds were triggered')
+                                self.assertRegex(captured.stdout.get_text(), '  pkg_1')
+                                self.assertRegex(captured.stdout.get_text(), '  pkg_2')
+                                self.assertRegex(captured.stdout.get_text(), '5 notifications were sent')
+                                self.assertRegex(captured.stdout.get_text(), '  Build fixed')
+                                self.assertRegex(captured.stdout.get_text(), '  Recurring error')
+                                self.assertRegex(captured.stdout.get_text(), '  New error')
+                                self.assertRegex(captured.stdout.get_text(), '  Other error')
+                                self.assertRegex(captured.stdout.get_text(), '  Downstream error')
                                 self.assertEqual(captured.stderr.get_text(), '')
 
         def make_and_archive_reports():
@@ -853,8 +853,8 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                                 with __main__.App(argv=['do-post-test-tasks', '0', '0']) as app:
                                     with self.assertRaisesRegexp(core.BuildHelperError, 'Post-test tasks were not successful'):
                                         app.run()
-                                    self.assertRegexpMatches(captured.stdout.get_text(), '1 notifications were sent')
-                                    self.assertRegexpMatches(captured.stdout.get_text(), '  Other error')
+                                    self.assertRegex(captured.stdout.get_text(), '1 notifications were sent')
+                                    self.assertRegex(captured.stdout.get_text(), '  Other error')
                                     self.assertEqual(captured.stderr.get_text(), '')
 
     def test_get_test_results(self):
@@ -1844,7 +1844,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
             remote_filename = ftp.path.join(bh.docs_server_directory, bh.repo_name, '.htaccess')
             with ftp.open(remote_filename, 'r') as file:
-                self.assertRegexpMatches(file.read(), 'RewriteRule \^{0}/latest/\(\.\*\)\$ {0}/{1}/\$1 \[R=303,L\]'.format(
+                self.assertRegex(file.read(), 'RewriteRule \^{0}/latest/\(\.\*\)\$ {0}/{1}/\$1 \[R=303,L\]'.format(
                     bh.repo_branch, repo_version))
 
             # cleanup
@@ -1910,7 +1910,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
                 with __main__.App(argv=['compile-downstream-dependencies', '--packages-parent-dir', packages_parent_dir]) as app:
                     app.run()
-                    self.assertRegexpMatches(captured.stdout.get_text(), 'The following downstream dependencies were found')
+                    self.assertRegex(captured.stdout.get_text(), 'The following downstream dependencies were found')
                     self.assertEqual(captured.stderr.get_text(), '')
 
         with self.construct_environment():
@@ -1918,7 +1918,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 with __main__.App(argv=['compile-downstream-dependencies',
                                         '--packages-parent-dir', os.path.join(packages_parent_dir, 'pkg_1')]) as app:
                     app.run()
-                    self.assertRegexpMatches(captured.stdout.get_text(), 'No downstream packages were found.')
+                    self.assertRegex(captured.stdout.get_text(), 'No downstream packages were found.')
                     self.assertEqual(captured.stderr.get_text(), '')
 
         # cleanup
@@ -1959,7 +1959,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 with __main__.App(argv=['are-package-dependencies-acyclic',
                                         '--packages-parent-dir', packages_parent_dir]) as app:
                     app.run()
-                    self.assertRegexpMatches(captured.stdout.get_text(), 'The dependencies are acyclic.')
+                    self.assertRegex(captured.stdout.get_text(), 'The dependencies are acyclic.')
                     self.assertEqual(captured.stderr.get_text(), '')
 
         """ cyclic """
@@ -1978,7 +1978,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 with __main__.App(argv=['are-package-dependencies-acyclic',
                                         '--packages-parent-dir', packages_parent_dir]) as app:
                     app.run()
-                    self.assertRegexpMatches(captured.stdout.get_text(), 'The dependencies are cyclic.')
+                    self.assertRegex(captured.stdout.get_text(), 'The dependencies are cyclic.')
                     self.assertEqual(captured.stderr.get_text(), '')
 
         """ Cleanup """
@@ -2119,7 +2119,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                                             '--config-filename', config_filename]) as app:
                         with capturer.CaptureOutput(merged=False, relay=False) as captured:
                             app.run()
-                    self.assertRegexpMatches(captured.stdout.get_text(), '2 dependent builds were triggered')
+                    self.assertRegex(captured.stdout.get_text(), '2 dependent builds were triggered')
                     self.assertEqual(captured.stderr.get_text(), '')
 
         # cleanup
@@ -2178,7 +2178,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                                             '--config-filename', config_filename]) as app:
                         with capturer.CaptureOutput(merged=False, relay=False) as captured:
                             app.run()
-                    self.assertRegexpMatches(captured.stdout.get_text(), 'No dependent builds were triggered.')
+                    self.assertRegex(captured.stdout.get_text(), 'No dependent builds were triggered.')
                     self.assertEqual(captured.stderr.get_text(), '')
 
         # cleanup
@@ -2306,12 +2306,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         with capturer.CaptureOutput(merged=False, relay=False) as captured:
             build_helper.analyze_package('karr_lab_build_utils')
-            self.assertRegexpMatches(captured.stdout.get_text(), '\* Module karr_lab_build_utils.core')
+            self.assertRegex(captured.stdout.get_text(), '\* Module karr_lab_build_utils.core')
             self.assertEqual(captured.stderr.get_text().strip(), '')
 
         with capturer.CaptureOutput(merged=False, relay=False) as captured:
             build_helper.analyze_package('karr_lab_build_utils', verbose=True)
-            self.assertRegexpMatches(captured.stdout.get_text(), '\* Module karr_lab_build_utils.core')
+            self.assertRegex(captured.stdout.get_text(), '\* Module karr_lab_build_utils.core')
             self.assertEqual(captured.stderr.get_text().strip(), 'No config file found, using default configuration')
 
         config_filename = os.path.join(self.tmp_dirname, 'pylintrc')
@@ -2319,7 +2319,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             file.write('\n')
         with capturer.CaptureOutput(merged=False, relay=False) as captured:
             build_helper.analyze_package('karr_lab_build_utils', verbose=True, config_filename=config_filename)
-            self.assertRegexpMatches(captured.stdout.get_text(), '\* Module karr_lab_build_utils.core')
+            self.assertRegex(captured.stdout.get_text(), '\* Module karr_lab_build_utils.core')
             self.assertEqual(captured.stderr.get_text().strip(), 'Using config file {}'.format(config_filename))
 
         # test cli
@@ -2327,14 +2327,14 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
                 with __main__.App(argv=['analyze-package', 'karr_lab_build_utils']) as app:
                     app.run()
-                    self.assertRegexpMatches(captured.stdout.get_text(), '\* Module karr_lab_build_utils.core')
+                    self.assertRegex(captured.stdout.get_text(), '\* Module karr_lab_build_utils.core')
                     self.assertEqual(captured.stderr.get_text().strip(), '')
 
         with self.construct_environment():
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
                 with __main__.App(argv=['analyze-package', 'karr_lab_build_utils', '--messages', 'W0611']) as app:
                     app.run()
-                    self.assertRegexpMatches(captured.stdout.get_text(), '\* Module karr_lab_build_utils.core')
+                    self.assertRegex(captured.stdout.get_text(), '\* Module karr_lab_build_utils.core')
                     self.assertEqual(captured.stderr.get_text().strip(), '')
 
     def test_find_missing_requirements(self):
@@ -2350,7 +2350,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                         'find-missing-requirements', 'karr_lab_build_utils',
                         '--ignore-files', 'karr_lab_build_utils/templates/*']) as app:
                     app.run()
-                    self.assertRegexpMatches(captured.stdout.get_text(), 'requirements.txt appears to contain all of the dependencies')
+                    self.assertRegex(captured.stdout.get_text(), 'requirements.txt appears to contain all of the dependencies')
                     self.assertEqual(captured.stderr.get_text(), '')
 
         shutil.copy('requirements.txt', 'requirements.txt.save')
@@ -2363,7 +2363,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                             'find-missing-requirements', 'karr_lab_build_utils',
                             '--ignore-files', 'karr_lab_build_utils/templates/*']) as app:
                         app.run()
-                        self.assertRegexpMatches(captured.stdout.get_text(), 'The following dependencies should likely be added to')
+                        self.assertRegex(captured.stdout.get_text(), 'The following dependencies should likely be added to')
                         self.assertEqual(captured.stderr.get_text(), '')
         finally:
             os.remove('requirements.txt')
@@ -2394,9 +2394,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                         'find-unused-requirements', 'karr_lab_build_utils',
                         '--ignore-file', 'karr_lab_build_utils/templates/*']) as app:
                     app.run()
-                    self.assertRegexpMatches(captured.stdout.get_text(),
+                    self.assertRegex(captured.stdout.get_text(),
                                              'The following requirements from requirements.txt may not be necessary:')
-                    self.assertRegexpMatches(captured.stdout.get_text(),
+                    self.assertRegex(captured.stdout.get_text(),
                                              'sphinxcontrib_googleanalytics')
                     self.assertEqual(captured.stderr.get_text(), '')
 
@@ -2410,7 +2410,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                         '--ignore-file', 'karr_lab_build_utils/templates/*',
                 ]) as app:
                     app.run()
-                    self.assertRegexpMatches(captured.stdout.get_text(), 'All of the dependencies appear to be necessary')
+                    self.assertRegex(captured.stdout.get_text(), 'All of the dependencies appear to be necessary')
                     self.assertEqual(captured.stderr.get_text(), '')
         os.remove('requirements.txt')
         os.rename('requirements.txt.save', 'requirements.txt')
@@ -2428,7 +2428,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         build_helper = core.BuildHelper()
         with capturer.CaptureOutput(merged=False, relay=False) as captured:
             build_helper.upload_package_to_pypi(dirname=dirname, repository='testpypi')
-            self.assertRegexpMatches(captured.stdout.get_text(), 'Uploading distributions to https://test\.pypi\.org/legacy/')
+            self.assertRegex(captured.stdout.get_text(), 'Uploading distributions to https://test\.pypi\.org/legacy/')
             self.assertEqual(captured.stderr.get_text().strip(), '')
 
         # test cli
@@ -2438,7 +2438,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                                         '--dirname', dirname,
                                         '--repository', 'testpypi']) as app:
                     app.run()
-                    self.assertRegexpMatches(captured.stdout.get_text(), 'Uploading distributions to https://test\.pypi\.org/legacy/')
+                    self.assertRegex(captured.stdout.get_text(), 'Uploading distributions to https://test\.pypi\.org/legacy/')
                     self.assertEqual(captured.stderr.get_text().strip(), '')
 
     def test_download_package_config_files(self):
@@ -2526,12 +2526,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with mock.patch('sys.argv', ['karr_lab_build_utils', '--help']):
             with self.assertRaises(SystemExit) as context:
                 karr_lab_build_utils.__main__.main()
-                self.assertRegexpMatches(context.Exception, 'usage: karr_lab_build_utils')
+                self.assertRegex(context.Exception, 'usage: karr_lab_build_utils')
 
         with mock.patch('sys.argv', ['karr_lab_build_utils']):
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
                 karr_lab_build_utils.__main__.main()
-                self.assertRegexpMatches(captured.stdout.get_text(), 'usage: karr_lab_build_utils')
+                self.assertRegex(captured.stdout.get_text(), 'usage: karr_lab_build_utils')
                 self.assertEqual(captured.stderr.get_text(), '')
 
     def test_unsupported_test_runner(self):

@@ -19,7 +19,7 @@ class TestCore(unittest.TestCase):
         with mock.patch('sys.argv', ['{{ name }}', '--help']):
             with self.assertRaises(SystemExit) as context:
                 __main__.main()
-                self.assertRegexpMatches(context.Exception, 'usage: {{ name }}')
+                self.assertRegex(context.Exception, 'usage: {{ name }}')
 
     def test_help(self):
         with self.assertRaises(SystemExit):
