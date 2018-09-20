@@ -1032,7 +1032,9 @@ class BuildHelper(object):
 
             # collect tests
             test_cases = self._get_test_cases(test_path=test_path,
-                                              n_workers=n_workers, i_worker=i_worker)
+                                              n_workers=n_workers, i_worker=i_worker,
+                                              with_xunit=with_xunit,
+                                              exit_on_failure=exit_on_failure)
             # run tests
             if test_cases:
                 result = pytest.main(argv + test_cases)
@@ -1062,13 +1064,16 @@ class BuildHelper(object):
         if exit_on_failure and result != 0:
             sys.exit(1)
 
-    def _get_test_cases(self, test_path='tests', n_workers=1, i_worker=0):
+    def _get_test_cases(self, test_path='tests', n_workers=1, i_worker=0,
+                        with_xunit=False, exit_on_failure=True):
         """ Get test cases for worker *i* of *n* workers
 
         Args:
             test_path (:obj:`str`, optional): path to tests that should be run
             n_workers (:obj:`int`, optional): number of workers to run tests
             i_worker (:obj:`int`, optional): index of worker within {0 .. :obj:`n_workers` - 1}
+            with_xunit (:obj:`bool`, optional): whether or not to save test results
+            exit_on_failure (:obj:`bool`, optional): whether or not to exit on test failure
 
         Returns:
             :obj:`list` of :obj:`str`: sorted list of test cases
@@ -1082,8 +1087,24 @@ class BuildHelper(object):
             else:
                 cases = []
         else:
+            cmd = [
+                '--collect-only',
+                '--quiet',
+                test_path,
+            ]
             plugin = PyTestTestCaseCollectionPlugin()
-            pytest.main(['--collect-only', test_path, '--quiet'], plugins=[plugin])
+            if with_xunit:
+                py_v = self.get_python_version()
+                abs_xml_latest_filename = os.path.join(
+                    self.proj_tests_xml_dir, '{}.{}-{}.{}.xml'.format(
+                        self.proj_tests_xml_latest_filename,
+                        os.getenv('CIRCLE_NODE_INDEX', 0),
+                        os.getenv('CIRCLE_NODE_TOTAL', 1),
+                        py_v))
+                cmd.append('--junitxml=' + abs_xml_latest_filename)
+            result = pytest.main(cmd, plugins=[plugin])
+            if exit_on_failure and result != 0:
+                sys.exit(1)
             cases = sorted(plugin.classes)
             cases = cases[i_worker::n_workers]
 
@@ -2763,7 +2784,7 @@ class PyTestTestCaseCollectionPlugin(object):
 
     def pytest_collection_modifyitems(self, items):
         """ Collect test classes
-        
+
         Args:
             items (:obj:`list` of :obj:`_pytest.unittest.TestCaseFunction`):
                 test case functions
