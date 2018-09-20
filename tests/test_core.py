@@ -704,8 +704,8 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with __main__.App(argv=['docker', 'create-container']) as app:
                 app.run()
                 stdout = captured.stdout.get_text()
-                self.assertRegex(stdout, ('Created Docker container (build[\-0-9]+) with volume (build[\-0-9]+)'))
-        match = re.search('Created Docker container (build[\-0-9]+) ', stdout, re.IGNORECASE)
+                self.assertRegex(stdout, (r'Created Docker container (build[\-0-9]+) with volume (build[\-0-9]+)'))
+        match = re.search(r'Created Docker container (build[\-0-9]+) ', stdout, re.IGNORECASE)
         container = match.group(1)
 
         with __main__.App(argv=['docker', 'install-package-to-container', container]) as app:
@@ -1844,7 +1844,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
             remote_filename = ftp.path.join(bh.docs_server_directory, bh.repo_name, '.htaccess')
             with ftp.open(remote_filename, 'r') as file:
-                self.assertRegex(file.read(), 'RewriteRule \^{0}/latest/\(\.\*\)\$ {0}/{1}/\$1 \[R=303,L\]'.format(
+                self.assertRegex(file.read(), r'RewriteRule \^{0}/latest/\(\.\*\)\$ {0}/{1}/\$1 \[R=303,L\]'.format(
                     bh.repo_branch, repo_version))
 
             # cleanup
@@ -2306,12 +2306,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         with capturer.CaptureOutput(merged=False, relay=False) as captured:
             build_helper.analyze_package('karr_lab_build_utils')
-            self.assertRegex(captured.stdout.get_text(), '\* Module karr_lab_build_utils.core')
+            self.assertRegex(captured.stdout.get_text(), r'\* Module karr_lab_build_utils.core')
             self.assertEqual(captured.stderr.get_text().strip(), '')
 
         with capturer.CaptureOutput(merged=False, relay=False) as captured:
             build_helper.analyze_package('karr_lab_build_utils', verbose=True)
-            self.assertRegex(captured.stdout.get_text(), '\* Module karr_lab_build_utils.core')
+            self.assertRegex(captured.stdout.get_text(), r'\* Module karr_lab_build_utils.core')
             self.assertEqual(captured.stderr.get_text().strip(), 'No config file found, using default configuration')
 
         config_filename = os.path.join(self.tmp_dirname, 'pylintrc')
@@ -2319,7 +2319,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             file.write('\n')
         with capturer.CaptureOutput(merged=False, relay=False) as captured:
             build_helper.analyze_package('karr_lab_build_utils', verbose=True, config_filename=config_filename)
-            self.assertRegex(captured.stdout.get_text(), '\* Module karr_lab_build_utils.core')
+            self.assertRegex(captured.stdout.get_text(), r'\* Module karr_lab_build_utils.core')
             self.assertEqual(captured.stderr.get_text().strip(), 'Using config file {}'.format(config_filename))
 
         # test cli
@@ -2327,14 +2327,14 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
                 with __main__.App(argv=['analyze-package', 'karr_lab_build_utils']) as app:
                     app.run()
-                    self.assertRegex(captured.stdout.get_text(), '\* Module karr_lab_build_utils.core')
+                    self.assertRegex(captured.stdout.get_text(), r'\* Module karr_lab_build_utils.core')
                     self.assertEqual(captured.stderr.get_text().strip(), '')
 
         with self.construct_environment():
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
                 with __main__.App(argv=['analyze-package', 'karr_lab_build_utils', '--messages', 'W0611']) as app:
                     app.run()
-                    self.assertRegex(captured.stdout.get_text(), '\* Module karr_lab_build_utils.core')
+                    self.assertRegex(captured.stdout.get_text(), r'\* Module karr_lab_build_utils.core')
                     self.assertEqual(captured.stderr.get_text().strip(), '')
 
     def test_find_missing_requirements(self):
@@ -2428,7 +2428,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         build_helper = core.BuildHelper()
         with capturer.CaptureOutput(merged=False, relay=False) as captured:
             build_helper.upload_package_to_pypi(dirname=dirname, repository='testpypi')
-            self.assertRegex(captured.stdout.get_text(), 'Uploading distributions to https://test\.pypi\.org/legacy/')
+            self.assertRegex(captured.stdout.get_text(), r'Uploading distributions to https://test\.pypi\.org/legacy/')
             self.assertEqual(captured.stderr.get_text().strip(), '')
 
         # test cli
@@ -2438,7 +2438,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                                         '--dirname', dirname,
                                         '--repository', 'testpypi']) as app:
                     app.run()
-                    self.assertRegex(captured.stdout.get_text(), 'Uploading distributions to https://test\.pypi\.org/legacy/')
+                    self.assertRegex(captured.stdout.get_text(), r'Uploading distributions to https://test\.pypi\.org/legacy/')
                     self.assertEqual(captured.stderr.get_text().strip(), '')
 
     def test_download_package_config_files(self):

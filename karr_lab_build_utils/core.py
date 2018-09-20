@@ -1016,7 +1016,7 @@ class BuildHelper(object):
 
         if self.test_runner == 'pytest':
             test_path = test_path.replace(':', '::')
-            test_path = re.sub('::(.+?)(\.)', r'::\1::', test_path)
+            test_path = re.sub(r'::(.+?)(\.)', r'::\1::', test_path)
 
             if not os.path.isdir('logs'):
                 os.mkdir('logs')
@@ -1326,7 +1326,7 @@ class BuildHelper(object):
                 'exec', container, 'bash', '-c',
                 'ls -la ' + os.path.join('/root', 'project', 'tests', 'reports', '.coverage.*-*.{}.*'.format(py_v)),
             ])
-            match = re.search('/root/project/tests/reports/(\.coverage\.\d+\-\d+\.\d+\.\d+\.\d+)', out)
+            match = re.search(r'/root/project/tests/reports/(\.coverage\.\d+\-\d+\.\d+\.\d+\.\d+)', out)
             self._run_docker_command(['cp',
                                       container + ':' + match.group(0),
                                       os.path.join(coverage_dirname, match.group(1)),
@@ -1336,7 +1336,7 @@ class BuildHelper(object):
             out = self._run_docker_command(['exec', container, 'bash', '-c', 'ls -la ' +
                                             os.path.join('/root', 'project', self.DEFAULT_PROJ_TESTS_XML_DIR,
                                                          '{}.*-*.{}.*.xml'.format(self.DEFAULT_PROJ_TESTS_XML_LATEST_FILENAME, py_v))])
-            match = re.search('/root/project/{}/({}\.\d+\-\d+\.\d+\.\d+\.\d+.xml)'.format(
+            match = re.search(r'/root/project/{}/({}\.\d+\-\d+\.\d+\.\d+\.\d+.xml)'.format(
                 self.DEFAULT_PROJ_TESTS_XML_DIR,
                 self.DEFAULT_PROJ_TESTS_XML_LATEST_FILENAME), out)
             self._run_docker_command(['cp',
@@ -1491,7 +1491,7 @@ class BuildHelper(object):
         filename_pattern = os.path.join(self.proj_tests_xml_dir,
                                         '{0}.*-*.*.xml'.format(self.proj_tests_xml_latest_filename))
         for filename in glob.glob(filename_pattern):
-            match = re.match('^{}\.(.*?)\-(.*?)\.(.*?)\.xml$'.format(self.proj_tests_xml_latest_filename), os.path.basename(filename))
+            match = re.match(r'^{}\.(.*?)\-(.*?)\.(.*?)\.xml$'.format(self.proj_tests_xml_latest_filename), os.path.basename(filename))
             python_version = match.group(3)
 
             doc = minidom.parse(filename)
@@ -1842,7 +1842,7 @@ class BuildHelper(object):
         abs_xml_latest_filename_pattern = os.path.join(
             self.proj_tests_xml_dir, '{0}.*-*.*.xml'.format(self.proj_tests_xml_latest_filename))
         for abs_xml_latest_filename in glob.glob(abs_xml_latest_filename_pattern):
-            match = re.match('^.*?\.(\d+)\-(\d+)\.(\d+\.\d+\.\d+)\.xml$', abs_xml_latest_filename)
+            match = re.match(r'^.*?\.(\d+)\-(\d+)\.(\d+\.\d+\.\d+)\.xml$', abs_xml_latest_filename)
             pyv = match.group(3)
             r = requests.post('http://tests.karrlab.org/rest/submit_report',
                               data={
