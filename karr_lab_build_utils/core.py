@@ -1885,7 +1885,7 @@ class BuildHelper(object):
         coverage_doc.combine(data_paths=data_paths)
         coverage_doc.save()
 
-    def archive_coverage_report(self, coverage_dirname='test/coverage', dry_run=False):
+    def archive_coverage_report(self, coverage_dirname='tests/reports', dry_run=False):
         """ Archive coverage report:
 
         * Upload report to Coveralls
