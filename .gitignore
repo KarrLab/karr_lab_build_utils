@@ -21,6 +21,7 @@ README.rst
 # compiled documentation
 docs/source
 docs/_build
+docs/.doctrees/
 
 # pytest .cache directory
 .cache/
