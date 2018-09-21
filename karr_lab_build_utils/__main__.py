@@ -211,7 +211,7 @@ class RunTestsController(cement.Controller):
             (['--with-coverage'], dict(
                 default=False, action='store_true', help='if set assess code coverage')),
             (['--coverage-dirname'], dict(
-                type=str, default='tests/results', help="Directory to store coverage data; default='tests/results'")),
+                type=str, default='tests/reports', help="Directory to store coverage data; default='tests/reports'")),
             (['--coverage-type'], dict(
                 type=str, default='branch',
                 help="Type of coverage analysis to run {statement, branch, or multiple-decision}; default='branch'")),
@@ -334,7 +334,7 @@ class RunTestsInDockerContainerController(cement.Controller):
             (['--with-coverage'], dict(
                 default=False, action='store_true', help='if set assess code coverage')),
             (['--coverage-dirname'], dict(
-                type=str, default='tests/results', help="Directory to store coverage data; default='tests/results'")),
+                type=str, default='tests/reports', help="Directory to store coverage data; default='tests/reports'")),
             (['--coverage-type'], dict(
                 type=str, default='branch',
                 help="Type of coverage analysis to run {statement, branch, or multiple-decision}; default='branch'")),
@@ -600,7 +600,7 @@ class MakeAndArchiveReportsController(cement.Controller):
         stacked_type = 'nested'
         arguments = [
             (['--coverage-dirname'], dict(
-                type=str, default='tests/results', help="Directory to store coverage data; default='tests/results'")),
+                type=str, default='tests/reports', help="Directory to store coverage data; default='tests/reports'")),
             (['--dry-run'], dict(
                 default=False, dest='dry_run', action='store_true', help='If set, do not send results to Coveralls and Code Climate')),
         ]
@@ -625,7 +625,7 @@ class CombineCoverageReportsController(cement.Controller):
         stacked_type = 'nested'
         arguments = [
             (['--coverage-dirname'], dict(
-                type=str, default='tests/results', help="Directory to store coverage data; default='tests/results'")),
+                type=str, default='tests/reports', help="Directory to store coverage data; default='tests/reports'")),
         ]
 
     @cement.ex(hide=True)
@@ -648,7 +648,7 @@ class ArchiveCoverageReportController(cement.Controller):
         stacked_type = 'nested'
         arguments = [
             (['--coverage-dirname'], dict(
-                type=str, default='tests/results', help="Directory to store coverage data; default='tests/results'")),
+                type=str, default='tests/reports', help="Directory to store coverage data; default='tests/reports'")),
             (['--dry-run'], dict(
                 default=False, dest='dry_run', action='store_true', help='If set, do not send results to Coveralls and Code Climate')),
         ]
@@ -675,7 +675,7 @@ class UploadCoverageReportToCoverallsController(cement.Controller):
         stacked_type = 'nested'
         arguments = [
             (['--coverage-dirname'], dict(
-                type=str, default='tests/results', help="Directory to store coverage data; default='tests/results'")),
+                type=str, default='tests/reports', help="Directory to store coverage data; default='tests/reports'")),
             (['--dry-run'], dict(
                 default=False, dest='dry_run', action='store_true', help='If set, do not send results to Coveralls')),
         ]
@@ -699,7 +699,7 @@ class UploadCoverageReportToCodeClimateController(cement.Controller):
         stacked_type = 'nested'
         arguments = [
             (['--coverage-dirname'], dict(
-                type=str, default='tests/results', help="Directory to store coverage data; default='tests/results'")),
+                type=str, default='tests/reports', help="Directory to store coverage data; default='tests/reports'")),
             (['--dry-run'], dict(
                 default=False, dest='dry_run', action='store_true', help='If set, do not send results to Code Climate')),
         ]
