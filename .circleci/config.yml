@@ -67,8 +67,8 @@ jobs:
           path: /root/project/tests/reports
           destination: reports
       - store_artifacts:
-          path: /root/project/logs
-          destination: logs
+          path: /root/.wc/log
+          destination: log
   
       # Generate reports, archive results, and send notifications
       - run:
