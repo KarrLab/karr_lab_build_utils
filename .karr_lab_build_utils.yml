@@ -3,6 +3,7 @@ static_analyses:
       - karr_lab_build_utils/templates/*
 downstream_dependencies:
   - conv_opt
+  - datanator_frontend
   - gdoc_down
   - h1_hesc
   - intro_to_wc_modeling
