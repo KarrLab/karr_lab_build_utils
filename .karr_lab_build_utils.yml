@@ -4,7 +4,7 @@ static_analyses:
 downstream_dependencies:
   - conv_opt
   - datanator
-  - datanator_frontend
+  # - datanator_frontend
   - gdoc_down
   - h1_hesc
   - intro_to_wc_modeling  
