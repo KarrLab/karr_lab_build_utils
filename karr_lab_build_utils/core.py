@@ -1781,6 +1781,7 @@ class BuildHelper(object):
         Returns:
             :obj:`dict`: analyses of missing and unused requirements
         """
+        config = self.get_build_config()
         errors = []
 
         """ test reports """
@@ -1795,18 +1796,25 @@ class BuildHelper(object):
         self.archive_coverage_report(coverage_dirname=coverage_dirname, dry_run=dry_run)
 
         """ static analysis """
-        config = self.get_build_config()
+        find_missing_requirements = config.get('static_analyses', {}).get('find_missing_requirements', True)
+        find_unused_requirements = config.get('static_analyses', {}).get('find_unused_requirements', True)
         ignore_files = config.get('static_analyses', {}).get('ignore_files', [])
 
-        missing_reqs = self.find_missing_requirements(self.repo_name, ignore_files=ignore_files)
-        if missing_reqs:
-            errors.append('The following requirements are missing:\n  {}'.format(
-                '\n  '.join(missing_req[0] for missing_req in missing_reqs)))
+        if find_missing_requirements:
+            missing_reqs = self.find_missing_requirements(self.repo_name, ignore_files=ignore_files)
+            if missing_reqs:
+                errors.append('The following requirements are missing:\n  {}'.format(
+                    '\n  '.join(missing_req[0] for missing_req in missing_reqs)))
+        else:
+            missing_reqs = []
 
-        unused_reqs = self.find_unused_requirements(self.repo_name, ignore_files=ignore_files)
-        if unused_reqs:
-            msg = 'The following requirements appear to be unused:\n  {}'.format('\n  '.join(unused_reqs))
-            warnings.warn(msg, UserWarning)
+        if find_unused_requirements:
+            unused_reqs = self.find_unused_requirements(self.repo_name, ignore_files=ignore_files)
+            if unused_reqs:
+                msg = 'The following requirements appear to be unused:\n  {}'.format('\n  '.join(unused_reqs))
+                warnings.warn(msg, UserWarning)
+        else:
+            unused_reqs = []
 
         """ documentation """
         self.make_documentation()
@@ -2033,12 +2041,14 @@ class BuildHelper(object):
             os.mkdir(self.proj_docs_static_dir)
 
         # compile API docs
-        parser = configparser.ConfigParser()
-        parser.read('setup.cfg')
-        packages = parser.get('sphinx-apidocs', 'packages').strip().split('\n')
-        for package in packages:
-            self.run_method_and_capture_stderr(sphinx.ext.apidoc.main,
-                                               argv=['-f', '-P', '-o', os.path.join(self.proj_docs_dir, 'source'), package])
+        config = self.get_build_config().get('docs', {})
+        if config.get('api_docs', True):
+            parser = configparser.ConfigParser()
+            parser.read('setup.cfg')
+            packages = parser.get('sphinx-apidocs', 'packages').strip().split('\n')
+            for package in packages:
+                self.run_method_and_capture_stderr(sphinx.ext.apidoc.main,
+                                                   argv=['-f', '-P', '-o', os.path.join(self.proj_docs_dir, 'source'), package])
 
         # build HTML documentation
         def handle_exception(app, args, exception, stderr=sys.stderr):
