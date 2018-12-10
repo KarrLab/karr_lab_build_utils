@@ -812,7 +812,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     with self.construct_environment():
                         with capturer.CaptureOutput(merged=False, relay=False) as captured:
                             with __main__.App(argv=['do-post-test-tasks', '0', '1']) as app:
-                                with self.assertRaisesRegex(core.BuildHelperError, 'Post-test tasks were not successful'):
+                                with self.assertRaisesRegex(SystemExit, 'Post-test tasks were not successful'):
                                     app.run()
                                 self.assertEqual(app.pargs.installation_exit_code, 0)
                                 self.assertEqual(app.pargs.tests_exit_code, 1)
@@ -851,7 +851,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                         with self.construct_environment():
                             with capturer.CaptureOutput(merged=False, relay=False) as captured:
                                 with __main__.App(argv=['do-post-test-tasks', '0', '0']) as app:
-                                    with self.assertRaisesRegex(core.BuildHelperError, 'Post-test tasks were not successful'):
+                                    with self.assertRaisesRegex(SystemExit, 'Post-test tasks were not successful'):
                                         app.run()
                                     self.assertRegex(captured.stdout.get_text(), '1 notifications were sent')
                                     self.assertRegex(captured.stdout.get_text(), '  Other error')
