@@ -241,6 +241,17 @@ class BuildHelper(object):
         self.coveralls_token = os.getenv('COVERALLS_REPO_TOKEN')
         self.code_climate_token = os.getenv('CODECLIMATE_REPO_TOKEN')
 
+        # setup logging
+        self.logger = logger = logging.getLogger()
+        logger.setLevel(logging.INFO)
+
+        handler = logging.FileHandler(os.path.expanduser('~/.wc/log/karr_lab_build_utils.log'))
+        handler.setLevel(logging.INFO)
+        logger.addHandler(handler)
+
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(pathname)s:%(lineno)d - %(message)s')
+        handler.setFormatter(formatter)
+
     #####################
     # Create a package
     #####################
@@ -1632,6 +1643,8 @@ class BuildHelper(object):
 
         Returns:
             :obj:`list` of :obj:`str`: names of triggered packages
+            :obj:`dict` of :obj:`str`, :obj:`str`: dictionary which maps names of untriggered packages to the reasons 
+                why they weren't triggered
             :obj:`dict`: status of a set of results
             :obj:`Exception`: exception from `make_and_archive_reports`
         """
@@ -1644,9 +1657,9 @@ class BuildHelper(object):
             other_error = True
             other_exception = exception
 
-        triggered_packages = self.trigger_tests_of_downstream_dependencies(dry_run=dry_run)
+        triggered_packages, not_triggered_packages = self.trigger_tests_of_downstream_dependencies(dry_run=dry_run)
         status = self.send_email_notifications(installation_error, tests_error, other_error, static_analyses, dry_run=dry_run)
-        return (triggered_packages, status, other_exception)
+        return (triggered_packages, not_triggered_packages, status, other_exception)
 
     def send_email_notifications(self, installation_error, tests_error, other_error, static_analyses, dry_run=False):
         """ Send email notifications of failures, fixes, and downstream failures
@@ -2253,18 +2266,24 @@ class BuildHelper(object):
 
         Returns:
             :obj:`list` of :obj:`str`: names of triggered packages
+            :obj:`dict` of :obj:`str`, :obj:`str`: dictionary which maps names of untriggered packages to the reasons 
+                why they weren't triggered
 
         :todo: support branches
         """
 
+        self.logger.info("Triggering tests of downstream dependencies ...")
+
         # stop if this is a dry run
         if dry_run:
-            return []
+            self.logger.info("\tDon't trigger tests because this is a dry run")
+            return (None, None)
 
         # stop if the tests didn't pass
         test_results = self.get_test_results()
         if test_results.get_num_errors() > 0 or test_results.get_num_failures() > 0:
-            return []
+            self.logger.info("\tDon't trigger tests because the tests didn't succeed")
+            return (None, None)
 
         # read downstream dependencies
         with open(config_filename, 'r') as file:
@@ -2273,7 +2292,8 @@ class BuildHelper(object):
 
         # stop if there are no downstream dependencies
         if not packages:
-            return []
+            self.logger.info("\tDon't trigger tests because there are no downstream dependencies")
+            return ([], {})
 
         upstream_repo_name = os.getenv('UPSTREAM_REPONAME', '')
         upstream_build_num = os.getenv('UPSTREAM_BUILD_NUM', '0')
@@ -2285,6 +2305,7 @@ class BuildHelper(object):
         upstream_build_time = dateutil.parser.parse(result['start_time'])
 
         triggered_packages = []
+        not_triggered_packages = {}
         for package in packages:
             branch = 'master'
 
@@ -2301,6 +2322,16 @@ class BuildHelper(object):
                         str(build['build_num']) == upstream_build_num and \
                         build['build_num'] != self.build_num:
                     already_queued = True
+                    msg = ("don't trigger tests because this package already triggered the "
+                           "current build cascade\n"
+                           "\t\tbuild: {}\n"
+                           "\t\tbuild time: {}\n"
+                           "\t\tupstream repo: {}\n"
+                           "\t\tupstream build: {}\n"
+                           "\t\tupstream build time: {}").format(self.build_num, build['start_time'], upstream_repo_name,
+                                                                 upstream_build_num, upstream_build_time)
+                    not_triggered_packages[package] = msg
+                    self.logger.info("\t{}: {}".format(package, msg))
                     break
 
                 # don't trigger a build if the package already been triggered from the same upstream commit
@@ -2309,12 +2340,32 @@ class BuildHelper(object):
                         build_parameters['UPSTREAM_REPONAME'] == upstream_repo_name and \
                         build_parameters['UPSTREAM_BUILD_NUM'] == upstream_build_num:
                     already_queued = True
+                    msg = ("don't trigger tests because this package has already been triggered "
+                           "by the current build cascade\n"
+                           "\t\tbuild: {}\n"
+                           "\t\tbuild time: {}\n"
+                           "\t\tupstream repo: {}\n"
+                           "\t\tupstream build: {}\n"
+                           "\t\tupstream build time: {}").format(self.build_num, build['start_time'], upstream_repo_name,
+                                                                 upstream_build_num, upstream_build_time)
+                    not_triggered_packages[package] = msg
+                    self.logger.info("\t{}: {}".format(package, msg))
                     break
 
                 # don't trigger a build if the package has already been more recently tested than the commit time
                 build_start_time = build['start_time']
                 if build_start_time is None or dateutil.parser.parse(build['start_time']) > upstream_build_time:
                     already_queued = True
+                    msg = ("don't trigger tests because this package has already been tested since "
+                           "the commit time of the current build cascade\n"
+                           "\t\tbuild: {}\n"
+                           "\t\tbuild time: {}\n"
+                           "\t\tupstream repo: {}\n"
+                           "\t\tupstream build: {}\n"
+                           "\t\tupstream build time: {}").format(self.build_num, build['start_time'], upstream_repo_name,
+                                                                 upstream_build_num, upstream_build_time)
+                    not_triggered_packages[package] = msg
+                    self.logger.info("\t{}: {}".format(package, msg))
                     break
 
             if already_queued:
@@ -2328,8 +2379,9 @@ class BuildHelper(object):
                 }
             })
             triggered_packages.append(package)
+            self.logger.info(("\t{}: trigger tests").format(package))
 
-        return triggered_packages
+        return (triggered_packages, not_triggered_packages)
 
     def get_version(self):
         """ Get the version of this package

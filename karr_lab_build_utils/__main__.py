@@ -548,7 +548,7 @@ class DoPostTestTasksController(cement.Controller):
 
         """ Do all post-test tasks for CircleCI """
         buildHelper = BuildHelper()
-        triggered_packages, status, other_exception = buildHelper.do_post_test_tasks(
+        triggered_packages, not_triggered_packages, status, other_exception = buildHelper.do_post_test_tasks(
             args.installation_exit_code != 0, args.tests_exit_code != 0, dry_run=dry_run)
 
         # downstream triggered tests
@@ -557,7 +557,10 @@ class DoPostTestTasksController(cement.Controller):
             for triggered_package in triggered_packages:
                 print('  {}'.format(triggered_package))
         else:
-            print("No downstream builds were triggered.")
+            print("No downstream builds were triggered")
+            if not_triggered_packages:
+                for key, msg in not_triggered_packages.items():
+                    print('  {}: {}'.format(key, msg.replace('\n', '\n  ')))
 
         # email notifications
         num_notifications = sum(status.values())
@@ -815,33 +818,6 @@ class VisualizePackageDependenciesController(cement.Controller):
         buildHelper.visualize_package_dependencies(packages_parent_dir=args.packages_parent_dir, out_filename=args.out_filename)
 
 
-class TriggerTestsOfDownstreamDependenciesController(cement.Controller):
-    """ Trigger CircleCI to test downstream dependencies """
-
-    class Meta:
-        label = 'trigger-tests-of-downstream-dependencies'
-        description = 'Trigger CircleCI to test downstream dependencies'
-        stacked_on = 'base'
-        stacked_type = 'nested'
-        arguments = [
-            (['--config-filename'], dict(type=str, default='.circleci/downstream_dependencies.yml',
-                                         help='Path to YAML-formatted configuration including list of downstream dependencies')),
-        ]
-
-    @cement.ex(hide=True)
-    def _default(self):
-        args = self.app.pargs
-        buildHelper = BuildHelper()
-        packages = buildHelper.trigger_tests_of_downstream_dependencies(
-            config_filename=args.config_filename)
-        if packages:
-            print('{} dependent builds were triggered'.format(len(packages)))
-            for package in packages:
-                print('  {}'.format(package))
-        else:
-            print('No dependent builds were triggered.')
-
-
 class AnalyzePackageController(cement.Controller):
     """ Perform static analyses of a package using Pylint """
 
@@ -994,7 +970,6 @@ class App(cement.App):
             CompileDownstreamDependenciesController,
             ArePackageDependenciesAcyclicController,
             VisualizePackageDependenciesController,
-            TriggerTestsOfDownstreamDependenciesController,
             AnalyzePackageController,
             FindMissingRequirementsController,
             FindUnusedRequirementsController,

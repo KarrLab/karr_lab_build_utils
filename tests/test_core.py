@@ -769,7 +769,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             build_helper.run_tests(test_path=self.DUMMY_TEST, environment=None)
 
     def test_do_post_test_tasks(self):
-        down_pkgs_return = []
+        down_pkgs_return = ([], {})
         notify_return = {
             'is_fixed': False,
             'is_old_error': False,
@@ -794,11 +794,11 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
                                 self.assertEqual(app.pargs.installation_exit_code, 0)
                                 self.assertEqual(app.pargs.tests_exit_code, 0)
-                                self.assertRegex(captured.stdout.get_text(), 'No downstream builds were triggered.')
+                                self.assertRegex(captured.stdout.get_text(), 'No downstream builds were triggered')
                                 self.assertRegex(captured.stdout.get_text(), 'No notifications were sent.')
                                 self.assertEqual(captured.stderr.get_text(), '')
 
-        down_pkgs_return = ['pkg_1', 'pkg_2']
+        down_pkgs_return = (['pkg_1', 'pkg_2'], {})
         notify_return = {
             'is_fixed': True,
             'is_old_error': True,
@@ -829,7 +829,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         def make_and_archive_reports():
             raise Exception()
-        down_pkgs_return = []
+        down_pkgs_return = ([], {})
         notify_return = {
             'is_fixed': False,
             'is_old_error': False,
@@ -1838,7 +1838,8 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with ftp.open(remote_filename, 'r') as file:
                 self.assertEqual(file.read(), 'Test documentation')
 
-            remote_filename = ftp.path.join(bh.docs_server_directory, bh.repo_name, bh.repo_branch, repo_version, 'a', 'b', 'c', 'index.html')
+            remote_filename = ftp.path.join(bh.docs_server_directory, bh.repo_name, bh.repo_branch,
+                                            repo_version, 'a', 'b', 'c', 'index.html')
             with ftp.open(remote_filename, 'r') as file:
                 self.assertEqual(file.read(), 'Test!')
 
@@ -2057,8 +2058,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             file.write('</testsuite>')
 
         build_helper = self.construct_build_helper()
-        deps = build_helper.trigger_tests_of_downstream_dependencies()
-        self.assertEqual(deps, [])
+        deps, no_deps = build_helper.trigger_tests_of_downstream_dependencies()
+        self.assertEqual(deps, None)
+        self.assertEqual(no_deps, None)
 
     def test_trigger_tests_of_downstream_dependencies_no_downstream(self):
         build_helper = core.BuildHelper()
@@ -2073,9 +2075,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             yaml.dump({'downstream_dependencies': []}, file)
 
         build_helper = self.construct_build_helper()
-        deps = build_helper.trigger_tests_of_downstream_dependencies(
+        deps, no_deps = build_helper.trigger_tests_of_downstream_dependencies(
             config_filename=config_filename)
         self.assertEqual(deps, [])
+        self.assertEqual(no_deps, {})
 
     def test_trigger_tests_of_downstream_dependencies_no_upstream(self):
         build_helper = core.BuildHelper()
@@ -2106,22 +2109,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         with env:
             with mock.patch('requests.post', return_value=requests_post):
-                # test api
                 with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_2]):
                     build_helper = core.BuildHelper()
-                    deps = build_helper.trigger_tests_of_downstream_dependencies(
+                    deps, no_deps = build_helper.trigger_tests_of_downstream_dependencies(
                         config_filename=config_filename)
                     self.assertEqual(deps, ['dep_1', 'dep_2'])
-
-                # test cli
-                with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_2]):
-                    with __main__.App(argv=['trigger-tests-of-downstream-dependencies',
-                                            '--config-filename', config_filename]) as app:
-                        with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                            app.run()
-                    self.assertRegex(captured.stdout.get_text(), '2 dependent builds were triggered')
-                    self.assertEqual(captured.stderr.get_text(), '')
-
+                    self.assertEqual(no_deps, {})
         # cleanup
         os.remove(config_filename)
 
@@ -2165,21 +2158,15 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         with env:
             with mock.patch('requests.post', return_value=requests_post):
-                # test api
                 with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_2]):
                     build_helper = core.BuildHelper()
-                    deps = build_helper.trigger_tests_of_downstream_dependencies(
+                    deps, no_deps = build_helper.trigger_tests_of_downstream_dependencies(
                         config_filename=config_filename)
                     self.assertEqual(deps, [])
-
-                # test cli
-                with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_2]):
-                    with __main__.App(argv=['trigger-tests-of-downstream-dependencies',
-                                            '--config-filename', config_filename]) as app:
-                        with capturer.CaptureOutput(merged=False, relay=False) as captured:
-                            app.run()
-                    self.assertRegex(captured.stdout.get_text(), 'No dependent builds were triggered.')
-                    self.assertEqual(captured.stderr.get_text(), '')
+                    self.assertIn('dep_1', no_deps)
+                    self.assertIn('package has already been triggered by the current build cascade', no_deps['dep_1'])
+                    self.assertIn('dep_2', no_deps)
+                    self.assertIn('package has already been triggered by the current build cascade', no_deps['dep_2'])
 
         # cleanup
         os.remove(config_filename)
@@ -2230,9 +2217,11 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 with mock.patch('requests.post', return_value=requests_post):
                     # test api
                     build_helper = core.BuildHelper()
-                    deps = build_helper.trigger_tests_of_downstream_dependencies(
+                    deps, no_deps = build_helper.trigger_tests_of_downstream_dependencies(
                         config_filename=config_filename)
                     self.assertEqual(deps, [])
+                    self.assertIn('dep_1', no_deps)
+                    self.assertIn('package already triggered the current build cascade', no_deps['dep_1'])
 
         # cleanup
         os.remove(config_filename)
@@ -2276,9 +2265,11 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 with mock.patch('requests.post', return_value=requests_post):
                     # test api
                     build_helper = core.BuildHelper()
-                    deps = build_helper.trigger_tests_of_downstream_dependencies(
+                    deps, no_deps = build_helper.trigger_tests_of_downstream_dependencies(
                         config_filename=config_filename)
                     self.assertEqual(deps, [])
+                    self.assertIn('pkg_2', no_deps)
+                    self.assertIn('package has already been tested since the commit time', no_deps['pkg_2'])
 
         requests_get_1 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
@@ -2289,16 +2280,19 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 with mock.patch('requests.post', return_value=requests_post):
                     # test api
                     build_helper = core.BuildHelper()
-                    deps = build_helper.trigger_tests_of_downstream_dependencies(
+                    deps, no_deps = build_helper.trigger_tests_of_downstream_dependencies(
                         config_filename=config_filename)
                     self.assertEqual(deps, ['pkg_2'])
+                    self.assertEqual(no_deps, {})
 
         # cleanup
         os.remove(config_filename)
 
     def test_trigger_tests_of_downstream_dependencies_dry_run(self):
         build_helper = core.BuildHelper()
-        self.assertEqual(build_helper.trigger_tests_of_downstream_dependencies(dry_run=True), [])
+        deps, no_deps = build_helper.trigger_tests_of_downstream_dependencies(dry_run=True)
+        self.assertEqual(deps, None)
+        self.assertEqual(no_deps, None)
 
     def test_analyze_package(self):
         # test api
@@ -2375,7 +2369,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         unused = build_helper.find_unused_requirements('karr_lab_build_utils', ignore_files=['karr_lab_build_utils/templates/*'])
         unused.sort()
 
-        expected_unused = [            
+        expected_unused = [
             'sphinx_rtd_theme',
             'sphinxcontrib_addmetahtml',
             'sphinxcontrib_bibtex',
@@ -2395,9 +2389,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                         '--ignore-file', 'karr_lab_build_utils/templates/*']) as app:
                     app.run()
                     self.assertRegex(captured.stdout.get_text(),
-                                             'The following requirements from requirements.txt may not be necessary:')
+                                     'The following requirements from requirements.txt may not be necessary:')
                     self.assertRegex(captured.stdout.get_text(),
-                                             'sphinxcontrib_googleanalytics')
+                                     'sphinxcontrib_googleanalytics')
                     self.assertEqual(captured.stderr.get_text(), '')
 
         os.rename('requirements.txt', 'requirements.txt.save')
