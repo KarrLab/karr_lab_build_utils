@@ -245,7 +245,10 @@ class BuildHelper(object):
         self.logger = logger = logging.getLogger()
         logger.setLevel(logging.INFO)
 
-        handler = logging.FileHandler(os.path.expanduser('~/.wc/log/karr_lab_build_utils.log'))
+        log_dir = os.path.expanduser('~/.wc/log/')
+        if not os.path.isdir(log_dir):
+            os.makedirs(log_dir)
+        handler = logging.FileHandler(os.path.join(log_dir, 'karr_lab_build_utils.log'))
         handler.setLevel(logging.INFO)
         logger.addHandler(handler)
 
@@ -2302,7 +2305,8 @@ class BuildHelper(object):
             upstream_build_num = str(self.build_num)
 
         result = self.run_circleci_api('/' + str(upstream_build_num), repo_name=upstream_repo_name)
-        upstream_build_time = dateutil.parser.parse(result['start_time'])
+        upstream_build_time_str = result['start_time']
+        upstream_build_time = dateutil.parser.parse(upstream_build_time_str)
 
         triggered_packages = []
         not_triggered_packages = {}
@@ -2328,8 +2332,8 @@ class BuildHelper(object):
                            "\t\tbuild time: {}\n"
                            "\t\tupstream repo: {}\n"
                            "\t\tupstream build: {}\n"
-                           "\t\tupstream build time: {}").format(self.build_num, build['start_time'], upstream_repo_name,
-                                                                 upstream_build_num, upstream_build_time)
+                           "\t\tupstream build time: {}").format(build['build_num'], build['start_time'],
+                                                                 upstream_repo_name, upstream_build_num, upstream_build_time_str)
                     not_triggered_packages[package] = msg
                     self.logger.info("\t{}: {}".format(package, msg))
                     break
@@ -2346,15 +2350,19 @@ class BuildHelper(object):
                            "\t\tbuild time: {}\n"
                            "\t\tupstream repo: {}\n"
                            "\t\tupstream build: {}\n"
-                           "\t\tupstream build time: {}").format(self.build_num, build['start_time'], upstream_repo_name,
-                                                                 upstream_build_num, upstream_build_time)
+                           "\t\tupstream build time: {}").format(build['build_num'], build['start_time'],
+                                                                 upstream_repo_name, upstream_build_num, upstream_build_time_str)
                     not_triggered_packages[package] = msg
                     self.logger.info("\t{}: {}".format(package, msg))
                     break
 
                 # don't trigger a build if the package has already been more recently tested than the commit time
                 build_start_time = build['start_time']
-                if build_start_time is None or dateutil.parser.parse(build['start_time']) > upstream_build_time:
+                if (build_start_time is None and
+                    build['status'] in ['queued', 'scheduled', 'not_running']) or \
+                    (build['start_time'] is not None and
+                        dateutil.parser.parse(build['start_time']) > upstream_build_time and
+                        build['status'] not in ['canceled', 'infrastructure_fail', 'not_run']):
                     already_queued = True
                     msg = ("don't trigger tests because this package has already been tested since "
                            "the commit time of the current build cascade\n"
@@ -2362,8 +2370,8 @@ class BuildHelper(object):
                            "\t\tbuild time: {}\n"
                            "\t\tupstream repo: {}\n"
                            "\t\tupstream build: {}\n"
-                           "\t\tupstream build time: {}").format(self.build_num, build['start_time'], upstream_repo_name,
-                                                                 upstream_build_num, upstream_build_time)
+                           "\t\tupstream build time: {}").format(build['build_num'], build['start_time'],
+                                                                 upstream_repo_name, upstream_build_num, upstream_build_time_str)
                     not_triggered_packages[package] = msg
                     self.logger.info("\t{}: {}".format(package, msg))
                     break

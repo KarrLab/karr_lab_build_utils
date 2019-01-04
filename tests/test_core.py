@@ -2138,6 +2138,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             'raise_for_status': lambda: None,
             'json': lambda: [
                 {
+                    'build_num': 0,
                     'build_parameters':
                     {
                         'UPSTREAM_REPONAME': 'dep_3',
@@ -2240,7 +2241,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         requests_get_1 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
-            'json': lambda: {'start_time': '2017-01-01T01:01:01-05:00'},
+            'json': lambda: {
+                'build_num': 0,
+                'start_time': '2017-01-01T01:01:01-05:00',
+            },
         })
         requests_get_2 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
@@ -2249,6 +2253,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     'build_num': 1,
                     'build_parameters': {},
                     'start_time': '2018-01-01T01:01:01.001Z',
+                    'status': 'success',
                 },
             ],
         })
