@@ -2330,9 +2330,10 @@ class BuildHelper(object):
                            "current build cascade\n"
                            "\t\tbuild: {}\n"
                            "\t\tbuild time: {}\n"
+                           "\t\tbuild status: {}\n"
                            "\t\tupstream repo: {}\n"
                            "\t\tupstream build: {}\n"
-                           "\t\tupstream build time: {}").format(build['build_num'], build['start_time'],
+                           "\t\tupstream build time: {}").format(build['build_num'], build['start_time'], build['status'],
                                                                  upstream_repo_name, upstream_build_num, upstream_build_time_str)
                     not_triggered_packages[package] = msg
                     self.logger.info("\t{}: {}".format(package, msg))
@@ -2348,9 +2349,10 @@ class BuildHelper(object):
                            "by the current build cascade\n"
                            "\t\tbuild: {}\n"
                            "\t\tbuild time: {}\n"
+                           "\t\tbuild status: {}\n"
                            "\t\tupstream repo: {}\n"
                            "\t\tupstream build: {}\n"
-                           "\t\tupstream build time: {}").format(build['build_num'], build['start_time'],
+                           "\t\tupstream build time: {}").format(build['build_num'], build['start_time'], build['status'],
                                                                  upstream_repo_name, upstream_build_num, upstream_build_time_str)
                     not_triggered_packages[package] = msg
                     self.logger.info("\t{}: {}".format(package, msg))
@@ -2368,9 +2370,10 @@ class BuildHelper(object):
                            "the commit time of the current build cascade\n"
                            "\t\tbuild: {}\n"
                            "\t\tbuild time: {}\n"
+                           "\t\tbuild status: {}\n"
                            "\t\tupstream repo: {}\n"
                            "\t\tupstream build: {}\n"
-                           "\t\tupstream build time: {}").format(build['build_num'], build['start_time'],
+                           "\t\tupstream build time: {}").format(build['build_num'], build['start_time'], build['status'],
                                                                  upstream_repo_name, upstream_build_num, upstream_build_time_str)
                     not_triggered_packages[package] = msg
                     self.logger.info("\t{}: {}".format(package, msg))

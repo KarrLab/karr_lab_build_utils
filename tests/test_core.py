@@ -2145,6 +2145,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                         'UPSTREAM_BUILD_NUM': '1',
                     },
                     'start_time': '2016-01-01T01:01:01.001Z',
+                    'status': 'success',
                 }
             ],
         })
@@ -2186,7 +2187,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         requests_get_1 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
-            'json': lambda: {'start_time': '2017-01-01T01:01:01-05:00'},
+            'json': lambda: {
+                'start_time': '2017-01-01T01:01:01-05:00',                
+                },
         })
         requests_get_2 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
@@ -2195,11 +2198,13 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     'build_num': 0,
                     'build_parameters': {},
                     'start_time': '2016-01-01T01:01:01.001Z',
+                    'status': 'success',
                 },
                 {
                     'build_num': 1,
                     'build_parameters': {},
                     'start_time': '2016-01-01T01:01:01.001Z',
+                    'status': 'success',
                 },
             ],
         })
