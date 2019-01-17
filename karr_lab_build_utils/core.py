@@ -796,6 +796,9 @@ class BuildHelper(object):
         Args:
             upgrade (:obj:`bool`, optional): if :obj:`True`, upgrade requirements
         """
+        import pkg_utils
+        # pkg_utils is imported locally so that we can use karr_lab_build_utils to properly calculate its coverage;
+        # :todo: figure out how to fix this
 
         # upgrade pip, setuptools
         py_v = '{}.{}'.format(sys.version_info[0], sys.version_info[1])
@@ -810,43 +813,31 @@ class BuildHelper(object):
             cmd.append('-U')
         subprocess.check_call(cmd)
 
-        # requirements for package
-        self._install_requirements_helper('requirements.txt', upgrade=upgrade)
-        self._install_requirements_helper('requirements.optional.txt', ignore_options=True, upgrade=upgrade)
-        self._install_requirements_helper(os.path.join(self.proj_tests_dir, 'requirements.txt'), upgrade=upgrade)
-        self._install_requirements_helper(os.path.join(self.proj_docs_dir, 'requirements.txt'), upgrade=upgrade)
+        # requirements for package        
+        install_requirements, extra_requirements, _, _ = pkg_utils.get_dependencies(
+                '.', include_uri=True, include_extras=True, include_specs=True, include_markers=True)
+        self._install_requirements_helper(install_requirements + extra_requirements['all'], upgrade=upgrade)
 
         # upgrade CircleCI
         if upgrade and whichcraft.which('docker') and whichcraft.which('circleci'):
             subprocess.check_call(['circleci', 'update', 'install'])
             subprocess.check_call(['circleci', 'update', 'build-agent'])
 
-    def _install_requirements_helper(self, filename, ignore_options=False, upgrade=False):
+    def _install_requirements_helper(self, reqs, upgrade=False):
         """ Install the packages in a requirements.txt file, including all optional dependencies
 
         Args:
-            filename (:obj:`str`): path to requirements file
-            ignore_options (:obj:`bool`, optional): if :obj:`True`, ignore option headings
-                (e.g. for requirements.optional.txt)
+            reqs (:obj:`list` of :obj:`str`): list of requirements
             upgrade (:obj:`bool`, optional): if :obj:`True`, upgrade requirements
-        """
-        if not os.path.isfile(filename):
-            return
+        """        
 
-        # create a temporary file that has the optional markings removed
-        if ignore_options:
-            sanitized_file, sanitized_filename = tempfile.mkstemp(suffix='.txt')
-            os.close(sanitized_file)
+        # create a temporary file that has the optional markings remove
+        file, filename = tempfile.mkstemp(suffix='.txt')
+        os.close(file)
 
-            with open(filename, 'r') as file:
-                with open(sanitized_filename, 'w') as sanitized_file:
-                    for line in file:
-                        line = line.strip()
-                        if line and line[0] == '[':
-                            continue
-                        sanitized_file.write(line + '\n')
-
-            filename = sanitized_filename
+        with open(filename, 'w') as file:
+            for req in reqs:
+                file.write(req + '\n')
 
         py_v = '{}.{}'.format(sys.version_info[0], sys.version_info[1])
         cmd = ['pip' + py_v, 'install', '--process-dependency-links', '-r', filename]
@@ -855,8 +846,7 @@ class BuildHelper(object):
         subprocess.check_call(cmd)
 
         # cleanup temporary file
-        if ignore_options:
-            os.remove(sanitized_filename)
+        os.remove(filename)
 
     def upgrade_karr_lab_packages(self):
         """ Upgrade the packages from the Karr Lab's GitHub organization
