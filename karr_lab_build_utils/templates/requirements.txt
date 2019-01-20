@@ -1,3 +1,4 @@
 cement >= 3.0.0 # for command line programs
+setuptools # for pkg_resources module
 {% for dependency in dependencies %}git+https://github.com/KarrLab/{{ dependency }}.git#egg={{ dependency }}-0.0.1[all]
 {% endfor %}
