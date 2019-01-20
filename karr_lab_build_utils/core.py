@@ -533,16 +533,19 @@ class BuildHelper(object):
         print('Visit "https://pypi.org/manage/project/{}/releases/{}"'.format(name, self.INITIAL_PACKAGE_VERSION))
         click.confirm('Continue?', default=True, abort=True)
 
-        print('Click the "Delete release" button')
+        print('Use the "Options" button to delete the file')
         click.confirm('Continue?', default=True, abort=True)
 
-        print('Click the "Delete release" button')
+        print('Enter the project name "{}"'.format(name.replace('_', '-')))
         click.confirm('Continue?', default=True, abort=True)
 
-        print('Enter the version number "{}"'.format(self.INITIAL_PACKAGE_VERSION))
+        print('Click the "Delete file" button')
         click.confirm('Continue?', default=True, abort=True)
 
-        print('Click the "Delete release" button')
+        print('Click the "Collaborators" button')
+        click.confirm('Continue?', default=True, abort=True)
+
+        print('Use the webform to add "karrlab" as an owner')
         click.confirm('Continue?', default=True, abort=True)
 
     def create_repository(self, name, description='', private=True, dirname=None):
