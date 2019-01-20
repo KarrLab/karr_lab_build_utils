@@ -13,7 +13,7 @@ import mock
 import unittest
 
 
-class TestCore(unittest.TestCase):
+class CliTestCase(unittest.TestCase):
 
     def test_cli(self):
         with mock.patch('sys.argv', ['{{ name }}', '--help']):

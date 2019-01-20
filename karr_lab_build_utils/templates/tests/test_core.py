@@ -10,7 +10,7 @@ from {{name}} import core
 import unittest
 
 
-class TestCore(unittest.TestCase):
+class CoreTestCase(unittest.TestCase):
 
     def test_1(self):
         # Example test
