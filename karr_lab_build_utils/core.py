@@ -258,7 +258,7 @@ class BuildHelper(object):
     #####################
     # Create a package
     #####################
-    def create_package(self):
+    def create_package(self, pypi_repository=None):
         """ Create a package
 
         * Create a local Git repository
@@ -278,6 +278,10 @@ class BuildHelper(object):
 
         * Add badges for Code Climate, Coveralls, CircleCI, and Read the Docs to README.md
         * Add package name to ``downstream_dependencies`` key in ``.karr_lab_build_utils.yml``
+
+        Args:
+            pypi_repository (:obj:`str`, optional): name of a repository defined in the PyPI 
+                configuration file or a repository URL
         """
         # print introductory message
         print('This program will guide you through creating a new package.')
@@ -313,16 +317,16 @@ class BuildHelper(object):
             self.repo_owner if private else 'Open source'))
         click.confirm('Continue?', default=True, abort=True)
 
-        print('Click the "Sync now" button')
-        click.confirm('Continue?', default=True, abort=True)
-
         print('Click the "Add a repository" button')
         click.confirm('Continue?', default=True, abort=True)
 
-        print('Click the "Add repo" button for the "{}" repository'.format(name))
+        print('Click the "Sync now" button')
         click.confirm('Continue?', default=True, abort=True)
 
-        print('Click the "settings" link'.format(name))
+        print('Click the "Add Repo" button for the "{}" repository'.format(name))
+        click.confirm('Continue?', default=True, abort=True)
+
+        print('Click the "Repo Settings" link'.format(name))
         click.confirm('Continue?', default=True, abort=True)
 
         print('Cick the "Test coverage" menu item')
@@ -341,10 +345,13 @@ class BuildHelper(object):
 
         # Coveralls
         # :todo: programmatically add repo to Coveralls and generate tokens
-        print('Visit "https://coveralls.io/repos/new"')
+        print('Visit "https://coveralls.io"')
         click.confirm('Continue?', default=True, abort=True)
 
         print('Click the "ADD REPOS" button')
+        click.confirm('Continue?', default=True, abort=True)
+
+        print('Click the "SYNC REPOS" button')
         click.confirm('Continue?', default=True, abort=True)
 
         print('Search for the "{}/{}" repository and click its "OFF" button'.format(self.repo_owner, name))
@@ -381,7 +388,10 @@ class BuildHelper(object):
         print('Visit "https://circleci.com/add-projects/gh/KarrLab"')
         click.confirm('Continue?', default=True, abort=True)
 
-        print('Search for the "{}" repository and click its "Setup project" button'.format(name))
+        print('Search for the "{}" repository and click its "Set Up Project" button'.format(name))
+        click.confirm('Continue?', default=True, abort=True)
+
+        print('Click the "Start building" button')
         click.confirm('Continue?', default=True, abort=True)
 
         print('Click the "Project settings" icon')
@@ -516,6 +526,24 @@ class BuildHelper(object):
                 warnings.warn(('Unable to append package to downstream dependency {} because the '
                                'downstream dependency is not available').format(dependency),
                               UserWarning)
+
+        # reserve package in PyPI
+        self.upload_package_to_pypi(dirname=dirname, repository=pypi_repository, upload_source=True, upload_build=False)
+
+        print('Visit "https://pypi.org/manage/project/{}/releases/{}"'.format(name, self.INITIAL_PACKAGE_VERSION))
+        click.confirm('Continue?', default=True, abort=True)
+
+        print('Click the "Delete release" button')
+        click.confirm('Continue?', default=True, abort=True)
+
+        print('Click the "Delete release" button')
+        click.confirm('Continue?', default=True, abort=True)
+
+        print('Enter the version number "{}"'.format(self.INITIAL_PACKAGE_VERSION))
+        click.confirm('Continue?', default=True, abort=True)
+
+        print('Click the "Delete release" button')
+        click.confirm('Continue?', default=True, abort=True)
 
     def create_repository(self, name, description='', private=True, dirname=None):
         """ Create a GitHub repository and clone the repository locally
@@ -813,9 +841,9 @@ class BuildHelper(object):
             cmd.append('-U')
         subprocess.check_call(cmd)
 
-        # requirements for package        
+        # requirements for package
         install_requirements, extra_requirements, _, _ = pkg_utils.get_dependencies(
-                '.', include_uri=True, include_extras=True, include_specs=True, include_markers=True)
+            '.', include_uri=True, include_extras=True, include_specs=True, include_markers=True)
         self._install_requirements_helper(install_requirements + extra_requirements['all'], upgrade=upgrade)
 
         # upgrade CircleCI
@@ -829,7 +857,7 @@ class BuildHelper(object):
         Args:
             reqs (:obj:`list` of :obj:`str`): list of requirements
             upgrade (:obj:`bool`, optional): if :obj:`True`, upgrade requirements
-        """        
+        """
 
         # create a temporary file that has the optional markings remove
         file, filename = tempfile.mkstemp(suffix='.txt')
@@ -2589,28 +2617,40 @@ class BuildHelper(object):
 
         return unuseds
 
-    def upload_package_to_pypi(self, dirname='.', repository=None):
+    def upload_package_to_pypi(self, dirname='.', repository=None, upload_source=True, upload_build=True):
         """ Upload a package to PyPI
 
         Args:
             dirname (:obj:`str`, optional): path to package to upload
             repository (:obj:`str`, optional): name of a repository defined in the PyPI 
                 configuration file or a repository URL
+            upload_source (:obj:`bool`, optional): if :obj:`True`, upload source code
+            upload_build (:obj:`bool`, optional): if :obj:`True`
         """
         repository = repository or self.pypi_repository
         config_filename = os.path.abspath(os.path.expanduser(self.pypi_config_filename))
 
         # cleanup
-        if os.path.isdir(os.path.join(dirname, 'build')):
-            shutil.rmtree(os.path.join(dirname, 'build'))
-        if os.path.isdir(os.path.join(dirname, 'dist')):
+        if (upload_source or upload_build) and os.path.isdir(os.path.join(dirname, 'dist')):
             shutil.rmtree(os.path.join(dirname, 'dist'))
+        if upload_build and os.path.isdir(os.path.join(dirname, 'build')):
+            shutil.rmtree(os.path.join(dirname, 'build'))
 
         # package code
-        subprocess.check_call([sys.executable, os.path.join(os.path.abspath(dirname), 'setup.py'), 'sdist', 'bdist_wheel'],
-                              cwd=dirname)
+        if upload_source:
+            subprocess.check_call([sys.executable, os.path.join(os.path.abspath(dirname), 'setup.py'), 'sdist'],
+                                  cwd=dirname)
 
-        # upload
+        if upload_build:
+            subprocess.check_call([sys.executable, os.path.join(os.path.abspath(dirname), 'setup.py'), 'bdist_wheel'],
+                                  cwd=dirname)
+
+        if upload_source or upload_build:
+            uploads = [os.path.join(dirname, 'dist', '*')]
+        else:
+            uploads = []
+
+        # set options
         options = []
 
         if repository:
@@ -2619,14 +2659,14 @@ class BuildHelper(object):
         if config_filename:
             options += ['--config-file', config_filename]
 
-        uploads = []
-        for path in glob.glob(os.path.join(dirname, 'dist', '*')):
-            uploads.append(path)
+        # upload
         twine.commands.upload.main(options + uploads)
 
         # cleanup
-        shutil.rmtree(os.path.join(dirname, 'build'))
-        shutil.rmtree(os.path.join(dirname, 'dist'))
+        if upload_source:
+            shutil.rmtree(os.path.join(dirname, 'dist'))
+        if upload_build:
+            shutil.rmtree(os.path.join(dirname, 'build'))
 
     def run_circleci_api(self, command, method='get', repo_type=None, repo_owner=None, repo_name=None,
                          data=None):

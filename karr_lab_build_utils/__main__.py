@@ -65,13 +65,16 @@ class CreatePackageController(cement.Controller):
         )
         stacked_on = 'base'
         stacked_type = 'nested'
-        arguments = []
+        arguments = [
+            (['--pypi-repository'], dict(
+                default='pypi', type=str, help='Repository upload package (e.g. pypi or testpypi)')),
+        ]
 
     @cement.ex(hide=True)
     def _default(self):
         args = self.app.pargs
         buildHelper = BuildHelper()
-        buildHelper.create_package()
+        buildHelper.create_package(pypi_repository=args.pypi_repository)
 
 
 class CreateRepositoryController(cement.Controller):
@@ -926,6 +929,10 @@ class UploadPackageToPypiController(cement.Controller):
                 type=str, default='.', help='Path to package (e.g. parent directory of setup.py)')),
             (['--repository'], dict(
                 type=str, default='pypi', help='Repository upload package (e.g. pypi or testpypi)')),
+            (['--do-not-upload-source'], dict(
+                default=False, action='store_true', help='if set, do not upload source code to PyPI')),
+            (['--do-not-upload-build'], dict(
+                default=False, action='store_true', help='if set, do not upload build to PyPI')),
         ]
 
     @cement.ex(hide=True)
@@ -934,7 +941,9 @@ class UploadPackageToPypiController(cement.Controller):
         buildHelper = BuildHelper()
         buildHelper.upload_package_to_pypi(
             dirname=args.dirname,
-            repository=args.repository)
+            repository=args.repository,
+            upload_source=not args.do_not_upload_source,
+            upload_build=not args.do_not_upload_build)
 
 
 class App(cement.App):

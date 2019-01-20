@@ -136,7 +136,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         private = True
         dirname = os.path.join(tempdirname, 'test_a')
 
-        confirm_side_effects = 21 * [True]
+        confirm_side_effects = 28 * [True]
         prompt_side_effects = [
             name, description, ', '.join(keywords), ', '.join(dependencies), dirname, '0.0.1',
             'code_climate_repo_token', 'code_climate_repo_id', 'code_climate_repo_badge_token',
@@ -144,8 +144,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         ]
         with mock.patch('click.confirm', side_effect=confirm_side_effects):
             with mock.patch('click.prompt', side_effect=prompt_side_effects):
-                with pytest.warns(UserWarning, match='Unable to append package to downstream dependency'):
-                    bh.create_package()
+                with mock.patch.object(core.BuildHelper, 'upload_package_to_pypi', return_value=None):
+                    with pytest.warns(UserWarning, match='Unable to append package to downstream dependency'):
+                        bh.create_package(pypi_repository='testpypi')
 
         self.assertTrue(os.path.isdir(os.path.join(tempdirname, name, '.git')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, name, 'README.md')))
@@ -169,7 +170,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         private = False
         dirname = os.path.join(tempdirname, 'test_b')
 
-        confirm_side_effects = [True, False] + 32 * [True]
+        confirm_side_effects = [True, False] + 39 * [True]
         prompt_side_effects = [
             name, description, ', '.join(keywords), ', '.join(dependencies), dirname, '0.0.1',
             'code_climate_repo_token', 'code_climate_repo_badge_token',
@@ -182,7 +183,8 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         with mock.patch('click.confirm', side_effect=confirm_side_effects):
             with mock.patch('click.prompt', side_effect=prompt_side_effects):
-                bh.create_package()
+                with mock.patch.object(core.BuildHelper, 'upload_package_to_pypi', return_value=None):
+                    bh.create_package(pypi_repository='testpypi')
 
         self.assertTrue(os.path.isdir(os.path.join(tempdirname, name, '.git')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, name, 'README.md')))
@@ -211,8 +213,8 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         dirname = os.path.join(tempdirname, 'test_c')
 
         with self.construct_environment():
-            with __main__.App(argv=['create-package']) as app:
-                confirm_side_effects = [True, False] + 29 * [True]
+            with __main__.App(argv=['create-package', '--pypi-repository', 'testpypi']) as app:
+                confirm_side_effects = [True, False] + 36 * [True]
                 prompt_side_effects = [
                     name, description, ', '.join(keywords), ', '.join(dependencies), dirname, '0.0.1',
                     'code_climate_repo_token', 'code_climate_repo_badge_token',
@@ -220,7 +222,8 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 ]
                 with mock.patch('click.confirm', side_effect=confirm_side_effects):
                     with mock.patch('click.prompt', side_effect=prompt_side_effects):
-                        app.run()
+                        with mock.patch.object(core.BuildHelper, 'upload_package_to_pypi', return_value=None):
+                            app.run()
 
         self.assertTrue(os.path.isdir(os.path.join(tempdirname, name, '.git')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, name, 'README.md')))
@@ -2188,8 +2191,8 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         requests_get_1 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
             'json': lambda: {
-                'start_time': '2017-01-01T01:01:01-05:00',                
-                },
+                'start_time': '2017-01-01T01:01:01-05:00',
+            },
         })
         requests_get_2 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
