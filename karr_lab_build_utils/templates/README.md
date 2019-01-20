@@ -1,5 +1,5 @@
 [//]: # ( [![PyPI package](https://img.shields.io/pypi/v/{{ name }}.svg)](https://pypi.python.org/pypi/{{ name }}) )
-{% if private %}[![Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](http://docs.karrlab.org/{{ name }}){% else %}[![Documentation](https://readthedocs.org/projects/{{ name|replace("_", "-") }}/badge/?version=latest)](http://docs.karrlab.org/{{ name }}){% endif %}
+{% if private %}[![Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](https://docs.karrlab.org/{{ name }}){% else %}[![Documentation](https://readthedocs.org/projects/{{ name|replace("_", "-") }}/badge/?version=latest)](https://docs.karrlab.org/{{ name }}){% endif %}
 [![Test results](https://circleci.com/gh/KarrLab/{{ name }}.svg?style=shield{% if private %}&circle-token={{ circleci_repo_token }}{% endif %})](https://circleci.com/gh/KarrLab/{{ name }})
 [![Test coverage](https://coveralls.io/repos/github/KarrLab/{{ name }}/badge.svg{% if private %}?t={{ coveralls_repo_badge_token }}{% endif %})](https://coveralls.io/github/KarrLab/{{ name }})
 [![Code analysis](https://api.codeclimate.com/v1/badges/{{ code_climate_repo_badge_token }}/maintainability)]({% if private %}https://codeclimate.com/repos/{{ code_climate_repo_id }}){% else %}https://codeclimate.com/github/KarrLab/{{ name }}{% endif %})
@@ -18,13 +18,13 @@ Write an overview
   ```
 
 ## Documentation
-Please see the [API documentation](http://docs.karrlab.org/{{ name }}).
+Please see the [API documentation](https://docs.karrlab.org/{{ name }}).
 
 ## License
 The package is released under the [MIT license](LICENSE).
 
 ## Development team
-This package was developed by the [Karr Lab](http://www.karrlab.org) at the Icahn School of Medicine at Mount Sinai in New York, USA.
+This package was developed by the [Karr Lab](https://www.karrlab.org) at the Icahn School of Medicine at Mount Sinai in New York, USA.
 
 ## Questions and comments
-Please contact the [Karr Lab](http://www.karrlab.org) with any questions or comments.
+Please contact the [Karr Lab](https://www.karrlab.org) with any questions or comments.

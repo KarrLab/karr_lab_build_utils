@@ -2588,7 +2588,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
 @unittest.skipIf(whichcraft.which('docker') is None or whichcraft.which('circleci') is None, (
     'Test requires the CircleCI command line utility (local executor) and this isn''t installed. See '
-    'installation instructions at `http://docs.karrlab.org/intro_to_wc_modeling/latest/installation.html`.'
+    'installation instructions at `https://docs.karrlab.org/intro_to_wc_modeling/latest/installation.html`.'
 ))
 class TestCircleCi(unittest.TestCase):
 

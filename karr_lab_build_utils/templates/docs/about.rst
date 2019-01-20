@@ -14,7 +14,7 @@ The software is released under the MIT license
 Development team
 ----------------------
 
-This package was developed by the `Karr Lab <http://www.karrlab.org/>`_ at the Icahn School of Medicine at Mount Sinai in New York, USA.
+This package was developed by the `Karr Lab <https://www.karrlab.org/>`_ at the Icahn School of Medicine at Mount Sinai in New York, USA.
 
 ----------------------
 Acknowledgements
@@ -24,4 +24,4 @@ Acknowledgements
 Questions and comments
 ----------------------
 
-Please contact the `Karr Lab <http://www.karrlab.org/>`_ with any questions or comments.
+Please contact the `Karr Lab <https://www.karrlab.org/>`_ with any questions or comments.

@@ -60,8 +60,8 @@ Pre-requisites
         [url "ssh://git@github.com/"]
             insteadOf = https://github.com/
 
-#. Optionally install Docker by following the `installation instructions <http://docs.karrlab.org/intro_to_wc_modeling/latest/installation.html>`_ in "An Introduction to Whole-Cell Modeling." This is needed to run tests using Docker and CircleCI.
-#. Optionally, install the CircleCI command line tool by following the `installation instructions <http://docs.karrlab.org/intro_to_wc_modeling/latest/installation.html>`_ in "An Introduction to Whole-Cell Modeling." This is needed to run tests using CircleCI.
+#. Optionally install Docker by following the `installation instructions <https://docs.karrlab.org/intro_to_wc_modeling/latest/installation.html>`_ in "An Introduction to Whole-Cell Modeling." This is needed to run tests using Docker and CircleCI.
+#. Optionally, install the CircleCI command line tool by following the `installation instructions <https://docs.karrlab.org/intro_to_wc_modeling/latest/installation.html>`_ in "An Introduction to Whole-Cell Modeling." This is needed to run tests using CircleCI.
 #. Optionally, create a PyPI account at `https://pypi.python.org <https://pypi.python.org>`_. This is needed to upload packages to PyPI.
 #. Optionally, save your PyPI credentials to ``~/.pypirc``. This is needed to upload packages to PyPI.::
 

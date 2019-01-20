@@ -1858,7 +1858,7 @@ class BuildHelper(object):
         for abs_xml_latest_filename in glob.glob(abs_xml_latest_filename_pattern):
             match = re.match(r'^.*?\.(\d+)\-(\d+)\.(\d+\.\d+\.\d+)\.xml$', abs_xml_latest_filename)
             pyv = match.group(3)
-            r = requests.post('http://tests.karrlab.org/rest/submit_report',
+            r = requests.post('https://tests.karrlab.org/rest/submit_report',
                               data={
                                   'token': self.test_server_token,
                                   'repo_name': self.repo_name,

@@ -1,5 +1,5 @@
 [//]: # ( [![PyPI package](https://img.shields.io/pypi/v/karr_lab_build_utils.svg)](https://pypi.python.org/pypi/karr_lab_build_utils) )
-[![Documentation](https://readthedocs.org/projects/karr-lab-build-utils/badge/?version=latest)](http://docs.karrlab.org/karr_lab_build_utils)
+[![Documentation](https://readthedocs.org/projects/karr-lab-build-utils/badge/?version=latest)](https://docs.karrlab.org/karr_lab_build_utils)
 [![Test results](https://circleci.com/gh/KarrLab/karr_lab_build_utils.svg?style=shield)](https://circleci.com/gh/KarrLab/karr_lab_build_utils)
 [![Test coverage](https://coveralls.io/repos/github/KarrLab/karr_lab_build_utils/badge.svg)](https://coveralls.io/github/KarrLab/karr_lab_build_utils)
 [![Code analysis](https://api.codeclimate.com/v1/badges/423e5ef078681ee55979/maintainability)](https://codeclimate.com/github/KarrLab/karr_lab_build_utils)
@@ -29,16 +29,16 @@ The build system is primarily designed for:
 * Continuous integration with CircleCI
 
 ## Installation
-Please see the [documentation](http://docs.karrlab.org/karr_lab_build_utils).
+Please see the [documentation](https://docs.karrlab.org/karr_lab_build_utils).
 
 ## Documentation
-Please see the [documentation](http://docs.karrlab.org/karr_lab_build_utils).
+Please see the [documentation](https://docs.karrlab.org/karr_lab_build_utils).
 
 ## License
 The build utilities are released under the [MIT license](LICENSE).
 
 ## Development team
-This package was developed by [Jonathan Karr](http://www.karrlab.org) at the Icahn School of Medicine at Mount Sinai in New York, USA.
+This package was developed by [Jonathan Karr](https://www.karrlab.org) at the Icahn School of Medicine at Mount Sinai in New York, USA.
 
 ## Questions and comments
-Please contact the [Jonathan Karr](http://www.karrlab.org) with any questions or comments.
+Please contact the [Jonathan Karr](https://www.karrlab.org) with any questions or comments.
