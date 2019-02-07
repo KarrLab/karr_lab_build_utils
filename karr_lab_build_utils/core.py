@@ -38,6 +38,7 @@ import natsort
 import networkx
 import nose
 import os
+import pypandoc
 import pip._internal
 import pip_check_reqs
 import pip_check_reqs.find_extra_reqs
@@ -2639,6 +2640,9 @@ class BuildHelper(object):
         if upload_build and os.path.isdir(os.path.join(dirname, 'build')):
             shutil.rmtree(os.path.join(dirname, 'build'))
 
+        # convert README.md to README.rt
+        pypandoc.convert_file(os.path.join(dirname, 'README.md'), 'rst', outputfile=os.path.join(dirname, "README.rst"))
+
         # package code
         if upload_source:
             subprocess.check_call([sys.executable, os.path.join(os.path.abspath(dirname), 'setup.py'), 'sdist'],
@@ -2666,6 +2670,7 @@ class BuildHelper(object):
         twine.commands.upload.main(options + uploads)
 
         # cleanup
+        os.remove(os.path.join(dirname, 'README.rst'))
         if upload_source:
             shutil.rmtree(os.path.join(dirname, 'dist'))
         if upload_build:
