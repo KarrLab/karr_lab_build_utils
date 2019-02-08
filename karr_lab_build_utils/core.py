@@ -1709,33 +1709,60 @@ class BuildHelper(object):
 
         # build context for email
         result = self.run_circleci_api('/' + str(self.build_num))
-        context = {
-            'repo_name': self.repo_name,
-            'commit': result['all_commit_details'][0]['commit'],
-            'committer_name': result['all_commit_details'][0]['committer_name'],
-            'committer_email': result['all_commit_details'][0]['committer_email'],
-            'commit_subject': result['all_commit_details'][0]['subject'],
-            'commit_url': result['all_commit_details'][0]['commit_url'],
-            'build_num': self.build_num,
-            'build_url': result['build_url'],
-            'test_results': test_results,
-            'static_analyses': static_analyses,
-        }
 
-        if status['is_new_downstream_error']:
-            upstream_repo_name = os.getenv('UPSTREAM_REPONAME', '')
-            upstream_build_num = int(os.getenv('UPSTREAM_BUILD_NUM', '0'))
-            result = self.run_circleci_api('/' + str(upstream_build_num), repo_name=upstream_repo_name)
-            context['upstream'] = {
-                'repo_name': upstream_repo_name,
+        if result['all_commit_details']:
+            context = {
+                'repo_name': self.repo_name,
                 'commit': result['all_commit_details'][0]['commit'],
                 'committer_name': result['all_commit_details'][0]['committer_name'],
                 'committer_email': result['all_commit_details'][0]['committer_email'],
                 'commit_subject': result['all_commit_details'][0]['subject'],
                 'commit_url': result['all_commit_details'][0]['commit_url'],
-                'build_num': upstream_build_num,
+                'build_num': self.build_num,
                 'build_url': result['build_url'],
+                'test_results': test_results,
+                'static_analyses': static_analyses,
             }
+        else:
+            context = {
+                'repo_name': self.repo_name,
+                'commit': '',
+                'committer_name': '',
+                'committer_email': '',
+                'commit_subject': '',
+                'commit_url': '',
+                'build_num': self.build_num,
+                'build_url': result['build_url'],
+                'test_results': test_results,
+                'static_analyses': static_analyses,
+            }
+
+        if status['is_new_downstream_error']:
+            upstream_repo_name = os.getenv('UPSTREAM_REPONAME', '')
+            upstream_build_num = int(os.getenv('UPSTREAM_BUILD_NUM', '0'))
+            result = self.run_circleci_api('/' + str(upstream_build_num), repo_name=upstream_repo_name)
+            if result['all_commit_details']:
+                context['upstream'] = {
+                    'repo_name': upstream_repo_name,
+                    'commit': result['all_commit_details'][0]['commit'],
+                    'committer_name': result['all_commit_details'][0]['committer_name'],
+                    'committer_email': result['all_commit_details'][0]['committer_email'],
+                    'commit_subject': result['all_commit_details'][0]['subject'],
+                    'commit_url': result['all_commit_details'][0]['commit_url'],
+                    'build_num': upstream_build_num,
+                    'build_url': result['build_url'],
+                }
+            else:
+                context['upstream'] = {
+                    'repo_name': upstream_repo_name,
+                    'commit': '',
+                    'committer_name': '',
+                    'committer_email': '',
+                    'commit_subject': '',
+                    'commit_url': '',
+                    'build_num': upstream_build_num,
+                    'build_url': result['build_url'],
+                }
 
         config = self.get_build_config()
         recipients = config.get('email_notifications', [])

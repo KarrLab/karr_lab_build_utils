@@ -1482,6 +1482,77 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         # cleanup
         os.remove(filename)
 
+    def test_send_email_notifications_no_commit(self):
+        build_helper = self.construct_build_helper(build_num=1)
+
+        # mock test results
+        filename_pattern = os.path.join(build_helper.proj_tests_xml_dir,
+                                        '{0}.*-*.*.xml'.format(build_helper.proj_tests_xml_latest_filename))
+        for filename in glob(filename_pattern):
+            os.remove(filename)
+
+        filename = os.path.join(build_helper.proj_tests_xml_dir,
+                                '{0}.0-1.2.7.12.xml'.format(build_helper.proj_tests_xml_latest_filename))
+        with open(filename, 'w') as file:
+            file.write('<?xml version="1.0" encoding="utf-8"?>')
+            file.write('<testsuite errors="0" failures="0" skips="0" tests="4">')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_pass_1" time="0.01"></testcase>')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_pass_2" time="0.01"></testcase>')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_pass_3" time="0.01"></testcase>')
+            file.write('  <testcase classname="tests.core.TestCase" name="test_skipped_4" file="/script.py" line="1" time="0.01">')
+            file.write('    <system-out>stdout</system-out>')
+            file.write('    <system-err>stderr</system-err>')
+            file.write('    <skipped type="skip" message="msg">details</skipped>')
+            file.write('  </testcase>')
+            file.write('</testsuite>')
+
+        test_results = build_helper.get_test_results()
+        self.assertEqual(test_results.get_num_tests(), 4)
+        self.assertEqual(test_results.get_num_passed(), 3)
+        self.assertEqual(test_results.get_num_skipped(), 1)
+        self.assertEqual(test_results.get_num_errors(), 0)
+        self.assertEqual(test_results.get_num_failures(), 0)
+
+        # requests side effects
+        requests_get_1 = attrdict.AttrDict({
+            'raise_for_status': lambda: None,
+            'json': lambda: {
+                'all_commit_details': [],
+                'build_url': 'https://circleci.com/gh/KarrLab/test_repo_2/51',
+            },
+        })
+
+        # mock SMTP
+        smtp = attrdict.AttrDict({
+            'ehlo': lambda: None,
+            'starttls': lambda: None,
+            'login': lambda user, pwd: None,
+            'sendmail': lambda from_addr, to_addrs, msg: None,
+            'quit': lambda: None,
+        })
+
+        # test API
+        static_analyses = {
+            'missing_requirements': [('missing_1',), ('missing_2',)],
+            'unused_requirements': ['unused_1', 'unused_2'],
+        }
+
+        with self.construct_environment(build_num=1):
+            build_helper = self.construct_build_helper(build_num=1)
+            with mock.patch('requests.get', side_effect=[requests_get_1]):
+                with mock.patch('smtplib.SMTP', return_value=smtp):
+                    result = build_helper.send_email_notifications(False, False, False, static_analyses)
+                    self.assertEqual(result, {
+                        'is_fixed': True,
+                        'is_new_error': False,
+                        'is_old_error': False,
+                        'is_other_error': False,
+                        'is_new_downstream_error': False,
+                    })
+
+        # cleanup
+        os.remove(filename)
+
     def test_send_email_notifications_dry_run(self):
         build_helper = self.construct_build_helper()
 
