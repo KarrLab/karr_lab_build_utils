@@ -2459,6 +2459,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             'sphinxcontrib_bibtex',
             'sphinxcontrib_googleanalytics',
             'sphinxcontrib_spelling',
+            'sphinxcontrib_websupport',
             'wheel',
         ]
         if six.PY3:
