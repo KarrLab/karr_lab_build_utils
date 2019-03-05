@@ -934,9 +934,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     'committer_name': 'Test user 2',
                     'committer_email': 'test2@test.com',
                     'subject': 'Test commit 2',
-                    'commit_url': 'https://github.com/KarrLab/test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
+                    'commit_url': 'https://github.com/KarrLab/karr_lab_build_utils_test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
                 }],
-                'build_url': 'https://circleci.com/gh/KarrLab/test_repo_2/51',
+                'build_url': 'https://circleci.com/gh/KarrLab/karr_lab_build_utils_test_repo_2/51',
             },
         })
 
@@ -1011,9 +1011,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     'committer_name': 'Test user 1',
                     'committer_email': 'test1@test.com',
                     'subject': 'Test commit 1',
-                    'commit_url': 'https://github.com/KarrLab/test_repo/commit/yyyyyyyyyyyyyyyyyyy1',
+                    'commit_url': 'https://github.com/KarrLab/karr_lab_build_utils_test_repo/commit/yyyyyyyyyyyyyyyyyyy1',
                 }],
-                'build_url': 'https://circleci.com/gh/KarrLab/test_repo/51',
+                'build_url': 'https://circleci.com/gh/KarrLab/karr_lab_build_utils_test_repo/51',
                 'status': 'failure',
             },
         })
@@ -1025,9 +1025,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     'committer_name': 'Test user 2',
                     'committer_email': 'test2@test.com',
                     'subject': 'Test commit 2',
-                    'commit_url': 'https://github.com/KarrLab/test_repo/commit/yyyyyyyyyyyyyyyyyyy2',
+                    'commit_url': 'https://github.com/KarrLab/karr_lab_build_utils_test_repo/commit/yyyyyyyyyyyyyyyyyyy2',
                 }],
-                'build_url': 'https://circleci.com/gh/KarrLab/test_repo/52',
+                'build_url': 'https://circleci.com/gh/KarrLab/karr_lab_build_utils_test_repo/52',
             },
         })
 
@@ -1103,9 +1103,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     'committer_name': 'Test user 2',
                     'committer_email': 'test2@test.com',
                     'subject': 'Test commit 2',
-                    'commit_url': 'https://github.com/KarrLab/test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
+                    'commit_url': 'https://github.com/KarrLab/karr_lab_build_utils_test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
                 }],
-                'build_url': 'https://circleci.com/gh/KarrLab/test_repo_2/51',
+                'build_url': 'https://circleci.com/gh/KarrLab/karr_lab_build_utils_test_repo_2/51',
             },
         })
 
@@ -1181,9 +1181,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     'committer_name': 'Test user 2',
                     'committer_email': 'test2@test.com',
                     'subject': 'Test commit 2',
-                    'commit_url': 'https://github.com/KarrLab/test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
+                    'commit_url': 'https://github.com/KarrLab/karr_lab_build_utils_test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
                 }],
-                'build_url': 'https://circleci.com/gh/KarrLab/test_repo_2/51',
+                'build_url': 'https://circleci.com/gh/KarrLab/karr_lab_build_utils_test_repo_2/51',
             },
         })
 
@@ -1198,10 +1198,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         # mock environment
         env = self.construct_environment(build_num=1)
-        env.set('CIRCLE_PROJECT_REPONAME', 'test_repo_2')
+        env.set('CIRCLE_PROJECT_REPONAME', 'karr_lab_build_utils_test_repo_2')
         env.set('CIRCLE_SHA1', 'yyyyyyyyyyyyyyyyyyyy')
         env.set('CIRCLE_BUILD_NUM', '1')
-        env.set('UPSTREAM_REPONAME', 'test_repo')
+        env.set('UPSTREAM_REPONAME', 'karr_lab_build_utils_test_repo')
         env.set('UPSTREAM_BUILD_NUM', '101')
 
         # test API
@@ -1273,9 +1273,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     'committer_name': 'Test user 2',
                     'committer_email': 'test2@test.com',
                     'subject': 'Test commit 2',
-                    'commit_url': 'https://github.com/KarrLab/test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
+                    'commit_url': 'https://github.com/KarrLab/karr_lab_build_utils_test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
                 }],
-                'build_url': 'https://circleci.com/gh/KarrLab/test_repo_2/51',
+                'build_url': 'https://circleci.com/gh/KarrLab/karr_lab_build_utils_test_repo_2/51',
             },
         })
 
@@ -1290,10 +1290,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         # mock environment
         env = self.construct_environment(build_num=51)
-        env.set('CIRCLE_PROJECT_REPONAME', 'test_repo_2')
+        env.set('CIRCLE_PROJECT_REPONAME', 'karr_lab_build_utils_test_repo_2')
         env.set('CIRCLE_SHA1', 'yyyyyyyyyyyyyyyyyyyy')
         env.set('CIRCLE_BUILD_NUM', '51')
-        env.set('UPSTREAM_REPONAME', 'test_repo')
+        env.set('UPSTREAM_REPONAME', 'karr_lab_build_utils_test_repo')
         env.set('UPSTREAM_BUILD_NUM', '101')
 
         # test API
@@ -1336,9 +1336,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     'committer_name': 'Test user 2',
                     'committer_email': 'test2@test.com',
                     'subject': 'Test commit 2',
-                    'commit_url': 'https://github.com/KarrLab/test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
+                    'commit_url': 'https://github.com/KarrLab/karr_lab_build_utils_test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
                 }],
-                'build_url': 'https://circleci.com/gh/KarrLab/test_repo_2/51',
+                'build_url': 'https://circleci.com/gh/KarrLab/karr_lab_build_utils_test_repo_2/51',
             },
         })
 
@@ -1353,10 +1353,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         # mock environment
         env = self.construct_environment(build_num=51)
-        env.set('CIRCLE_PROJECT_REPONAME', 'test_repo_2')
+        env.set('CIRCLE_PROJECT_REPONAME', 'karr_lab_build_utils_test_repo_2')
         env.set('CIRCLE_SHA1', 'yyyyyyyyyyyyyyyyyyyy')
         env.set('CIRCLE_BUILD_NUM', '51')
-        env.set('UPSTREAM_REPONAME', 'test_repo')
+        env.set('UPSTREAM_REPONAME', 'karr_lab_build_utils_test_repo')
         env.set('UPSTREAM_BUILD_NUM', '101')
 
         # test API
@@ -1414,10 +1414,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         # mock environment
         env = self.construct_environment(build_num=51)
-        env.set('CIRCLE_PROJECT_REPONAME', 'test_repo_2')
+        env.set('CIRCLE_PROJECT_REPONAME', 'karr_lab_build_utils_test_repo_2')
         env.set('CIRCLE_SHA1', 'yyyyyyyyyyyyyyyyyyyy')
         env.set('CIRCLE_BUILD_NUM', '51')
-        env.set('UPSTREAM_REPONAME', 'test_repo')
+        env.set('UPSTREAM_REPONAME', 'karr_lab_build_utils_test_repo')
         env.set('UPSTREAM_BUILD_NUM', '101')
 
         # requests side effects
@@ -1433,9 +1433,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     'committer_email': 'test2@test.com',
                     'commit': 'yyyyyyyyyyyyyyyyyyyy',
                     'subject': 'Test commit 2',
-                    'commit_url': 'https://github.com/KarrLab/test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
+                    'commit_url': 'https://github.com/KarrLab/karr_lab_build_utils_test_repo_2/commit/yyyyyyyyyyyyyyyyyyyy',
                 }],
-                'build_url': 'https://circleci.com/gh/KarrLab/test_repo_2/51',
+                'build_url': 'https://circleci.com/gh/KarrLab/karr_lab_build_utils_test_repo_2/51',
             },
         })
         requests_get_3 = attrdict.AttrDict({
@@ -1446,9 +1446,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                     'committer_email': 'test@test.com',
                     'commit': 'xxxxxxxxxxxxxxxxxxxx',
                     'subject': 'Test commit',
-                    'commit_url': 'https://github.com/KarrLab/test_repo/commit/xxxxxxxxxxxxxxxxxxxx',
+                    'commit_url': 'https://github.com/KarrLab/karr_lab_build_utils_test_repo/commit/xxxxxxxxxxxxxxxxxxxx',
                 }],
-                'build_url': 'https://circleci.com/gh/KarrLab/test_repo/101',
+                'build_url': 'https://circleci.com/gh/KarrLab/karr_lab_build_utils_test_repo/101',
             },
         })
 
@@ -1518,7 +1518,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             'raise_for_status': lambda: None,
             'json': lambda: {
                 'all_commit_details': [],
-                'build_url': 'https://circleci.com/gh/KarrLab/test_repo_2/51',
+                'build_url': 'https://circleci.com/gh/KarrLab/karr_lab_build_utils_test_repo_2/51',
             },
         })
 
@@ -1889,7 +1889,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
     def test_upload_documentation_to_docs_server(self):
         bh = self.construct_build_helper()
-        bh.repo_name = 'test_repo'
+        bh.repo_name = 'karr_lab_build_utils_test_repo'
         bh.repo_branch = 'master'
         repo_version = '0.0.1a'
 
