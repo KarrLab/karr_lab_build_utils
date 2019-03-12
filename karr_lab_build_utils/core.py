@@ -626,6 +626,7 @@ class BuildHelper(object):
             'tests/test_core.py',
             'tests/test_main.py',
             '.circleci/config.yml',
+            '.circleci/requirements.txt',
             '.karr_lab_build_utils.yml',
             '_package_/__init__.py',
             '_package_/VERSION',
@@ -872,7 +873,7 @@ class BuildHelper(object):
                 file.write(req + '\n')
 
         py_v = '{}.{}'.format(sys.version_info[0], sys.version_info[1])
-        cmd = ['pip' + py_v, 'install', '--process-dependency-links', '-r', filename]
+        cmd = ['pip' + py_v, 'install', '-r', filename]
         if upgrade:
             cmd.append('-U')
         subprocess.check_call(cmd)
@@ -910,7 +911,7 @@ class BuildHelper(object):
         # upgrade Karr Lab requirements
         if reqs:
             subprocess.check_call(['pip{}.{}'.format(sys.version_info[0], sys.version_info[1]),
-                                   'install', '-U', '--process-dependency-links'] + reqs)
+                                   'install', '-U'] + reqs)
 
         return reqs
 
@@ -1229,7 +1230,7 @@ class BuildHelper(object):
         print('=====================================')
         build_utils_uri = 'git+https://github.com/KarrLab/pkg_utils.git#egg=pkg_utils'
         self._run_docker_command(['exec', container, 'bash', '-c',
-                                  'pip{} install -U --process-dependency-links {}'.format(py_v, build_utils_uri)])
+                                  'pip{} install -U {}'.format(py_v, build_utils_uri)])
 
         # install Karr Lab build utils
         print('\n\n')
@@ -1238,7 +1239,7 @@ class BuildHelper(object):
         print('=====================================')
         build_utils_uri = 'git+https://github.com/KarrLab/karr_lab_build_utils.git#egg=karr_lab_build_utils'
         self._run_docker_command(['exec', container, 'bash', '-c',
-                                  'pip{} install -U --process-dependency-links {}'.format(py_v, build_utils_uri)])
+                                  'pip{} install -U {}'.format(py_v, build_utils_uri)])
 
         return container
 
@@ -1276,7 +1277,7 @@ class BuildHelper(object):
         self._run_docker_command(['exec',
                                   '-w', '/root/project',
                                   container,
-                                  'bash', '-c', 'pip{} install --process-dependency-links -e .'.format(py_v),
+                                  'bash', '-c', 'pip{} install -e .'.format(py_v),
                                   ])
 
         # install dependencies
@@ -1884,6 +1885,11 @@ class BuildHelper(object):
         """ documentation """
         self.make_documentation()
         self.upload_documentation_to_docs_server()
+
+        """ Log Python environment """
+        lines = pip._internal.operations.freeze.freeze()
+        with open(os.path.expanduser('~.wc/log/pip.freeze'), 'w') as file:
+            file.write('\n'.join(lines) + '\n')
 
         """ Throw error """
         if errors:

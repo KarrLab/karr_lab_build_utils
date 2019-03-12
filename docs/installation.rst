@@ -82,4 +82,4 @@ Run the following command to install the latest version from GitHub::
 
     git clone https://github.com/KarrLab/karr_lab_build_utils.git
     cd karr_lab_build_utils
-    pip install --process-dependency-links -e .[all]
+    pip install -e .[all]

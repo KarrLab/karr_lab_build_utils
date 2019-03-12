@@ -15,18 +15,18 @@ jobs:
             - v25-{{ arch }}-{{ .Branch }}-{{ checksum "/etc/docker-image-tag" }}-{{ checksum "requirements.txt" }}
 
       # Python 3 installation tasks
+      - run: &setup_py_env
+          name: Setup Python environment
+          command: |
+            if [[ -f .circleci/requirements.txt ]]; then
+              pip3 install -U -r .circleci/requirements.txt
+            fi
       - run: &install_pkg_utils
           name: Install pkg_utils (Python 3)
-          command: pip3 install -U --process-dependency-links git+https://github.com/KarrLab/pkg_utils.git#egg=pkg_utils
+          command: pip3 install -U git+https://github.com/KarrLab/pkg_utils.git#egg=pkg_utils
       - run: &install_karr_lab_build_utils
           name: Install karr_lab_build_utils (Python 3)
-          command: pip3 install -U --process-dependency-links -e .[all]
-      - run: &install_reqs
-          name: Install and upgrade requirements (Python 3)
-          command: |
-            set +e
-            karr_lab_build_utils3 install-requirements
-            karr_lab_build_utils3 upgrade-karr-lab-packages
+          command: pip3 install -U -e .[all]
       - run: &install_config
           name: Install package configuration files including credentials
           command: karr_lab_build_utils3 download-install-package-config-files
@@ -44,7 +44,7 @@ jobs:
             set +e
 
             # Python 3
-            pip3 install -U --process-dependency-links -e .[all] \
+            pip3 install -U -e .[all] \
             && karr_lab_build_utils3 run-tests \
               --n-workers ${CIRCLE_NODE_TOTAL} --i-worker ${CIRCLE_NODE_INDEX} \
               --with-xunit \
