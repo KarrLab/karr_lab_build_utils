@@ -2462,8 +2462,6 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             'sphinxprettysearchresults',
             'wheel',
         ]
-        if six.PY3:
-            expected_unused.insert(0, 'enum34')
         self.assertEqual(unused, expected_unused)
 
         # test cli
