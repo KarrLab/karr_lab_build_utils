@@ -12,9 +12,13 @@ Write an overview
 
 ## Installation
 1. Install dependencies
-2. Install this package 
+2. Install the latest release from PyPI
   ```
-  pip install git+git://github.com/KarrLab/{{ name }}#egg={{ name }}
+  pip install {{ name }}.git[all]
+  ```
+3. Install the latest revision from GitHub
+  ```
+  pip install git+https://github.com/KarrLab/{{ name }}.git#egg={{ name }}[all]
   ```
 
 ## Documentation

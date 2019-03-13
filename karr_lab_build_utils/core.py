@@ -1237,6 +1237,16 @@ class BuildHelper(object):
         print('=====================================')
         print('== Install karr_lab_build_utils')
         print('=====================================')
+
+        self._run_docker_command(['exec', container, 'bash', '-c',
+                                  'pip{} install -U {}'.format(
+                                      py_v, 'git+https://github.com/KarrLab/log.git#egg=log')])
+        self._run_docker_command(['exec', container, 'bash', '-c',
+                                  'pip{} install -U {}'.format(
+                                      py_v, 'git+https://github.com/KarrLab/sphinxcontrib-googleanalytics.git#egg=sphinxcontrib_googleanalytics')])
+        self._run_docker_command(['exec', container, 'bash', '-c',
+                                  'pip{} install -U {}'.format(
+                                      py_v, 'git+https://github.com/KarrLab/wc_utils.git#egg=wc_utils[all]')])
         build_utils_uri = 'git+https://github.com/KarrLab/karr_lab_build_utils.git#egg=karr_lab_build_utils'
         self._run_docker_command(['exec', container, 'bash', '-c',
                                   'pip{} install -U {}'.format(py_v, build_utils_uri)])
