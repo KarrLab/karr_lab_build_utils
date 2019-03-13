@@ -5,7 +5,6 @@ click
 configobj
 coverage
 coveralls
-enum34
 ftputil
 gitpython
 graphviz
