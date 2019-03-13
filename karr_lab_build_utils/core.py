@@ -1489,15 +1489,15 @@ class BuildHelper(object):
         dockerfile_filename = os.path.join(circleci_context_dirname, 'Dockerfile_Circleci')
         with open(dockerfile_filename, 'w') as file:
             file.write('FROM {}\n'.format(image_name))
-            file.write('COPY circleci_docker_context/GITHUB_SSH_KEY /root/.ssh/id_rsa\n')
+            file.write('COPY GITHUB_SSH_KEY /root/.ssh/id_rsa\n')
             file.write('RUN eval $(ssh-agent -s) && ssh-add /root/.ssh/id_rsa\n')
             file.write('CMD bash\n')
 
         self._run_docker_command(['build',
                                   '--tag', image_with_ssh_key_name,
-                                  '-f', os.path.join('circleci_docker_context', 'Dockerfile_Circleci'),
+                                  '-f', 'Dockerfile_Circleci',
                                   '.'],
-                                 cwd=karr_lab_build_utils_dirname)
+                                 cwd=circleci_context_dirname)
 
         # test package
         process = subprocess.Popen(['circleci', 'local', 'execute',
