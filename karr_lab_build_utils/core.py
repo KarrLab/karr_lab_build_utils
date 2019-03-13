@@ -1126,7 +1126,7 @@ class BuildHelper(object):
         else:
             cmd = [
                 '--collect-only',
-                '--quiet',
+                '--verbose',
                 test_path,
             ]
             plugin = PyTestTestCaseCollectionPlugin()
