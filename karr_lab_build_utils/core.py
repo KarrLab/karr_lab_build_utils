@@ -1898,7 +1898,7 @@ class BuildHelper(object):
 
         """ Log Python environment """
         lines = pip._internal.operations.freeze.freeze()
-        with open(os.path.expanduser('~.wc/log/pip.freeze'), 'w') as file:
+        with open(os.path.expanduser('~/.wc/log/pip.freeze'), 'w') as file:
             file.write('\n'.join(lines) + '\n')
 
         """ Throw error """
