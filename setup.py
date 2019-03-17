@@ -52,14 +52,10 @@ setuptools.setup(
     ],
     entry_points={
         'console_scripts': [
-            '{} = {}.__main__:main'.format(
-                name, name),
-            '{}{:d} = {}.__main__:main'.format(
-                name, sys.version_info[0], name),
-            '{}{:d}.{:d} = {}.__main__:main'.format(
-                name, sys.version_info[0], sys.version_info[1], name),
-            '{}{:d}.{:d}.{:d} = {}.__main__:main'.format(
-                name, sys.version_info[0], sys.version_info[1], sys.version_info[2], name),
+            '{} = {}.__main__:main'.format(name, name),
+            '{} = {}.__main__:main'.format(name.replace('_', '-'), name),
+            '{}{:d} = {}.__main__:main'.format(name, sys.version_info[0], name),
+            '{}{:d} = {}.__main__:main'.format(name.replace('_', '-'), sys.version_info[0], name),
         ],
     },
 )
