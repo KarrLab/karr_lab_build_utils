@@ -2121,14 +2121,7 @@ class BuildHelper(object):
             os.mkdir(self.proj_docs_static_dir)
 
         # compile API docs
-        config = self.get_build_config().get('docs', {})
-        if config.get('api_docs', True):
-            parser = configparser.ConfigParser()
-            parser.read('setup.cfg')
-            packages = parser.get('sphinx-apidocs', 'packages').strip().split('\n')
-            for package in packages:
-                self.run_method_and_capture_stderr(sphinx.ext.apidoc.main,
-                                                   argv=['-f', '-P', '-o', os.path.join(self.proj_docs_dir, 'source'), package])
+        self.make_api_documentation()
 
         # build HTML documentation
         def handle_exception(app, args, exception, stderr=sys.stderr):
@@ -2146,6 +2139,17 @@ class BuildHelper(object):
                     self.proj_docs_dir,
                     self.proj_docs_build_spelling_dir,
                 ])
+
+    def make_api_documentation(self):
+        """ Compile API documentation """
+        config = self.get_build_config().get('docs', {})
+        if config.get('api_docs', True):
+            parser = configparser.ConfigParser()
+            parser.read('setup.cfg')
+            packages = parser.get('sphinx-apidocs', 'packages').strip().split('\n')
+            for package in packages:
+                self.run_method_and_capture_stderr(sphinx.ext.apidoc.main,
+                                                   argv=['-f', '-P', '-o', os.path.join(self.proj_docs_dir, 'source'), package])
 
     def upload_documentation_to_docs_server(self, dirname='.'):
         """ Upload compiled documentation to the lab server
