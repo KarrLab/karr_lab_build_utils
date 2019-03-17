@@ -49,6 +49,7 @@ import pip_check_reqs.find_missing_reqs
 import pkg_resources
 import pytest
 import _pytest
+import quilt
 import re
 import requests
 import sphinx.ext.apidoc
@@ -1228,7 +1229,7 @@ class BuildHelper(object):
         print('=====================================')
         print('== Install pkg_utils')
         print('=====================================')
-        build_utils_uri = 'git+https://github.com/KarrLab/pkg_utils.git#egg=pkg_utils'
+        build_utils_uri = 'git+https://github.com/KarrLab/pkg_utils.git'
         self._run_docker_command(['exec', container, 'bash', '-c',
                                   'pip{} install -U {}'.format(py_v, build_utils_uri)])
 
@@ -1240,14 +1241,14 @@ class BuildHelper(object):
 
         self._run_docker_command(['exec', container, 'bash', '-c',
                                   'pip{} install -U {}'.format(
-                                      py_v, 'git+https://github.com/KarrLab/log.git#egg=log')])
+                                      py_v, 'git+https://github.com/KarrLab/log.git')])
         self._run_docker_command(['exec', container, 'bash', '-c',
                                   'pip{} install -U {}'.format(
-                                      py_v, 'git+https://github.com/KarrLab/sphinxcontrib-googleanalytics.git#egg=sphinxcontrib_googleanalytics')])
+                                      py_v, 'git+https://github.com/KarrLab/sphinxcontrib-googleanalytics.git')])
         self._run_docker_command(['exec', container, 'bash', '-c',
                                   'pip{} install -U {}'.format(
                                       py_v, 'git+https://github.com/KarrLab/wc_utils.git#egg=wc_utils[all]')])
-        build_utils_uri = 'git+https://github.com/KarrLab/karr_lab_build_utils.git#egg=karr_lab_build_utils'
+        build_utils_uri = 'git+https://github.com/KarrLab/karr_lab_build_utils.git'
         self._run_docker_command(['exec', container, 'bash', '-c',
                                   'pip{} install -U {}'.format(py_v, build_utils_uri)])
 
@@ -1896,10 +1897,8 @@ class BuildHelper(object):
         self.make_documentation()
         self.upload_documentation_to_docs_server()
 
-        """ Log Python environment """
-        lines = pip._internal.operations.freeze.freeze()
-        with open(os.path.expanduser('~/.wc/log/pip.freeze'), 'w') as file:
-            file.write('\n'.join(lines) + '\n')
+        """ Log environment """
+        self.log_environment()
 
         """ Throw error """
         if errors:
@@ -2203,6 +2202,27 @@ class BuildHelper(object):
                 fobj.write(u'RewriteRule ^{0}(/?)$ {0}/{1}/ [R=303]\n'.format(lastest_branch, lastest_version))
                 fobj.write(u'RewriteRule ^{0}/latest(/?)$ {0}/{1} [R=303]\n'.format(lastest_branch, lastest_version))
                 fobj.write(u'RewriteRule ^{0}/latest/(.*)$ {0}/{1}/$1 [R=303,L]\n'.format(lastest_branch, lastest_version))
+
+    def log_environment(self):
+        """ Log environment 
+
+        * pip packages
+        * Quilt packages
+        """
+        log_dir = os.path.expanduser('~/.wc/log/package-versions')
+        if not os.path.isdir(log_dir):
+            os.makedirs(log_dir)
+
+        # pip packages
+        lines = pip._internal.operations.freeze.freeze()
+        with open(os.path.join(log_dir, 'pip.log'), 'w') as file:
+            file.write('\n'.join(lines) + '\n')
+
+        # Quilt packages
+        with abduct.captured(abduct.out()) as stdout:
+            quilt.ls()
+            with open(os.path.join(log_dir, 'quilt.log'), 'w') as file:
+                file.write(stdout.getvalue())
 
     def compile_downstream_dependencies(self, dirname='.', packages_parent_dir='..', config_filename=None):
         """ Compile the downstream dependencies of a package and save them to :obj:`config_filename`

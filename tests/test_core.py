@@ -80,6 +80,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     DUMMY_TEST = os.path.join(os.path.basename(os.path.dirname(__file__)), os.path.basename(__file__)) + \
         ':TestKarrLabBuildUtils.test_dummy_test'
 
+    @classmethod
+    def setUpClass(cls):
+        log_dir = os.path.expanduser('~/.wc/log/package-versions')
+        if os.path.isdir(log_dir):
+            shutil.rmtree(log_dir)
+
     def setUp(self):
         self.tmp_dirname = tempfile.mkdtemp()
 
@@ -1924,6 +1930,13 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
             # cleanup
             ftp.rmtree(ftp.path.join(bh.docs_server_directory, bh.repo_name))
+
+    def test_log_environment(self):
+        build_helper = core.BuildHelper()
+        build_helper.log_environment()
+        log_dir = os.path.expanduser('~/.wc/log/package-versions')
+        self.assertTrue(os.path.isfile(os.path.join(log_dir, 'pip.log')))
+        self.assertTrue(os.path.isfile(os.path.join(log_dir, 'quilt.log')))
 
     def test_compile_downstream_dependencies(self):
         # create temp directory with temp packages
