@@ -22,7 +22,7 @@ pylint >= 2.1.1
 pypandoc
 pytest
 python_dateutil
-pyyaml
+pyyaml >= 5.1
 quilt
 requests
 setuptools >= 40.0.0

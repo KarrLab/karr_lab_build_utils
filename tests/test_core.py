@@ -159,7 +159,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         config_filename = os.path.join(tempdirname, name, '.karr_lab_build_utils.yml')
         with open(config_filename, 'r') as file:
-            self.assertEqual(yaml.load(file)['downstream_dependencies'], [])
+            self.assertEqual(yaml.load(file, Loader=yaml.FullLoader)['downstream_dependencies'], [])
 
         repo = org.get_repo(name)
         self.assertEqual(repo.description, description)
@@ -197,11 +197,11 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         config_filename = os.path.join(tempdirname, 'test_a', '.karr_lab_build_utils.yml')
         with open(config_filename, 'r') as file:
-            self.assertEqual(yaml.load(file)['downstream_dependencies'], ['test_b'])
+            self.assertEqual(yaml.load(file, Loader=yaml.FullLoader)['downstream_dependencies'], ['test_b'])
 
         config_filename = os.path.join(tempdirname, 'test_b', '.karr_lab_build_utils.yml')
         with open(config_filename, 'r') as file:
-            self.assertEqual(yaml.load(file)['downstream_dependencies'], [])
+            self.assertEqual(yaml.load(file, Loader=yaml.FullLoader)['downstream_dependencies'], [])
 
         repo = org.get_repo(name)
         self.assertEqual(repo.description, description)
@@ -236,7 +236,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         config_filename = os.path.join(tempdirname, name, '.karr_lab_build_utils.yml')
         with open(config_filename, 'r') as file:
-            self.assertEqual(yaml.load(file)['downstream_dependencies'], [])
+            self.assertEqual(yaml.load(file, Loader=yaml.FullLoader)['downstream_dependencies'], [])
 
         repo = org.get_repo(name)
         self.assertEqual(repo.description, description)
@@ -1980,7 +1980,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.assertEqual(sorted(deps), ['pkg_1', 'pkg_3'])
 
         with open(config_filename, 'r') as file:
-            self.assertEqual(sorted(yaml.load(file.read())['downstream_dependencies']), ['pkg_1', 'pkg_3'])
+            self.assertEqual(sorted(yaml.load(file.read(), Loader=yaml.FullLoader)['downstream_dependencies']), ['pkg_1', 'pkg_3'])
 
         with open(os.path.join(packages_parent_dir, 'pkg_1', 'setup.cfg'), 'w') as file:
             file.write('[coverage:run]\n')

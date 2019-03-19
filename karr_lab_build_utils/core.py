@@ -515,7 +515,7 @@ class BuildHelper(object):
 
             if os.path.isfile(config_filename):
                 with open(config_filename, 'r') as file:
-                    config = yaml.load(file)
+                    config = yaml.load(file, Loader=yaml.FullLoader)
 
                 if 'downstream_dependencies' not in config:
                     config['downstream_dependencies'] = []
@@ -1459,7 +1459,7 @@ class BuildHelper(object):
         backup_circleci_config_filename = os.path.join(dirname, '.circleci', 'config.yml.save')
 
         with open(circleci_config_filename, 'r') as file:
-            config = yaml.load(file)
+            config = yaml.load(file, Loader=yaml.FullLoader)
 
         job = config['jobs']['build']
         if 'steps' in job:
@@ -2273,7 +2273,7 @@ class BuildHelper(object):
             config = {}
             if os.path.isfile(config_filename):
                 with open(config_filename, 'r') as file:
-                    config = yaml.load(file)
+                    config = yaml.load(file, Loader=yaml.FullLoader)
 
             config['downstream_dependencies'] = downstream_dependencies
 
@@ -2306,7 +2306,7 @@ class BuildHelper(object):
                 config_filename = os.path.join(dirname, '.karr_lab_build_utils.yml')
                 if os.path.isfile(config_filename):
                     with open(config_filename, 'r') as file:
-                        config = yaml.load(file)
+                        config = yaml.load(file, Loader=yaml.FullLoader)
                     deps = config.get('downstream_dependencies', [])
                     for other_pkg in deps:
                         graph.add_edge(pkg, other_pkg)
@@ -2340,7 +2340,7 @@ class BuildHelper(object):
                 config_filename = os.path.join(dirname, '.karr_lab_build_utils.yml')
                 if os.path.isfile(config_filename):
                     with open(config_filename, 'r') as file:
-                        config = yaml.load(file)
+                        config = yaml.load(file, Loader=yaml.FullLoader)
                     deps = config.get('downstream_dependencies', [])
                     for other_pkg in deps:
                         dot.edge(pkg, other_pkg)
@@ -2379,7 +2379,7 @@ class BuildHelper(object):
 
         # read downstream dependencies
         with open(config_filename, 'r') as file:
-            config = yaml.load(file)
+            config = yaml.load(file, Loader=yaml.FullLoader)
         packages = config.get('downstream_dependencies', [])
 
         # stop if there are no downstream dependencies
@@ -2783,7 +2783,7 @@ class BuildHelper(object):
             :obj:`dict`: build configuration
         """
         with open('.karr_lab_build_utils.yml', 'r') as file:
-            return yaml.load(file)
+            return yaml.load(file, Loader=yaml.FullLoader)
 
     def download_package_config_files(self):
         """ Download the configuration repository 
@@ -2818,7 +2818,7 @@ class BuildHelper(object):
         """
         filename = os.path.join(self.configs_repo_path, 'third_party', 'paths.yml')
         with open(filename, 'r') as file:
-            paths = yaml.load(file)
+            paths = yaml.load(file, Loader=yaml.FullLoader)
 
         for rel_src, abs_dest in paths.items():
             abs_dest = os.path.expanduser(abs_dest)
