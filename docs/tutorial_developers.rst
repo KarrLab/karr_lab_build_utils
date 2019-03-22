@@ -42,6 +42,7 @@ These commands will create a repository with the following directory structure a
     docs/
         conf.py
         requirements.txt
+        requirements.rtd.txt
         index.rst
 
 

@@ -450,7 +450,7 @@ class BuildHelper(object):
             print('Click the "Advanced settings" menu item')
             click.confirm('Continue?', default=True, abort=True)
 
-            print('Set the "Requirements file" to "docs/requirements.txt"')
+            print('Set the "Requirements file" to "docs/requirements.rtd.txt"')
             click.confirm('Continue?', default=True, abort=True)
 
             print('Set the "Python configuration file" to "docs/conf.py"')
@@ -2084,6 +2084,7 @@ class BuildHelper(object):
             filenames = [
                 'conf.py',
                 'requirements.txt',
+                'requirements.rtd.txt',
                 'spelling_wordlist.txt',
                 'index.rst',
                 'overview.rst',
