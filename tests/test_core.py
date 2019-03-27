@@ -2467,10 +2467,10 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         unused.sort()
 
         expected_unused = [
+            'sphinx_fontawesome',
             'sphinx_rtd_theme',
             'sphinxcontrib_addmetahtml',
             'sphinxcontrib_bibtex',
-            'sphinx_fontawesome',
             'sphinxcontrib_googleanalytics',
             'sphinxcontrib_spelling',
             'sphinxprettysearchresults',
