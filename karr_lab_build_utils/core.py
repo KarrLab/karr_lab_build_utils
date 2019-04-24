@@ -1835,7 +1835,7 @@ class BuildHelper(object):
         msg['Subject'] = subject
 
         msg.add_header('Content-Type', 'text/html')
-        msg.set_payload(body)
+        msg.set_payload(body, 'utf8')
 
         if not dry_run:
             smtp = smtplib.SMTP(self.email_hostname)
