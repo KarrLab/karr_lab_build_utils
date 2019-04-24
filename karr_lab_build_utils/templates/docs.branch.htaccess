@@ -1,0 +1,13 @@
+RewriteEngine On
+RewriteBase /{{ package }}/{{ branch }}/
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME}/index.html !-f
+RewriteCond %{REQUEST_URI} !^[0-9]+\.[0-9]+\.[0-9]+[a-zA-Z]*[$/]
+RewriteRule ^latest($|/.*$) {{ version }}$1 [R=303,L]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME}/index.html !-f
+RewriteCond %{REQUEST_URI} !^latest[$/]
+RewriteCond %{REQUEST_URI} !^[0-9]+\.[0-9]+\.[0-9]+[a-zA-Z]*[$/]
+RewriteRule ^(.*)$ {{ version }}/$1 [R=303,L]

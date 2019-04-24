@@ -1925,8 +1925,13 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
             remote_filename = ftp.path.join(bh.docs_server_directory, bh.repo_name, '.htaccess')
             with ftp.open(remote_filename, 'r') as file:
-                self.assertRegex(file.read(), r'RewriteRule \^{0}/latest/\(\.\*\)\$ {0}/{1}/\$1 \[R=303,L\]'.format(
-                    bh.repo_branch, repo_version))
+                self.assertRegex(file.read(), re.escape('RewriteRule ^(.*)$ {}/$1 [R=303,L]'.format(
+                    bh.repo_branch)))
+
+            remote_filename = ftp.path.join(bh.docs_server_directory, bh.repo_name, bh.repo_branch, '.htaccess')
+            with ftp.open(remote_filename, 'r') as file:
+                self.assertRegex(file.read(), re.escape('RewriteRule ^latest($|/.*$) {}$1 [R=303,L]'.format(
+                    '0.0.1a')))
 
             # cleanup
             ftp.rmtree(ftp.path.join(bh.docs_server_directory, bh.repo_name))

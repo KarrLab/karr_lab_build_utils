@@ -2187,26 +2187,35 @@ class BuildHelper(object):
                     remote_filename = os.path.join(remote_root, rel_root, filename)
                     ftp.upload(local_filename, remote_filename)
 
-            # update
-            master_dirname = ftp.path.join(self.docs_server_directory, self.repo_name, 'master')
-            if ftp.path.isdir(master_dirname):
-                lastest_branch = 'master'
-            else:
-                lastest_branch = self.repo_branch
+            self.setup_docs_htaccess_files()
 
-            dirname = ftp.path.join(self.docs_server_directory, self.repo_name, lastest_branch)
-            versions = ftp.listdir(dirname)
+    def setup_docs_htaccess_files(self):
+        """ Setup htaccess files for docs server """
+        with ftputil.FTPHost(self.docs_server_hostname, self.docs_server_username, self.docs_server_password) as ftp:            
+            dirname = ftp.path.join(self.docs_server_directory, self.repo_name, self.repo_branch)
+            versions = filter(lambda subdirname: subdirname != '.htaccess', ftp.listdir(dirname))
             if versions:
                 lastest_version = sorted(versions, reverse=True).pop()
 
+            context = {
+                'package': self.repo_name,
+                'branch': self.repo_branch,
+                'version': lastest_version,
+            }
+
+            with open(pkg_resources.resource_filename('karr_lab_build_utils',
+                                                      os.path.join('templates', 'docs.htaccess')), 'r') as file:
+                template = Template(file.read())
             filename = ftp.path.join(self.docs_server_directory, self.repo_name, '.htaccess')
             with ftp.open(filename, 'w') as fobj:
-                fobj.write(u'RewriteEngine On\n')
-                fobj.write(u'RewriteBase /{}/\n'.format(self.repo_name))
-                fobj.write(u'RewriteRule ^$ {0}/{1}/ [R=303]\n'.format(lastest_branch, lastest_version))
-                fobj.write(u'RewriteRule ^{0}(/?)$ {0}/{1}/ [R=303]\n'.format(lastest_branch, lastest_version))
-                fobj.write(u'RewriteRule ^{0}/latest(/?)$ {0}/{1} [R=303]\n'.format(lastest_branch, lastest_version))
-                fobj.write(u'RewriteRule ^{0}/latest/(.*)$ {0}/{1}/$1 [R=303,L]\n'.format(lastest_branch, lastest_version))
+                fobj.write(template.render(**context))
+
+            with open(pkg_resources.resource_filename('karr_lab_build_utils',
+                                                      os.path.join('templates', 'docs.branch.htaccess')), 'r') as file:
+                template = Template(file.read())
+            filename = ftp.path.join(self.docs_server_directory, self.repo_name, self.repo_branch, '.htaccess')
+            with ftp.open(filename, 'w') as fobj:
+                fobj.write(template.render(**context))
 
     def log_environment(self):
         """ Log environment 
