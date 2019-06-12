@@ -2195,7 +2195,7 @@ class BuildHelper(object):
             dirname = ftp.path.join(self.docs_server_directory, self.repo_name, self.repo_branch)
             versions = filter(lambda subdirname: subdirname != '.htaccess', ftp.listdir(dirname))
             if versions:
-                lastest_version = sorted(versions, reverse=True).pop()
+                lastest_version = sorted(versions).pop()
 
             context = {
                 'package': self.repo_name,
