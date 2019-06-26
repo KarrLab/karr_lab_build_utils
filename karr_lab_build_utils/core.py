@@ -1241,9 +1241,6 @@ class BuildHelper(object):
 
         self._run_docker_command(['exec', container, 'bash', '-c',
                                   'pip{} install -U {}'.format(
-                                      py_v, 'git+https://github.com/KarrLab/log.git')])
-        self._run_docker_command(['exec', container, 'bash', '-c',
-                                  'pip{} install -U {}'.format(
                                       py_v, 'git+https://github.com/KarrLab/sphinxcontrib-googleanalytics.git')])
         self._run_docker_command(['exec', container, 'bash', '-c',
                                   'pip{} install -U {}'.format(
