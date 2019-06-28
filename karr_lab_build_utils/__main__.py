@@ -19,6 +19,7 @@ class BaseController(cement.Controller):
     class Meta:
         label = 'base'
         description = "Karr Lab build utilities"
+        help = "Karr Lab build utilities"
         arguments = [
             (['-v', '--version'], dict(action='version', version=karr_lab_build_utils.__version__)),
         ]
@@ -63,6 +64,12 @@ class CreatePackageController(cement.Controller):
             '    - Add the repository to CircleCI, Coveralls, Code Climate, Read the Docs, and code.karrlab.org;\n'
             '    - Update the downstream dependencies of the package''s dependencies'
         )
+        help = (
+            '- Create local and remote Git repositories;\n'
+            '    - Setup the directory structure of the repository;\n'
+            '    - Add the repository to CircleCI, Coveralls, Code Climate, Read the Docs, and code.karrlab.org;\n'
+            '    - Update the downstream dependencies of the package''s dependencies'
+        )
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
@@ -83,6 +90,7 @@ class CreateRepositoryController(cement.Controller):
     class Meta:
         label = 'create-repository'
         description = 'Create a GitHub repository and clone the repository locally'
+        help = 'Create a GitHub repository and clone the repository locally'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
@@ -109,6 +117,7 @@ class SetupRepositoryController(cement.Controller):
     class Meta:
         label = 'setup-repository'
         description = 'Setup a local Git repository with the default directory structure'
+        help = 'Setup a local Git repository with the default directory structure'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
@@ -151,6 +160,7 @@ class CreateDocumentationTemplateController(cement.Controller):
     class Meta:
         label = 'create-documentation-template'
         description = 'Create a Sphinx documentation template for a package'
+        help = 'Create a Sphinx documentation template for a package'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
@@ -171,6 +181,7 @@ class DownloadInstallPackageConfigFilesController(cement.Controller):
     class Meta:
         label = 'download-install-package-config-files'
         description = 'Download and install configuration files from GitHub configuration repository'
+        help = 'Download and install configuration files from GitHub configuration repository'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = []
@@ -194,6 +205,7 @@ class RunTestsController(cement.Controller):
     class Meta:
         label = 'run-tests'
         description = 'Run unit tests located at `test_path`'
+        help = 'Run unit tests located at `test_path`'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
@@ -262,6 +274,7 @@ class DockerController(cement.Controller):
     class Meta:
         label = 'docker'
         description = 'Docker utilities'
+        help = 'Docker utilities'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = []
@@ -277,6 +290,7 @@ class DockerCreateContainerController(cement.Controller):
     class Meta:
         label = 'create-container'
         description = 'Create a Docker container for running tests'
+        help = 'Create a Docker container for running tests'
         stacked_on = 'docker'
         stacked_type = 'nested'
         arguments = [
@@ -297,6 +311,7 @@ class InstallPackageToDockerContainerController(cement.Controller):
     class Meta:
         label = 'install-package-to-container'
         description = 'Copy and install a package to a Docker container'
+        help = 'Copy and install a package to a Docker container'
         stacked_on = 'docker'
         stacked_type = 'nested'
         arguments = [
@@ -318,6 +333,7 @@ class RunTestsInDockerContainerController(cement.Controller):
     class Meta:
         label = 'run-tests-in-container'
         description = 'Run tests in a Docker container'
+        help = 'Run tests in a Docker container'
         stacked_on = 'docker'
         stacked_type = 'nested'
         arguments = [
@@ -376,6 +392,7 @@ class DockerRemoveContainerController(cement.Controller):
     class Meta:
         label = 'remove-container'
         description = 'Remove a Docker container'
+        help = 'Remove a Docker container'
         stacked_on = 'docker'
         stacked_type = 'nested'
         arguments = [
@@ -394,6 +411,7 @@ class FollowCircleciBuildController(cement.Controller):
     class Meta:
         label = 'follow-circleci-build'
         description = 'Follow a CircleCI build for a repository'
+        help = 'Follow a CircleCI build for a repository'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
@@ -424,6 +442,7 @@ class GetCircleciEnvironmentVariablesController(cement.Controller):
     class Meta:
         label = 'get-circleci-environment-variables'
         description = 'Get the CircleCI environment variables for a repository and their partial values'
+        help = 'Get the CircleCI environment variables for a repository and their partial values'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
@@ -451,6 +470,7 @@ class SetCircleciEnvironmentVariableController(cement.Controller):
     class Meta:
         label = 'set-circleci-environment-variable'
         description = 'Set a CircleCI environment variable for a repository'
+        help = 'Set a CircleCI environment variable for a repository'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
@@ -481,6 +501,7 @@ class DeleteCircleciEnvironmentVariableController(cement.Controller):
     class Meta:
         label = 'delete-circleci-environment-variable'
         description = 'Delete a CircleCI environment variable for a repository'
+        help = 'Delete a CircleCI environment variable for a repository'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
@@ -508,6 +529,7 @@ class CreateCodeClimateGithubWebhookController(cement.Controller):
     class Meta:
         label = 'create-code-climate-github-webhook'
         description = 'Create Code Climate GitHub webhook for the current repository'
+        help = 'Create Code Climate GitHub webhook for the current repository'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
@@ -533,6 +555,7 @@ class DoPostTestTasksController(cement.Controller):
     class Meta:
         label = 'do-post-test-tasks'
         description = 'Do all post-test tasks for CircleCI'
+        help = 'Do all post-test tasks for CircleCI'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
@@ -602,6 +625,7 @@ class MakeAndArchiveReportsController(cement.Controller):
     class Meta:
         label = 'make-and-archive-reports'
         description = 'Make and archive reports'
+        help = 'Make and archive reports'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
@@ -627,6 +651,7 @@ class CombineCoverageReportsController(cement.Controller):
     class Meta:
         label = 'combine-coverage-reports'
         description = 'Combine coverage reports (.coverage.*) into a single file (.coverage)'
+        help = 'Combine coverage reports (.coverage.*) into a single file (.coverage)'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
@@ -650,6 +675,7 @@ class ArchiveCoverageReportController(cement.Controller):
     class Meta:
         label = 'archive-coverage-report'
         description = 'Archive coverage report'
+        help = 'Archive coverage report'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
@@ -677,6 +703,7 @@ class UploadCoverageReportToCoverallsController(cement.Controller):
     class Meta:
         label = 'upload-coverage-report-to-coveralls'
         description = 'Upload coverage report to Coveralls'
+        help = 'Upload coverage report to Coveralls'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
@@ -701,6 +728,7 @@ class UploadCoverageReportToCodeClimateController(cement.Controller):
     class Meta:
         label = 'upload-coverage-report-to-code-climate'
         description = 'Upload coverage report to Code Climate'
+        help = 'Upload coverage report to Code Climate'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
@@ -728,6 +756,7 @@ class MakeDocumentationController(cement.Controller):
     class Meta:
         label = 'make-documentation'
         description = 'Make HTML documentation. Optionally, spell check documentation.'
+        help = 'Make HTML documentation. Optionally, spell check documentation.'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
@@ -748,6 +777,7 @@ class CompileDownstreamDependenciesController(cement.Controller):
     class Meta:
         label = 'compile-downstream-dependencies'
         description = 'Compile the downstream dependencies of a package by analyzing the requirements files of other packages'
+        help = 'Compile the downstream dependencies of a package by analyzing the requirements files of other packages'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
@@ -782,6 +812,7 @@ class ArePackageDependenciesAcyclicController(cement.Controller):
     class Meta:
         label = 'are-package-dependencies-acyclic'
         description = 'Check if the package dependencies are acyclic so they are supported by CircleCI'
+        help = 'Check if the package dependencies are acyclic so they are supported by CircleCI'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
@@ -805,6 +836,7 @@ class VisualizePackageDependenciesController(cement.Controller):
     class Meta:
         label = 'visualize-package-dependencies'
         description = 'Visualize downstream package dependencies as a graph'
+        help = 'Visualize downstream package dependencies as a graph'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
@@ -827,6 +859,7 @@ class AnalyzePackageController(cement.Controller):
     class Meta:
         label = 'analyze-package'
         description = 'Perform static analyses of a package using Pylint'
+        help = 'Perform static analyses of a package using Pylint'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
@@ -853,6 +886,7 @@ class FindMissingRequirementsController(cement.Controller):
     class Meta:
         label = 'find-missing-requirements'
         description = 'Finding missing requirements for a package.'
+        help = 'Finding missing requirements for a package.'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
@@ -889,6 +923,7 @@ class FindUnusedRequirementsController(cement.Controller):
     class Meta:
         label = 'find-unused-requirements'
         description = 'Finding unused requirements for a package.'
+        help = 'Finding unused requirements for a package.'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
@@ -922,6 +957,7 @@ class UploadPackageToPypiController(cement.Controller):
     class Meta:
         label = 'upload-package-to-pypi'
         description = 'Upload package to PyPI'
+        help = 'Upload package to PyPI'
         stacked_on = 'base'
         stacked_type = 'nested'
         arguments = [
