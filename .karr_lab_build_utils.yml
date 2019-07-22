@@ -2,6 +2,8 @@ static_analyses:
   ignore_files:
       - karr_lab_build_utils/templates/*
 downstream_dependencies:
+  - bcforms
+  - bpforms
   - conv_opt
   - datanator
   # - datanator_frontend
