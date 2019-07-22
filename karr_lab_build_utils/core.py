@@ -1870,6 +1870,8 @@ class BuildHelper(object):
         self.archive_coverage_report(coverage_dirname=coverage_dirname, dry_run=dry_run)
 
         """ static analysis """
+        self.analyze_package(self.repo_name)
+
         find_missing_requirements = config.get('static_analyses', {}).get('find_missing_requirements', True)
         find_unused_requirements = config.get('static_analyses', {}).get('find_unused_requirements', True)
         ignore_files = config.get('static_analyses', {}).get('ignore_files', [])
