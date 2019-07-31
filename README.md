@@ -38,7 +38,7 @@ Please see the [documentation](https://docs.karrlab.org/karr_lab_build_utils).
 The build utilities are released under the [MIT license](LICENSE).
 
 ## Development team
-This package was developed by [Jonathan Karr](https://www.karrlab.org) at the Icahn School of Medicine at Mount Sinai in New York, USA.
+This package was developed by the [Karr Lab](https://www.karrlab.org) at the Icahn School of Medicine at Mount Sinai in New York, USA.
 
 ## Questions and comments
-Please contact the [Jonathan Karr](https://www.karrlab.org) with any questions or comments.
+Please contact the [Karr Lab](mailto:info@karrlab.org) with any questions or comments.

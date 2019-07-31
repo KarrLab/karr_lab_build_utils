@@ -26,4 +26,4 @@ This work was supported by a National Institute of Health MIRA award [grant numb
 Questions and comments
 ----------------------
 
-Please contact the `Karr Lab <https://www.karrlab.org/>`_ with any questions or comments.
+Please contact the `Karr Lab <mailto:info@karrlab.org>`_ with any questions or comments.
