@@ -67,7 +67,7 @@ class CliTestCase(unittest.TestCase):
                                     'arg-1 value',
                                     'arg-2 value',
                                     '--opt-arg-3', 'opt-arg-3 value',
-                                    '--opt-arg-4', 'opt-arg-4 value']) as app:
+                                    '--opt-arg-4', '3.14']) as app:
                 # run app
                 app.run()
 
