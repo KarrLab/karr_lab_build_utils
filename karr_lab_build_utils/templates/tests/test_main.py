@@ -43,7 +43,7 @@ class CliTestCase(unittest.TestCase):
 
     def test_command_1(self):
         with capturer.CaptureOutput(merged=False, relay=False) as captured:
-            with __main__.App(argv=['command-1']) as app:
+            with __main__.App(argv=['cmd1']) as app:
                 # run app
                 app.run()
 
@@ -53,7 +53,7 @@ class CliTestCase(unittest.TestCase):
 
     def test_command_1(self):
         with capturer.CaptureOutput(merged=False, relay=False) as captured:
-            with __main__.App(argv=['command-2']) as app:
+            with __main__.App(argv=['cmd2']) as app:
                 # run app
                 app.run()
 
