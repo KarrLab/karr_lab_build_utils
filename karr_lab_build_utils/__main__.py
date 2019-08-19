@@ -210,9 +210,10 @@ class RunTestsController(cement.Controller):
         stacked_type = 'nested'
         arguments = [
             (['--test-path'], dict(
-                type=str, default=None, help=(
+                type=str, default='tests', help=(
                     'Path to tests to run. '
-                    'If the `test_path` environment variable is not defined, TEST_PATH defaults to `tests`.'))),
+                    'The path should be relative to the current directory, or an absolute path. '
+                    'Default: `./tests`.'))),
             (['--dirname'], dict(
                 type=str, default='.', help="Path to package to test; default='.'")),
             (['--n-workers'], dict(
@@ -339,9 +340,10 @@ class RunTestsInDockerContainerController(cement.Controller):
         arguments = [
             (['container'], dict(type=str, help="Container id")),
             (['--test-path'], dict(
-                type=str, default=None, help=(
+                type=str, default='tests', help=(
                     'Path to tests to run. '
-                    'If the `test_path` environment variable is not defined, TEST_PATH defaults to `tests`.'))),
+                    'The path should be relative to the current directory, or an absolute path. '
+                    'Default: `./tests`.'))),
             (['--n-workers'], dict(
                 type=int, default=1, help='Numbers of workers to run tests`')),
             (['--i-worker'], dict(
