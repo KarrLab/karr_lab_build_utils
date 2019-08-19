@@ -56,16 +56,6 @@ jobs:
               echo "0" > TEST_EXIT_CODE
               exit 1
             fi
-
-      # store results
-      - store_test_results:
-          path: /root/project/tests/reports
-      - store_artifacts:
-          path: /root/project/tests/reports
-          destination: reports
-      - store_artifacts:
-          path: /root/.wc/log
-          destination: log
   
       # Generate reports, archive results, and send notifications
       - run:
@@ -83,6 +73,14 @@ jobs:
             karr_lab_build_utils3 do-post-test-tasks $INSTALLATION_EXIT_CODE $TEST_EXIT_CODE
 
       # store results
+      - store_test_results:
+          path: /root/project/tests/reports
+      - store_artifacts:
+          path: /root/project/tests/reports
+          destination: reports
+      - store_artifacts:
+          path: /root/.wc/log
+          destination: log
       - store_artifacts:
           path: /root/project/docs/_build/html
           destination: docs
