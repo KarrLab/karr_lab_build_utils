@@ -220,7 +220,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         with self.construct_environment():
             with __main__.App(argv=['create-package', '--pypi-repository', 'testpypi']) as app:
-                confirm_side_effects = [True, False] + 37 * [True]
+                confirm_side_effects = [True, False] + 36 * [True]
                 prompt_side_effects = [
                     name, description, ', '.join(keywords), ', '.join(dependencies), dirname, '0.0.1',
                     'code_climate_repo_token', 'code_climate_repo_badge_token',

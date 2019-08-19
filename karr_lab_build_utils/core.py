@@ -393,11 +393,13 @@ class BuildHelper(object):
         print('Search for the "{}" repository and click its "Set Up Project" button'.format(name))
         click.confirm('Continue?', default=True, abort=True)
 
-        print('Click the "Start building" button')
+        print('Click the "Start building" button. '
+              'Note, the first CircleCI build will fail because no code has yet been pushed.')
         click.confirm('Continue?', default=True, abort=True)
 
-        print('Click the "Project settings" icon')
-        click.confirm('Continue?', default=True, abort=True)
+        if has_private_dependencies or private:
+            print('Click the "Project settings" icon')
+            click.confirm('Continue?', default=True, abort=True)
 
         if has_private_dependencies:
             print('Click the "Checkout SSH keys" button')
@@ -2190,7 +2192,7 @@ class BuildHelper(object):
 
     def setup_docs_htaccess_files(self):
         """ Setup htaccess files for docs server """
-        with ftputil.FTPHost(self.docs_server_hostname, self.docs_server_username, self.docs_server_password) as ftp:            
+        with ftputil.FTPHost(self.docs_server_hostname, self.docs_server_username, self.docs_server_password) as ftp:
             dirname = ftp.path.join(self.docs_server_directory, self.repo_name, self.repo_branch)
             versions = filter(lambda subdirname: subdirname != '.htaccess', ftp.listdir(dirname))
             if versions:
