@@ -921,7 +921,7 @@ class BuildHelper(object):
     ########################
     # Running tests
     ########################
-    def run_tests(self, dirname='.', test_path='tests',
+    def run_tests(self, dirname='.', test_path=None,
                   n_workers=1, i_worker=0,
                   verbose=False, with_xunit=False,
                   with_coverage=False, coverage_dirname='tests/reports',
@@ -974,7 +974,7 @@ class BuildHelper(object):
         else:
             raise BuildHelperError('Unsupported environment: {}'.format(environment))
 
-    def _run_tests_local(self, dirname='.', test_path='tests',
+    def _run_tests_local(self, dirname='.', test_path=None,
                          n_workers=1, i_worker=0,
                          verbose=False, with_xunit=False,
                          with_coverage=False, coverage_dirname='tests/reports',
@@ -1003,6 +1003,9 @@ class BuildHelper(object):
         Raises:
             :obj:`BuildHelperError`: If the package directory not set
         """
+        if test_path is None:
+            test_path = os.getenv('test_path', 'tests')
+
         py_v = self.get_python_version()
         abs_xml_latest_filename = os.path.join(
             self.proj_tests_xml_dir, '{}.{}-{}.{}.xml'.format(
@@ -1104,7 +1107,7 @@ class BuildHelper(object):
         if exit_on_failure and result != 0:
             sys.exit(1)
 
-    def _get_test_cases(self, test_path='tests', n_workers=1, i_worker=0,
+    def _get_test_cases(self, test_path=None, n_workers=1, i_worker=0,
                         with_xunit=False, exit_on_failure=True):
         """ Get test cases for worker *i* of *n* workers
 
@@ -1118,6 +1121,9 @@ class BuildHelper(object):
         Returns:
             :obj:`list` of :obj:`str`: sorted list of test cases
         """
+        if test_path is None:
+            test_path = os.getenv('test_path', 'tests')
+
         if i_worker >= n_workers:
             raise BuildHelperError('`i_worker` must be less than `n_workers`')
 
@@ -1150,7 +1156,7 @@ class BuildHelper(object):
 
         return cases
 
-    def _run_tests_docker(self, dirname='.', test_path='tests',
+    def _run_tests_docker(self, dirname='.', test_path=None,
                           n_workers=1, i_worker=0,
                           verbose=False, with_xunit=False,
                           with_coverage=False, coverage_dirname='tests/reports',
@@ -1307,7 +1313,7 @@ class BuildHelper(object):
                                       'karr_lab_build_utils{0} upgrade-karr-lab-packages'.format(py_v)),
                                   ])
 
-    def run_tests_in_docker_container(self, container, test_path='tests',
+    def run_tests_in_docker_container(self, container, test_path=None,
                                       n_workers=1, i_worker=0,
                                       verbose=False, with_xunit=False, with_coverage=False,
                                       coverage_dirname='tests/reports', coverage_type=CoverageType.branch):
@@ -1324,6 +1330,9 @@ class BuildHelper(object):
             coverage_dirname (:obj:`str`, optional): directory to save coverage data
             coverage_type (:obj:`CoverageType`, optional): type of coverage to run when :obj:`with_coverage` is :obj:`True`
         """
+        if test_path is None:
+            test_path = os.getenv('test_path', 'tests')
+
         py_v = '{}.{}'.format(sys.version_info[0], sys.version_info[1])
 
         print('\n\n')
@@ -1428,7 +1437,7 @@ class BuildHelper(object):
 
         return out.decode()
 
-    def _run_tests_circleci(self, dirname='.', test_path='tests',
+    def _run_tests_circleci(self, dirname='.', test_path=None,
                             n_workers=1, i_worker=0,
                             verbose=False, ssh_key_filename='~/.ssh/id_rsa'):
         """ Run unit tests located at `test_path` using the CircleCI local executor. This will run the same commands defined in
@@ -1445,6 +1454,9 @@ class BuildHelper(object):
         Raises:
             :obj:`BuildHelperError`: if the tests fail
         """
+        if test_path is None:
+            test_path = os.getenv('test_path', 'tests')
+
         ssh_key_filename = os.path.expanduser(ssh_key_filename)
         karr_lab_build_utils_dirname = os.path.expanduser('~/Documents/karr_lab_build_utils')
 
