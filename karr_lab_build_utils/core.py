@@ -1059,6 +1059,7 @@ class BuildHelper(object):
 
         if self.test_runner == 'pytest':
             test_path = test_path.replace(':', '::')
+            test_path = test_path.replace('::::', '::')
             test_path = re.sub(r'::(.+?)(\.)', r'::\1::', test_path)
 
             if not os.path.isdir('logs'):
