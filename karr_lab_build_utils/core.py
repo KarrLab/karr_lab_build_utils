@@ -1151,7 +1151,7 @@ class BuildHelper(object):
             result = pytest.main(cmd, plugins=[plugin])
             if exit_on_failure and result != 0:
                 sys.exit(1)
-            cases = sorted(plugin.classes)
+            cases = sorted(plugin.classes | plugin.functions)
             cases = cases[i_worker::n_workers]
 
         return cases
@@ -2973,15 +2973,17 @@ class BuildHelperError(Exception):
 
 
 class PyTestTestCaseCollectionPlugin(object):
-    """ PyTest plugin to collect list of test classes (e.g. for splitting
-    test execution across multiple containers)
+    """ PyTest plugin to collect list of test classes and functions 
+    (e.g. for splitting test execution across multiple containers)
 
     Attributes:
         classes (:obj:`set` of :obj:`str`): test classes
+        functions (:obj:`set` of :obj:`str`): test functions
     """
 
     def __init__(self):
         self.classes = set()
+        self.functions = set()
 
     def pytest_collection_modifyitems(self, items):
         """ Collect test classes
@@ -2991,4 +2993,12 @@ class PyTestTestCaseCollectionPlugin(object):
                 test case functions
         """
         for item in items:
-            self.classes.add(os.path.relpath(item.fspath, '.') + '::' + item.parent.name)
+            filename = os.path.relpath(item.fspath, '.')
+            if isinstance(item, _pytest.python.Function):
+                self.functions.add(filename + '::' + item.name)
+            elif isinstance(item, _pytest.python.Class):
+                self.classes.add(filename + '::' + item.parent.name)
+            else:
+                print(item.__class__, isinstance(item, _pytest.python.Function))
+                raise ValueError('Unsupported test {} of type {} in {}'.format(
+                    item.name, item.__class__.__name__, filename))

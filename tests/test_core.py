@@ -79,6 +79,8 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     CODECLIMATE_REPO_TOKEN = 'xxx'
     DUMMY_TEST = os.path.join(os.path.basename(os.path.dirname(__file__)), os.path.basename(__file__)) + \
         ':TestKarrLabBuildUtils.test_dummy_test'
+    DUMMY_PYTEST = os.path.join(os.path.basename(os.path.dirname(__file__)), os.path.basename(__file__)) + \
+        ':test_dummy_pytest'
 
     @classmethod
     def setUpClass(cls):
@@ -597,6 +599,17 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         self.assertTrue(os.path.isfile(latest_results_filename))
         self.assertTrue(os.path.isfile(lastest_cov_filename))
+
+        if test_runner == 'pytest':
+            os.remove(latest_results_filename)
+            os.remove(lastest_cov_filename)
+            build_helper.run_tests(
+                test_path=self.DUMMY_PYTEST,
+                with_xunit=True,
+                with_coverage=True, coverage_dirname=self.tmp_dirname,
+                coverage_type=coverage_type)
+            self.assertTrue(os.path.isfile(latest_results_filename))
+            self.assertTrue(os.path.isfile(lastest_cov_filename))
 
         """ test CLI """
         argv = [
@@ -2676,6 +2689,15 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         config = karr_lab_build_utils.config.core.get_config()
         self.assertIn('karr_lab_build_utils', config)
         self.assertIn('email_password', config['karr_lab_build_utils'])
+
+
+@pytest.fixture()
+def dummy_pytest_fixture():
+    return 'data'
+
+
+def test_dummy_pytest(dummy_pytest_fixture):
+    assert dummy_pytest_fixture == 'data'
 
 
 @unittest.skipIf(whichcraft.which('docker') is None or whichcraft.which('circleci') is None, (
