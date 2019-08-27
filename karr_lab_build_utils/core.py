@@ -2992,13 +2992,15 @@ class PyTestTestCaseCollectionPlugin(object):
             items (:obj:`list` of :obj:`_pytest.unittest.TestCaseFunction`):
                 test case functions
         """
+        self.classes.clear()
+        self.functions.clear()
+
         for item in items:
             filename = os.path.relpath(item.fspath, '.')
-            if isinstance(item, _pytest.python.Function):
-                self.functions.add(filename + '::' + item.name)
-            elif isinstance(item, _pytest.python.Class):
+            if isinstance(item, _pytest.unittest.TestCaseFunction):
                 self.classes.add(filename + '::' + item.parent.name)
+            elif isinstance(item, _pytest.python.Function):
+                self.functions.add(filename + '::' + item.name)            
             else:
-                print(item.__class__, isinstance(item, _pytest.python.Function))
                 raise ValueError('Unsupported test {} of type {} in {}'.format(
                     item.name, item.__class__.__name__, filename))
