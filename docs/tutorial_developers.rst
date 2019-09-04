@@ -4,7 +4,7 @@ Tutorial for WC modeling software developers
 Creating a new package
 ----------------------
 
-Run ``create-package`` to create a new package (create local and remote repositories with the proper directory structure and files for our build system, add repository to CircleCI, add the package to downstream dependencies of dependent packages, etc.). The command will prompt you for all of the information needed to create a repository and instruct you how to create a new package, including linking it to `CircleCI <https://circleci.com/product/>`_, `Coveralls <https://coveralls.io>`_, `Code Climate <https://codeclimate.com/quality/>`_, and `Read the Docs <https://readthedocs.org>`_. The command should be run from the package's desired parent directory, e.g. with a current working directory of ``~/git_repositories``.::
+Use the ``create-package`` command to create a new package (create local and remote repositories with the proper directory structure and files for our build system, add repository to CircleCI, add the package to downstream dependencies of dependent packages, etc.). The command will prompt you for all of the information needed to create a repository and instruct you how to create a new package, including linking it to `CircleCI <https://circleci.com/product/>`_, `Coveralls <https://coveralls.io>`_, `Code Climate <https://codeclimate.com/quality/>`_, and `Read the Docs <https://readthedocs.org>`_. The command should be run from the package's desired parent directory, e.g. with a current working directory of ``~/git_repositories``.::
 
     cd ~/git_repositories
     karr_lab_build_utils create-package
