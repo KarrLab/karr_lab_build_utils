@@ -177,7 +177,7 @@ Spell checking documentation
 
 Add the ``--spell-check`` option to spell check the documentation, e.g.::
 
-    karr_lab_build_utils -spell-check make-documentation
+    karr_lab_build_utils make-documentation --spell-check
 
 The output will be saved to ``docs/_build/spelling/output.txt``.
 
