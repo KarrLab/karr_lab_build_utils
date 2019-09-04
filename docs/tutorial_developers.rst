@@ -4,15 +4,15 @@ Tutorial for WC modeling software developers
 Creating a new package
 ----------------------
 
-Use the ``create-package`` command to create a new package (create local and remote repositories with the proper directory structure and files for our build system, add repository to CircleCI, add the package to downstream dependencies of dependent packages, etc.). The command will prompt you for all of the information needed to create a repository and instruct you how to create a new package, including linking it to `CircleCI <https://circleci.com/product/>`_, `Coveralls <https://coveralls.io>`_, `Code Climate <https://codeclimate.com/quality/>`_, and `Read the Docs <https://readthedocs.org>`_. The command should be run from the package's desired parent directory, e.g. with a current working directory of ``~/git_repositories``.::
+Use the ``create-package`` command to create a new package (create local and remote repositories with the proper directory structure and files for our build system, add the repository to CircleCI, add the package to downstream dependencies of dependent packages, etc.). The command will prompt you for all of the information needed to create a repository and instruct you on how to create a new package, including linking it to `CircleCI <https://circleci.com/product/>`_, `Coveralls <https://coveralls.io>`_, `Code Climate <https://codeclimate.com/quality/>`_, and `Read the Docs <https://readthedocs.org>`_. The command should be run from the package's desired parent directory, e.g. with a current working directory of ``~/git_repositories``::
 
     cd ~/git_repositories
     karr_lab_build_utils create-package
 
-``karr_lab_build_utils`` also provides two lower-level commands for creating, cloning, and initializing Git repositories. These commands are an alternative to the ``create-package`` command which does much more.
+``karr_lab_build_utils`` also provides two lower-level commands for creating, cloning, and initializing Git repositories. These commands are an alternative to the ``create-package`` command that does much more.
 
-* ``create-repository``: create a new GitHub repository and clone it locally
-* ``setup-repository``: set up the file structure of a local Git repository
+* ``create-repository``: Create a new GitHub repository and clone it locally.
+* ``setup-repository``: Set up the file structure of a local Git repository.
 
 .. code::
 
@@ -22,28 +22,28 @@ Use the ``create-package`` command to create a new package (create local and rem
 
 These commands will create a repository with the following directory structure and files::
 
-    /path/to/repo/
-    LICENSE
-    setup.py
-    setup.cfg
-    MANIFEST.in
-    requirements.txt
-    requirements.optional.txt
-    README.md
-    .karr_lab_build_utils.yml
-    .gitignore
-    <repo_name>
-        __init__.py
-        VERSION
-        __main__.py (optional, for command line programs)
-    tests/
+    /path/to/git_repositories/repo_and_package_name/
+        LICENSE
+        setup.py
+        setup.cfg
+        MANIFEST.in
         requirements.txt
-        fixtures/
-    docs/
-        conf.py
-        requirements.txt
-        requirements.rtd.txt
-        index.rst
+        requirements.optional.txt
+        README.md
+        .karr_lab_build_utils.yml
+        .gitignore
+        repo_and_package_name/
+            __init__.py
+            VERSION
+            __main__.py (optional, for command line programs)
+        tests/
+            requirements.txt
+            fixtures/
+        docs/
+            conf.py
+            requirements.txt
+            requirements.rtd.txt
+            index.rst
 
 
 Developing a package
@@ -87,14 +87,17 @@ Run this command to identify potentially unused requirements for a package::
 Compiling the downstream dependencies of a package
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-#. Clone all of our packages
+To compile all of the downstream dependencies of a package perform these steps:
+
+#. Clone all of our packages into a single directory, e.g., ``~/git_repositories``.
 #. Run this command to compile the downstream dependencies of your package::
 
     karr_lab_build_utils compile-downstream-dependencies --packages-parent-dir ~/git_repositories
 
 #. Optionally, add the ``--downstream-dependencies-filename`` option to save the dependencies to a YAML file::
 
-    karr_lab_build_utils compile-downstream-dependencies --packages-parent-dir ~/git_repositories --downstream-dependencies-filename .circleci/downstream_dependencies.yml
+    karr_lab_build_utils compile-downstream-dependencies --packages-parent-dir ~/git_repositories \
+        --downstream-dependencies-filename .circleci/downstream_dependencies.yml
 
 
 Configuring packages
