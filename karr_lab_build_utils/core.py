@@ -2531,8 +2531,8 @@ class BuildHelper(object):
 
         Args:
             func (:obj:`function`): function to run
-            *args (:obj:`list`): arguments to :obj:`func`
-            **kwargs (:obj:`dict`): keyword arguments to obj:`func`
+            *args: arguments to :obj:`func`
+            **kwargs: keyword arguments to obj:`func`
 
         Returns:
             :obj:`str`: stdout
@@ -2555,8 +2555,8 @@ class BuildHelper(object):
 
         Args:
             func (:obj:`function`): function to run
-            *args (:obj:`list`): arguments to :obj:`func`
-            **kwargs (:obj:`dict`): keyword arguments to obj:`func`
+            *args: arguments to :obj:`func`
+            **kwargs: keyword arguments to obj:`func`
         """
         with abduct.captured(abduct.err()) as stderr:
             result = func(*args, **kwargs)
