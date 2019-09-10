@@ -1819,8 +1819,8 @@ class BuildHelper(object):
         Args:
             recipients (:obj:`list` of :obj:`str`): recipient email addresses
             subject (:obj:`str`): subject
-            template_filename (obj:`str`): path to template
-            context (obj:`dict`): context for template
+            template_filename (:obj:`str`): path to template
+            context (:obj:`dict`): context for template
             dry_run (:obj:`bool`, optional): if true, don't upload to the Coveralls and Code Climate servers
         """
         if not recipients:
@@ -2931,18 +2931,18 @@ class TestCaseResult(object):
     """ The result of a test case
 
     Attributes:
-        classname (obj:`str`): name of the class of the test case
-        name (obj:`str`): name of the test case
-        filename (obj:`str`): file where the test was defined
-        line (obj:`int`): line where the test was defined
-        python_version (obj:`str`): python version which ran the test
-        type (obj:`TestCaseResultType`): type of the result (pass, skip, error, failure)
-        subtype (obj:`str`): detailed type of the result
-        message (obj:`str`): message from the result
-        details (obj:`str`): detailed message from the result
-        time (obj:`float`): duration of the time in seconds
-        stdout (obj:`str`): standard output
-        stderr (obj:`str`): standard error
+        classname (:obj:`str`): name of the class of the test case
+        name (:obj:`str`): name of the test case
+        filename (:obj:`str`): file where the test was defined
+        line (:obj:`int`): line where the test was defined
+        python_version (:obj:`str`): python version which ran the test
+        type (:obj:`TestCaseResultType`): type of the result (pass, skip, error, failure)
+        subtype (:obj:`str`): detailed type of the result
+        message (:obj:`str`): message from the result
+        details (:obj:`str`): detailed message from the result
+        time (:obj:`float`): duration of the time in seconds
+        stdout (:obj:`str`): standard output
+        stderr (:obj:`str`): standard error
     """
 
     def __init__(self):
