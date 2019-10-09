@@ -49,7 +49,7 @@ import pip_check_reqs.find_missing_reqs
 import pkg_resources
 import pytest
 import _pytest
-import quilt
+import quilt3
 import re
 import requests
 import sphinx.ext.apidoc
@@ -2247,10 +2247,9 @@ class BuildHelper(object):
             file.write('\n'.join(lines) + '\n')
 
         # Quilt packages
-        with abduct.captured(abduct.out()) as stdout:
-            quilt.ls()
-            with open(os.path.join(log_dir, 'quilt.log'), 'w') as file:
-                file.write(stdout.getvalue())
+        packages = quilt3.list_packages()
+        with open(os.path.join(log_dir, 'quilt.log'), 'w') as file:
+            file.write(str(packages))
 
     def compile_downstream_dependencies(self, dirname='.', packages_parent_dir='..', config_filename=None):
         """ Compile the downstream dependencies of a package and save them to :obj:`config_filename`
