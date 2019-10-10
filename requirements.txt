@@ -23,7 +23,7 @@ pypandoc
 pytest
 python_dateutil
 pyyaml >= 5.1
-quilt
+quilt3
 requests
 setuptools >= 40.0.0
 six
