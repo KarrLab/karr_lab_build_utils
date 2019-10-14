@@ -2247,9 +2247,15 @@ class BuildHelper(object):
             file.write('\n'.join(lines) + '\n')
 
         # Quilt packages
-        packages = quilt3.list_packages()
         with open(os.path.join(log_dir, 'quilt.log'), 'w') as file:
-            file.write(str(packages))
+            file.write('Package' + '\t'  + 'Date' + '\t'  + 'Hash' + '\n')
+            for pkg in quilt3.list_packages():
+                for version in quilt3.list_package_versions(pkg):
+                    try:
+                        date = datetime.fromtimestamp(int(float(version[0]))).strftime('%Y-%m-%d %H:%M:%S')
+                    except ValueError:
+                        date = version[0]
+                    file.write(pkg + '\t'  + date + '\t'  + version[0] + '\n')
 
     def compile_downstream_dependencies(self, dirname='.', packages_parent_dir='..', config_filename=None):
         """ Compile the downstream dependencies of a package and save them to :obj:`config_filename`
