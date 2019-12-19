@@ -14,7 +14,7 @@ mock
 natsort
 networkx
 nose
-pip >= 19.0
+pip >= 19.3
 pip_check_reqs >= 2.0.3
 pkg_utils[all]
 pygithub

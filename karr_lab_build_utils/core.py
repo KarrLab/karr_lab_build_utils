@@ -39,7 +39,8 @@ import networkx
 import nose
 import os
 import pypandoc
-import pip._internal
+import pip._internal.commands.show
+import pip._internal.operations.freeze
 import pip_check_reqs
 import pip_check_reqs.find_extra_reqs
 import pip_check_reqs.find_missing_reqs
@@ -900,7 +901,7 @@ class BuildHelper(object):
                     info = list(pip._internal.commands.show.search_packages_info([name]))
                 except:
                     info = None
-                if info and 'github.com/KarrLab/' in info[0]['home-page']:
+                if info and info[0]['home-page'] and 'github.com/KarrLab/' in info[0]['home-page']:
                     name = info[0]['name']
                     url = info[0]['home-page']
 
