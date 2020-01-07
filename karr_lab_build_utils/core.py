@@ -2028,7 +2028,7 @@ class BuildHelper(object):
                 workman.load()
                 workman.get_data()
 
-                return coveralls.reporter.CoverallReporter(workman, workman.config).report()
+                return coveralls.reporter.CoverallReporter(workman, workman.config).coverage
 
             with patch.object(coveralls.Coveralls, 'get_coverage', return_value=get_coverage()):
                 runner.wear(dry_run=dry_run)
