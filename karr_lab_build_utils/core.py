@@ -1838,7 +1838,7 @@ class BuildHelper(object):
         email_domain, _, _ = self.email_hostname.partition(':')
         email_domain = '.'.join(email_domain.split('.')[-2:])
         from_addr = '{}@{}'.format(self.email_username, email_domain)
-        msg['From'] = email.utils.formataddr((str(email.header.Header('Karr Lab Build System', 'utf-8')), from_addr))
+        msg['From'] = email.utils.formataddr((str(email.header.Header('Karr Lab Daemon', 'utf-8')), from_addr))
 
         tos = []
         for recipient in recipients:
@@ -1855,7 +1855,10 @@ class BuildHelper(object):
             smtp.ehlo()
             smtp.starttls()
             smtp.login(self.email_username, self.email_password)
-            smtp.sendmail(from_addr, recipients, msg.as_string())
+            try:
+                smtp.sendmail(from_addr, recipients, msg.as_string())
+            except Exception as error:
+                warnings.warn('Unable to send notification: {}'.format(str(error)), UserWarning)
             smtp.quit()
 
     def make_and_archive_reports(self, coverage_dirname='tests/reports', dry_run=False):
