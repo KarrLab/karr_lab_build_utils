@@ -693,20 +693,18 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             [])
 
         test_cases = [
-            'tests/test_api.py::ApiTestCase',
-            'tests/test_core.py::TestCircleCi',
-            'tests/test_core.py::TestKarrLabBuildUtils',
-            'tests/test_core.py::test_dummy_pytest',
+            'tests/test_api.py',
+            'tests/test_core.py',
         ]
         self.assertEqual(
             build_helper._get_test_cases(test_path='tests', n_workers=1, i_worker=0),
             test_cases)
         self.assertEqual(
             build_helper._get_test_cases(test_path='tests', n_workers=2, i_worker=0),
-            [test_cases[0], test_cases[2]])
+            [test_cases[0]])
         self.assertEqual(
             build_helper._get_test_cases(test_path='tests', n_workers=2, i_worker=1),
-            [test_cases[1], test_cases[3]])
+            [test_cases[1]])
         self.assertEqual(
             build_helper._get_test_cases(test_path='tests', n_workers=5, i_worker=4, with_xunit=True),
             [])

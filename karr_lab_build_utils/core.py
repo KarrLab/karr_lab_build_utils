@@ -63,10 +63,11 @@ import sys
 import tempfile
 import time
 import twine.commands.upload
-import yaml
+import unittest
 import warnings
 import wc_utils
 import whichcraft
+import yaml
 
 
 class CoverageType(enum.Enum):
@@ -1076,10 +1077,14 @@ class BuildHelper(object):
                 argv.append('--junitxml=' + abs_xml_latest_filename)
 
             # collect tests
-            test_cases = self._get_test_cases(test_path=test_path,
-                                              n_workers=n_workers, i_worker=i_worker,
-                                              with_xunit=with_xunit,
-                                              exit_on_failure=exit_on_failure)
+            if n_workers > 1:
+                test_cases = self._get_test_cases(test_path=test_path,
+                                                  n_workers=n_workers, i_worker=i_worker,
+                                                  with_xunit=with_xunit,
+                                                  exit_on_failure=exit_on_failure)
+            else:
+                test_cases = [test_path]
+
             # run tests
             if test_cases:
                 result = pytest.main(argv + test_cases)
@@ -1129,31 +1134,30 @@ class BuildHelper(object):
         if i_worker >= n_workers:
             raise BuildHelperError('`i_worker` must be less than `n_workers`')
 
-        if test_path.count('::') >= 2:
+        if not os.path.isdir(test_path):
             if i_worker == 0:
                 cases = [test_path]
             else:
                 cases = []
         else:
-            cmd = [
-                '--collect-only',
-                '--verbose',
-                test_path,
-            ]
-            plugin = PyTestTestCaseCollectionPlugin()
-            if with_xunit:
-                py_v = self.get_python_version()
-                abs_xml_latest_filename = os.path.join(
-                    self.proj_tests_xml_dir, '{}.{}-{}.{}.xml'.format(
-                        self.proj_tests_xml_latest_filename,
-                        os.getenv('CIRCLE_NODE_INDEX', 0),
-                        os.getenv('CIRCLE_NODE_TOTAL', 1),
-                        py_v))
-                cmd.append('--junitxml=' + abs_xml_latest_filename)
-            result = pytest.main(cmd, plugins=[plugin])
-            if exit_on_failure and result != 0:
-                sys.exit(1)
-            cases = sorted(plugin.classes | plugin.functions)
+            if test_path[-1] == os.path.sep:
+                test_path = test_path[0:-1]
+
+            suites = [(test_path, suite) for suite in unittest.TestLoader().discover(test_path)._tests]
+            for root, dirs, files in os.walk(test_path):
+                for dir in dirs:
+                    suites.extend([(os.path.join(root, dir), suite) for suite in unittest.TestLoader().discover(os.path.join(root, dir))._tests])
+
+            cases = set()
+            while suites:
+                parent_dir, suite = suites.pop()
+                if isinstance(suite, unittest.suite.TestSuite):
+                    suites.extend([(parent_dir, s) for s in suite._tests])
+                else:
+                    tmp = suite.id().split('.')
+                    cases.add(parent_dir + os.path.sep + os.path.sep.join(tmp[0:-2]) + '.py')
+
+            cases = sorted(cases)
             cases = cases[i_worker::n_workers]
 
         return cases
@@ -3010,7 +3014,7 @@ class PyTestTestCaseCollectionPlugin(object):
             if isinstance(item, _pytest.unittest.TestCaseFunction):
                 self.classes.add(filename + '::' + item.parent.name)
             elif isinstance(item, _pytest.python.Function):
-                self.functions.add(filename + '::' + item.name)            
+                self.functions.add(filename + '::' + item.name)
             else:
                 raise ValueError('Unsupported test {} of type {} in {}'.format(
                     item.name, item.__class__.__name__, filename))
