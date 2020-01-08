@@ -1118,6 +1118,13 @@ class BuildHelper(object):
                         with_xunit=False, exit_on_failure=True):
         """ Get test cases for worker *i* of *n* workers
 
+        Note: Because this is implemented using unittest, this cannot discover test functions that are not methods of classes inherited from
+        `unittest.TestCase`. pytest can discover such tests. Up to commit
+        `c5dba3651faacead7edd353fe67d1f25f4c3fc3a <https://github.com/KarrLab/karr_lab_build_utils/commit/c5dba3651faacead7edd353fe67d1f25f4c3fc3a>`_
+        a custom pytest plugin was used to discover these tests. However, this plugin was broken by pytest 5. Specifically,
+        the test collection caused segmentation faults with pyjnius/Java/ChemAxon. Potentially, this can be addressed
+        by updating the plugin for pytest 5.
+
         Args:
             test_path (:obj:`str`, optional): path to tests that should be run
             n_workers (:obj:`int`, optional): number of workers to run tests
@@ -2984,37 +2991,3 @@ class TestCaseResultType(enum.Enum):
 class BuildHelperError(Exception):
     """ Represents :obj:`BuildHelper` errors """
     pass
-
-
-class PyTestTestCaseCollectionPlugin(object):
-    """ PyTest plugin to collect list of test classes and functions 
-    (e.g. for splitting test execution across multiple containers)
-
-    Attributes:
-        classes (:obj:`set` of :obj:`str`): test classes
-        functions (:obj:`set` of :obj:`str`): test functions
-    """
-
-    def __init__(self):
-        self.classes = set()
-        self.functions = set()
-
-    def pytest_collection_modifyitems(self, items):
-        """ Collect test classes
-
-        Args:
-            items (:obj:`list` of :obj:`_pytest.unittest.TestCaseFunction`):
-                test case functions
-        """
-        self.classes.clear()
-        self.functions.clear()
-
-        for item in items:
-            filename = os.path.relpath(item.fspath, '.')
-            if isinstance(item, _pytest.unittest.TestCaseFunction):
-                self.classes.add(filename + '::' + item.parent.name)
-            elif isinstance(item, _pytest.python.Function):
-                self.functions.add(filename + '::' + item.name)
-            else:
-                raise ValueError('Unsupported test {} of type {} in {}'.format(
-                    item.name, item.__class__.__name__, filename))
