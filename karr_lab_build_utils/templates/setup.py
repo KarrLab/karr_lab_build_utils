@@ -1,16 +1,16 @@
 import setuptools
+import os
+import sys
+import subprocess
+
+def install(package):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+
 try:
     import pkg_utils
 except ImportError:
-    import pip
-    pip_version = tuple(pip.__version__.split('.'))
-    if pip_version >= ('19', '3', '0'):
-        import pip._internal.main as pip_main
-    elif pip_version >= ('19', '0', '0'):
-        import pip._internal as pip_main
-    pip_main.main(['install', 'pkg_utils'])
+    install("pkg_utils")
     import pkg_utils
-import os
 
 name = '{{ name }}'
 dirname = os.path.dirname(__file__)
