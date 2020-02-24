@@ -34,8 +34,8 @@ These commands will create a repository with the following directory structure a
         .gitignore
         repo_and_package_name/
             __init__.py
-            VERSION
             __main__.py (optional, for command line programs)
+            _version.py
         tests/
             requirements.txt
             fixtures/

@@ -1,9 +1,6 @@
 # description
 include README.rst
 
-# version
-include karr_lab_build_utils/VERSION
-
 # license
 include LICENSE
 
