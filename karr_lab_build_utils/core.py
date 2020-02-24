@@ -5,6 +5,7 @@
 :Copyright: 2016-2018, Karr Lab
 :License: MIT
 """
+from ._version import __version__
 from datetime import datetime
 from jinja2 import Template
 from pylint import epylint
@@ -634,7 +635,7 @@ class BuildHelper(object):
             '.circleci/requirements.txt',
             '.karr_lab_build_utils.yml',
             '_package_/__init__.py',
-            '_package_/VERSION',
+            '_package_/_version.py',
             '_package_/core.py',
             '_package_/__main__.py',
         )
@@ -2188,8 +2189,12 @@ class BuildHelper(object):
             dirname (:obj:`str`, optional): path to package
         """
         with ftputil.FTPHost(self.docs_server_hostname, self.docs_server_username, self.docs_server_password) as ftp:
-            with open(os.path.join(dirname, self.repo_name, 'VERSION'), 'r') as file:
-                version = file.read().strip()
+            with open(os.path.join(dirname, self.repo_name, '_version.py'), 'r') as file:
+                mo = re.search("^__version__ = ['\"]([^'\"]*)['\"]", file.read(), re.M)
+                if mo:
+                    version = mo.group(1)
+                else:
+                    raise Exception("A version file must be defined")
             remote_root = ftp.path.join(self.docs_server_directory, self.repo_name, self.repo_branch, version)
 
             # delete old files
@@ -2532,10 +2537,8 @@ class BuildHelper(object):
 
         Returns:
             :obj:`str`: the version
-        """
-        with open(pkg_resources.resource_filename('karr_lab_build_utils', 'VERSION'), 'r') as file:
-            version = file.read().strip()
-        return '{0:s} (Python {1[0]:d}.{1[1]:d}.{1[2]:d})'.format(version, sys.version_info)
+        """        
+        return '{0:s} (Python {1[0]:d}.{1[1]:d}.{1[2]:d})'.format(__version__, sys.version_info)
 
     @staticmethod
     def get_python_version():

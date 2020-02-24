@@ -330,7 +330,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'setup.py')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'setup.cfg')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'a', '__init__.py')))
-        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'a', 'VERSION')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'a', '_version.py')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'a', 'core.py')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'a', '__main__.py')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'a', 'tests', 'requirements.txt')))
@@ -362,7 +362,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'setup.py')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'setup.cfg')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'b', '__init__.py')))
-        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'b', 'VERSION')))
+        self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'b', '_version.py')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'b', 'core.py')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'b', '__main__.py')))
         self.assertTrue(os.path.isfile(os.path.join(tempdirname, 'b', 'tests', 'requirements.txt')))
@@ -1912,8 +1912,8 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         repo_version = '0.0.1a'
 
         os.makedirs(os.path.join(self.tmp_dirname, bh.repo_name))
-        with open(os.path.join(self.tmp_dirname, bh.repo_name, 'VERSION'), 'w') as file:
-            file.write(repo_version)
+        with open(os.path.join(self.tmp_dirname, bh.repo_name, '_version.py'), 'w') as file:
+            file.write("__version__ = '{}'\n".format(repo_version))
 
         os.makedirs(os.path.join(self.tmp_dirname, bh.proj_docs_build_html_dir))
         os.makedirs(os.path.join(self.tmp_dirname, bh.proj_docs_build_html_dir, 'a', 'b', 'c'))

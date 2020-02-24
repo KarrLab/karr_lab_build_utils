@@ -17,7 +17,6 @@ name = 'karr_lab_build_utils'
 dirname = os.path.dirname(__file__)
 package_data = {
     name: [
-        'VERSION',
         'templates/*',
         'templates/**/*',
         'config/*.cfg',
