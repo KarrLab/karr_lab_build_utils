@@ -47,7 +47,6 @@ import karr_lab_build_utils.config.core
 import mock
 import nose
 import os
-import pip._internal.main
 import pytest
 import re
 import requests
