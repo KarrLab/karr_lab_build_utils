@@ -522,7 +522,7 @@ class BuildHelper(object):
                 with open(config_filename, 'r') as file:
                     config = yaml.load(file, Loader=yaml.FullLoader)
 
-                if 'downstream_dependencies' not in config:
+                if 'downstream_dependencies' not in config or config['downstream_dependencies'] is None:
                     config['downstream_dependencies'] = []
                 config['downstream_dependencies'].append(name)
 
