@@ -1947,6 +1947,21 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             # cleanup
             ftp.rmtree(ftp.path.join(bh.docs_server_directory, bh.repo_name))
 
+    def test_get_latest_docs_version(self):
+        bh = core.BuildHelper()
+        with ftputil.FTPHost(bh.docs_server_hostname, bh.docs_server_username, bh.docs_server_password) as ftp:
+            dirname = None
+            with mock.patch.object(ftp, 'listdir', return_value=['0.0.1', '0.0.9', '0.0.15']):
+                version = bh.get_latest_docs_version(ftp, dirname)
+                self.assertEqual(version, '0.0.15')
+            with mock.patch.object(ftp, 'listdir', return_value=['0.0.1', '0.0.15', '0.0.9']):
+                version = bh.get_latest_docs_version(ftp, dirname)
+                self.assertEqual(version, '0.0.15')
+            with self.assertRaisesRegex(core.BuildHelperError, 'must contain documentation for at least one version'):
+                with mock.patch.object(ftp, 'listdir', return_value=[]):
+                    version = bh.get_latest_docs_version(ftp, dirname)
+                    self.assertEqual(version, '0.0.15')
+
     def test_log_environment(self):
         build_helper = core.BuildHelper()
         build_helper.log_environment()

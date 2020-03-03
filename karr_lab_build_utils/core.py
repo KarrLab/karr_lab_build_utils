@@ -1154,7 +1154,8 @@ class BuildHelper(object):
             suites = [(test_path, suite) for suite in unittest.TestLoader().discover(test_path)._tests]
             for root, dirs, files in os.walk(test_path):
                 for dir in dirs:
-                    suites.extend([(os.path.join(root, dir), suite) for suite in unittest.TestLoader().discover(os.path.join(root, dir))._tests])
+                    suites.extend([(os.path.join(root, dir), suite)
+                                   for suite in unittest.TestLoader().discover(os.path.join(root, dir))._tests])
 
             cases = set()
             while suites:
@@ -2227,9 +2228,7 @@ class BuildHelper(object):
         """ Setup htaccess files for docs server """
         with ftputil.FTPHost(self.docs_server_hostname, self.docs_server_username, self.docs_server_password) as ftp:
             dirname = ftp.path.join(self.docs_server_directory, self.repo_name, self.repo_branch)
-            versions = filter(lambda subdirname: subdirname != '.htaccess', ftp.listdir(dirname))
-            if versions:
-                lastest_version = sorted(versions).pop()
+            lastest_version = self.get_latest_docs_version(ftp, dirname)
 
             context = {
                 'package': self.repo_name,
@@ -2251,6 +2250,14 @@ class BuildHelper(object):
             with ftp.open(filename, 'w') as fobj:
                 fobj.write(template.render(**context))
 
+    def get_latest_docs_version(self, ftp, dirname):
+        versions = list(filter(lambda subdirname: subdirname != '.htaccess', ftp.listdir(dirname)))
+        if versions:
+            versions.sort(key=natsort.natsort_keygen(alg=natsort.IGNORECASE))
+            return versions[-1]
+        else:
+            raise BuildHelperError("The directory must contain documentation for at least one version")
+
     def log_environment(self):
         """ Log environment 
 
@@ -2268,14 +2275,14 @@ class BuildHelper(object):
 
         # Quilt packages
         with open(os.path.join(log_dir, 'quilt.log'), 'w') as file:
-            file.write('Package' + '\t'  + 'Date' + '\t'  + 'Hash' + '\n')
+            file.write('Package' + '\t' + 'Date' + '\t' + 'Hash' + '\n')
             for pkg in quilt3.list_packages():
                 for version in quilt3.list_package_versions(pkg):
                     try:
                         date = datetime.fromtimestamp(int(float(version[0]))).strftime('%Y-%m-%d %H:%M:%S')
                     except ValueError:
                         date = version[0]
-                    file.write(pkg + '\t'  + date + '\t'  + version[0] + '\n')
+                    file.write(pkg + '\t' + date + '\t' + version[0] + '\n')
 
     def compile_downstream_dependencies(self, dirname='.', packages_parent_dir='..', config_filename=None):
         """ Compile the downstream dependencies of a package and save them to :obj:`config_filename`
@@ -2537,7 +2544,7 @@ class BuildHelper(object):
 
         Returns:
             :obj:`str`: the version
-        """        
+        """
         return '{0:s} (Python {1[0]:d}.{1[1]:d}.{1[2]:d})'.format(__version__, sys.version_info)
 
     @staticmethod
