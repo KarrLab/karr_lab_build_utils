@@ -32,11 +32,11 @@ from karr_lab_build_utils import __main__
 from karr_lab_build_utils import core
 from pkg_resources import resource_filename
 from sphinx.application import Sphinx
-from six.moves import configparser
 import abduct
 import attrdict
 import base64
 import capturer
+import configparser
 import ftputil
 import git
 import github
@@ -51,7 +51,6 @@ import pytest
 import re
 import requests
 import shutil
-import six
 import smtplib
 import sys
 import tempfile

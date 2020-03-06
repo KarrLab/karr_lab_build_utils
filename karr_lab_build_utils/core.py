@@ -11,11 +11,11 @@ from jinja2 import Template
 from pylint import epylint
 from sphinx.cmdline import main as sphinx_main
 from mock import patch
-from six.moves import configparser
 from xml.dom import minidom
 import abduct
 import attrdict
 import click
+import configparser
 import coverage
 import coveralls
 import dateutil.parser
@@ -56,7 +56,6 @@ import re
 import requests
 import sphinx.ext.apidoc
 import shutil
-import six
 import smtplib
 import stat
 import subprocess
