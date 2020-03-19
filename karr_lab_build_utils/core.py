@@ -2532,8 +2532,8 @@ class BuildHelper(object):
             self.run_circleci_api('/pipeline', version="2", method='post', repo_name=package, data={
                 'branch': branch,
                 'parameters': {
-                    'UPSTREAM_REPONAME': upstream_repo_name,
-                    'UPSTREAM_BUILD_NUM': upstream_build_num,
+                    'upstream_repo_name': upstream_repo_name,
+                    'upstream_build_num': upstream_build_num,
                 }
             })
             triggered_packages.append(package)
