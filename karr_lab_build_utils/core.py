@@ -2825,7 +2825,7 @@ class BuildHelper(object):
         if not repo_name:
             repo_name = self.repo_name
 
-        url = '{}/{}/project/{}/{}/{}{}?circle-token={}'.format(
+        url = '{}/v{}/project/{}/{}/{}{}?circle-token={}'.format(
             self.CIRCLE_API_ENDPOINT, version, repo_type, repo_owner, repo_name, command, self.circleci_api_token)
         request_method = getattr(requests, method)
 
