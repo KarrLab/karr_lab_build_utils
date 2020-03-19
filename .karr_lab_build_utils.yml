@@ -2,36 +2,36 @@ static_analyses:
   ignore_files:
       - karr_lab_build_utils/templates/*
 downstream_dependencies:
-  - bcforms
-  - bpforms
-  - conv_opt
-  - datanator
-  - datanator_query_python
-  # - datanator_rest_api
-  - de_sim
-  - gdoc_down
-  - h1_hesc
-  - intro_to_wc_modeling  
-  - karr_lab_aws_manager
-  - migration_test_repo
-  - mycoplasma_pneumoniae
-  - nose2unitth
-  - obj_tables
-  - pkg_utils
-  - rand_wc_model_gen
-  - unitth  
-  - wc_analysis
-  - wc_cli
-  - wc_env_manager
-  - wc_kb
-  - wc_kb_gen
-  - wc_lang
-  - wc_model_gen
-  - wc_onto
-  - wc_rules
-  - wc_sandbox
-  - wc_sim
-  - wc_test
-  - wc_utils
+  #- bcforms
+  #- bpforms
+  #- conv_opt
+  #- datanator
+  #- datanator_query_python
+  ## - datanator_rest_api
+  #- de_sim
+  #- gdoc_down
+  #- h1_hesc
+  #- intro_to_wc_modeling  
+  #- karr_lab_aws_manager
+  #- migration_test_repo
+  #- mycoplasma_pneumoniae
+  #- nose2unitth
+  #- obj_tables
+  #- pkg_utils
+  #- rand_wc_model_gen
+  #- unitth  
+  #- wc_analysis
+  #- wc_cli
+  #- wc_env_manager
+  #- wc_kb
+  #- wc_kb_gen
+  #- wc_lang
+  #- wc_model_gen
+  #- wc_onto
+  #- wc_rules
+  #- wc_sandbox
+  #- wc_sim
+  #- wc_test
+  #- wc_utils
 email_notifications:
   - jonrkarr@gmail.com
