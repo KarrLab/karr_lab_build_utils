@@ -173,7 +173,7 @@ class BuildHelper(object):
     DEFAULT_BUILD_IMAGE = 'karrlab/wc_env_dependencies:latest'
 
     GITHUB_API_ENDPOINT = 'https://api.github.com'
-    CIRCLE_API_ENDPOINT = 'https://circleci.com/api/v1.1'
+    CIRCLE_API_ENDPOINT = 'https://circleci.com/api'
 
     COVERALLS_ENABLED = True
     CODE_CLIMATE_ENABLED = True
@@ -1675,6 +1675,8 @@ class BuildHelper(object):
         # determine if build was triggered by an upstream package
         upstream_repo_name = os.getenv('UPSTREAM_REPONAME', '')
         upstream_build_num = int(os.getenv('UPSTREAM_BUILD_NUM', '0'))
+        print(upstream_repo_name)
+        print(upstream_build_num)
 
         if upstream_repo_name and is_new_error and self.build_num > 1 and not is_other_error:
             is_new_downstream_error = True
@@ -2527,8 +2529,9 @@ class BuildHelper(object):
                 continue
 
             # trigger build
-            self.run_circleci_api('/tree/{}'.format(branch), method='post', repo_name=package, data={
-                'build_parameters': {
+            self.run_circleci_api('/pipeline', version="2", method='post', repo_name=package, data={
+                'branch': branch,
+                'parameters': {
                     'UPSTREAM_REPONAME': upstream_repo_name,
                     'UPSTREAM_BUILD_NUM': upstream_build_num,
                 }
@@ -2796,13 +2799,14 @@ class BuildHelper(object):
         if upload_build:
             shutil.rmtree(os.path.join(dirname, 'build'))
 
-    def run_circleci_api(self, command, method='get', repo_type=None, repo_owner=None, repo_name=None,
+    def run_circleci_api(self, command, version="1.1", method='get', repo_type=None, repo_owner=None, repo_name=None,
                          data=None):
         """ Run the CircleCI API
 
         Args:
             command (:obj:`str`): API command
-            method (:obj:`str`): type of HTTP request (get, post, delete)
+            version (:obj:`str`, optional): version of the API to use
+            method (:obj:`str`, optional): type of HTTP request (get, post, delete)
             repo_type (:obj:`str`, optional): repository type (e.g., github)
             repo_owner (:obj:`str`, optional): repository owner
             repo_name (:obj:`str`, optional): repository name
@@ -2821,8 +2825,8 @@ class BuildHelper(object):
         if not repo_name:
             repo_name = self.repo_name
 
-        url = '{}/project/{}/{}/{}{}?circle-token={}'.format(
-            self.CIRCLE_API_ENDPOINT, repo_type, repo_owner, repo_name, command, self.circleci_api_token)
+        url = '{}/{}/project/{}/{}/{}{}?circle-token={}'.format(
+            self.CIRCLE_API_ENDPOINT, version, repo_type, repo_owner, repo_name, command, self.circleci_api_token)
         request_method = getattr(requests, method)
 
         response = request_method(url, json=data)
