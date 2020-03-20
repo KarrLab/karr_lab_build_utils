@@ -1676,8 +1676,6 @@ class BuildHelper(object):
         # determine if build was triggered by an upstream package
         upstream_repo_name = os.getenv('UPSTREAM_REPONAME', '')
         upstream_build_num = int(os.getenv('UPSTREAM_BUILD_NUM', '0'))
-        print(upstream_repo_name)
-        print(upstream_build_num)
 
         if upstream_repo_name and is_new_error and self.build_num > 1 and not is_other_error:
             is_new_downstream_error = True
