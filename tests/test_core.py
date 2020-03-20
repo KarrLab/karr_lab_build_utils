@@ -41,6 +41,7 @@ import ftputil
 import git
 import github
 import imp
+import json
 import karr_lab_build_utils
 import karr_lab_build_utils.__init__
 import karr_lab_build_utils.config.core
@@ -1484,7 +1485,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         with env:
             build_helper = self.construct_build_helper(build_num=51)
-            with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_3]):
+            with mock.patch('requests.get', side_effect=[requests_get_1,
+                                                         requests_get_2,
+                                                         requests_get_3]):
                 with mock.patch('smtplib.SMTP', return_value=smtp):
                     result = build_helper.send_email_notifications(False, False, False, static_analyses)
                     self.assertEqual(result, {
@@ -2209,13 +2212,22 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         with open(config_filename, 'w') as file:
             yaml.dump({'downstream_dependencies': ['dep_1', 'dep_2']}, file)
 
+        # info about current build
         requests_get_1 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
             'json': lambda: {'start_time': '2017-01-01T01:01:01-05:00'},
         })
+        # info about recent builds
         requests_get_2 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
-            'json': lambda: [{'build_parameters': [], 'start_time': '2016-01-01T01:01:01.001Z'}],
+            'json': lambda: [{'build_num': None, 'build_parameters': [], 'start_time': '2016-01-01T01:01:01.001Z'}],
+        })
+        # info about configuration of each build
+        requests_get_3 = attrdict.AttrDict({
+            'raise_for_status': lambda: None,
+            'json': lambda: {
+                'circle_yml': json.dumps({})
+            },
         })
         requests_post = attrdict.AttrDict({
             'raise_for_status': lambda: None,
@@ -2226,7 +2238,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         with env:
             with mock.patch('requests.post', return_value=requests_post):
-                with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_2]):
+                with mock.patch('requests.get', side_effect=[requests_get_1,
+                                                             requests_get_2, requests_get_3,
+                                                             requests_get_2, requests_get_3]):
                     build_helper = core.BuildHelper()
                     deps, no_deps = build_helper.trigger_tests_of_downstream_dependencies(
                         config_filename=config_filename)
@@ -2256,15 +2270,32 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             'json': lambda: [
                 {
                     'build_num': 0,
-                    'build_parameters':
-                    {
-                        'UPSTREAM_REPONAME': 'dep_3',
-                        'UPSTREAM_BUILD_NUM': '1',
-                    },
+                    'build_parameters': {},
                     'start_time': '2016-01-01T01:01:01.001Z',
                     'status': 'success',
                 }
             ],
+        })
+        requests_get_3 = attrdict.AttrDict({
+            'raise_for_status': lambda: None,
+            'json': lambda: {
+                'circle_yml': json.dumps({
+                    'jobs': {
+                        'build': {
+                            'steps': [
+                                {
+                                    'run': {
+                                        'environment': {
+                                            'UPSTREAM_REPONAME': 'dep_3',
+                                            'UPSTREAM_BUILD_NUM': '1',
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                }),
+            },
         })
         requests_post = attrdict.AttrDict({
             'raise_for_status': lambda: None,
@@ -2277,7 +2308,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
 
         with env:
             with mock.patch('requests.post', return_value=requests_post):
-                with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_2]):
+                with mock.patch('requests.get', side_effect=[requests_get_1,
+                                                             requests_get_2, requests_get_3,
+                                                             requests_get_2, requests_get_3]):
                     build_helper = core.BuildHelper()
                     deps, no_deps = build_helper.trigger_tests_of_downstream_dependencies(
                         config_filename=config_filename)
@@ -2325,6 +2358,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 },
             ],
         })
+        requests_get_3 = attrdict.AttrDict({
+            'raise_for_status': lambda: None,
+            'json': lambda: {
+                'circle_yml': json.dumps({})
+            },
+        })
         requests_post = attrdict.AttrDict({
             'raise_for_status': lambda: None,
             'json': lambda: None,
@@ -2336,7 +2375,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         env.set('UPSTREAM_BUILD_NUM', '1')
 
         with env:
-            with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2]):
+            with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_3, requests_get_3]):
                 with mock.patch('requests.post', return_value=requests_post):
                     # test api
                     build_helper = core.BuildHelper()
@@ -2379,6 +2418,12 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 },
             ],
         })
+        requests_get_3 = attrdict.AttrDict({
+            'raise_for_status': lambda: None,
+            'json': lambda: {
+                'circle_yml': json.dumps({})
+            },
+        })
         requests_post = attrdict.AttrDict({
             'raise_for_status': lambda: None,
             'json': lambda: None,
@@ -2388,7 +2433,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         env.set('CIRCLE_PROJECT_REPONAME', 'pkg_1')
 
         with env:
-            with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2]):
+            with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_3]):
                 with mock.patch('requests.post', return_value=requests_post):
                     # test api
                     build_helper = core.BuildHelper()
@@ -2403,7 +2448,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             'json': lambda: {'start_time': '2019-01-01T01:01:01-05:00'},
         })
         with env:
-            with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2]):
+            with mock.patch('requests.get', side_effect=[requests_get_1, requests_get_2, requests_get_3]):
                 with mock.patch('requests.post', return_value=requests_post):
                     # test api
                     build_helper = core.BuildHelper()

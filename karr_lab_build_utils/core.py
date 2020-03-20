@@ -31,6 +31,7 @@ import github
 import glob
 import graphviz
 # import instrumental.api
+import io
 import json
 import karr_lab_build_utils.config.core
 import logging
@@ -2467,6 +2468,17 @@ class BuildHelper(object):
             already_queued = False
 
             for build in builds:
+                response = self.run_circleci_api('/{}'.format(build['build_num']), repo_name=package)
+                stream = io.StringIO(response['circle_yml'])
+                jobs = yaml.load(stream).get('jobs', {})
+                for job in jobs.values():
+                    for step in job.get('steps', []):
+                        if 'run' in step and isinstance(step['run'], dict):
+                            env = step['run'].get('environment', {})
+                            if 'UPSTREAM_REPONAME' in env:
+                                build['build_parameters']['UPSTREAM_REPONAME'] = env.get('UPSTREAM_REPONAME')
+                                build['build_parameters']['UPSTREAM_BUILD_NUM'] = env.get('UPSTREAM_BUILD_NUM')
+
                 # don'trigger a build if this is the same package which triggered the cascade
                 if package == upstream_repo_name and \
                         str(build['build_num']) == upstream_build_num and \
