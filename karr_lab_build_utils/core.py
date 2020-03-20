@@ -2545,7 +2545,7 @@ class BuildHelper(object):
                 'branch': branch,
                 'parameters': {
                     'upstream_repo_name': upstream_repo_name,
-                    'upstream_build_num': upstream_build_num,
+                    'upstream_build_num': int(upstream_build_num),
                 }
             })
             triggered_packages.append(package)
