@@ -2226,7 +2226,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         requests_get_3 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
             'json': lambda: {
-                'circle_yml': json.dumps({})
+                'circle_yml': {
+                    'string': json.dumps({}),
+                },
             },
         })
         requests_post = attrdict.AttrDict({
@@ -2279,22 +2281,24 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         requests_get_3 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
             'json': lambda: {
-                'circle_yml': json.dumps({
-                    'jobs': {
-                        'build': {
-                            'steps': [
-                                {
-                                    'run': {
-                                        'environment': {
-                                            'UPSTREAM_REPONAME': 'dep_3',
-                                            'UPSTREAM_BUILD_NUM': '1',
+                'circle_yml': {
+                    'string': json.dumps({
+                        'jobs': {
+                            'build': {
+                                'steps': [
+                                    {
+                                        'run': {
+                                            'environment': {
+                                                'UPSTREAM_REPONAME': 'dep_3',
+                                                'UPSTREAM_BUILD_NUM': '1',
+                                            }
                                         }
                                     }
-                                }
-                            ]
-                        }
-                    },
-                }),
+                                ]
+                            }
+                        },
+                    }),
+                },
             },
         })
         requests_post = attrdict.AttrDict({
@@ -2361,7 +2365,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         requests_get_3 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
             'json': lambda: {
-                'circle_yml': json.dumps({})
+                'circle_yml': {
+                    'string': json.dumps({}),
+                },
             },
         })
         requests_post = attrdict.AttrDict({
@@ -2421,7 +2427,9 @@ class TestKarrLabBuildUtils(unittest.TestCase):
         requests_get_3 = attrdict.AttrDict({
             'raise_for_status': lambda: None,
             'json': lambda: {
-                'circle_yml': json.dumps({})
+                'circle_yml': {
+                    'string': json.dumps({}),
+                },
             },
         })
         requests_post = attrdict.AttrDict({

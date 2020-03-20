@@ -2469,7 +2469,7 @@ class BuildHelper(object):
 
             for build in builds:
                 response = self.run_circleci_api('/{}'.format(build['build_num']), repo_name=package)
-                stream = io.StringIO(response['circle_yml'])
+                stream = io.StringIO(response['circle_yml']['string'])
                 jobs = yaml.load(stream).get('jobs', {})
                 for job in jobs.values():
                     for step in job.get('steps', []):
