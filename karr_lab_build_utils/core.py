@@ -1649,7 +1649,7 @@ class BuildHelper(object):
             is_old_error = False
             is_fixed = False
         else:
-            is_other_error = False
+            is_other_error = other_error
             passed = test_results.get_num_errors() == 0 and test_results.get_num_failures() == 0
 
             # determine if error is new
