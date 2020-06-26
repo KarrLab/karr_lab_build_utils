@@ -615,8 +615,11 @@ class DoPostTestTasksController(cement.Controller):
             print('No notifications were sent.')
 
         if status['is_other_error']:
-            raise SystemExit('Post-test tasks were not successful: {}'.format(
-                other_exception['exception'])).with_traceback(other_exception['traceback'])
+            if other_exception:
+                raise SystemExit('Post-test tasks were not successful: {}'.format(
+                    other_exception['exception'])).with_traceback(other_exception['traceback'])
+            else:
+                raise SystemExit('Post-test tasks were not successful')
 
 
 class MakeAndArchiveReportsController(cement.Controller):
