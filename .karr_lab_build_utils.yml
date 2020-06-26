@@ -1,6 +1,17 @@
 static_analyses:
   ignore_files:
-      - karr_lab_build_utils/templates/*
+    - karr_lab_build_utils/templates/*
+    - karr_lab_build_utils/templates/**/*
+  ignore_unused_requirements:
+    - sphinx_fontawesome
+    - sphinx_rtd_theme
+    - sphinxcontrib_addmetahtml
+    - sphinxcontrib_bibtex
+    - sphinxcontrib_googleanalytics
+    - sphinxcontrib_spelling
+    - sphinxprettysearchresults
+    - wheel
+  ignore_missing_requirements: []
 downstream_dependencies:
   - bcforms
   - bpforms
