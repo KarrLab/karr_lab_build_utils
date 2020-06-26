@@ -2514,7 +2514,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     def test_find_missing_requirements(self):
         # test api
         build_helper = core.BuildHelper()
-        missing = build_helper.find_missing_requirements('karr_lab_build_utils', ignore_files=['karr_lab_build_utils/templates/*'])
+        missing = build_helper.find_missing_requirements('karr_lab_build_utils')
         self.assertEqual(missing, [])
 
         # test cli
@@ -2522,7 +2522,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
                 with __main__.App(argv=[
                         'find-missing-requirements', 'karr_lab_build_utils',
-                        '--ignore-files', 'karr_lab_build_utils/templates/*']) as app:
+                ]) as app:
                     app.run()
                     self.assertRegex(captured.stdout.get_text(), 'requirements.txt appears to contain all of the dependencies')
                     self.assertEqual(captured.stderr.get_text(), '')
@@ -2535,7 +2535,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                 with capturer.CaptureOutput(merged=False, relay=False) as captured:
                     with __main__.App(argv=[
                             'find-missing-requirements', 'karr_lab_build_utils',
-                            '--ignore-files', 'karr_lab_build_utils/templates/*']) as app:
+                    ]) as app:
                         app.run()
                         self.assertRegex(captured.stdout.get_text(), 'The following dependencies should likely be added to')
                         self.assertEqual(captured.stderr.get_text(), '')
@@ -2546,42 +2546,31 @@ class TestKarrLabBuildUtils(unittest.TestCase):
     def test_find_unused_requirements(self):
         # test api
         build_helper = core.BuildHelper()
-        unused = build_helper.find_unused_requirements('karr_lab_build_utils', ignore_files=['karr_lab_build_utils/templates/*'])
-        unused.sort()
-
-        expected_unused = [
-            'sphinx_fontawesome',
-            'sphinx_rtd_theme',
-            'sphinxcontrib_addmetahtml',
-            'sphinxcontrib_bibtex',
-            'sphinxcontrib_googleanalytics',
-            'sphinxcontrib_spelling',
-            'sphinxprettysearchresults',
-            'wheel',
-        ]
-        self.assertEqual(unused, expected_unused)
+        unused = build_helper.find_unused_requirements('karr_lab_build_utils')
+        self.assertEqual(unused, [])
 
         # test cli
+        os.rename('requirements.txt', 'requirements.txt.save')
+        with open('requirements.txt', 'w') as file:
+            file.write('an_unused_requirement\n')
         with self.construct_environment():
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
                 with __main__.App(argv=[
                         'find-unused-requirements', 'karr_lab_build_utils',
-                        '--ignore-file', 'karr_lab_build_utils/templates/*']) as app:
+                ]) as app:
                     app.run()
                     self.assertRegex(captured.stdout.get_text(),
                                      'The following requirements from requirements.txt may not be necessary:')
                     self.assertRegex(captured.stdout.get_text(),
-                                     'sphinxcontrib_googleanalytics')
+                                     'an_unused_requirement')
                     self.assertEqual(captured.stderr.get_text(), '')
 
-        os.rename('requirements.txt', 'requirements.txt.save')
         with open('requirements.txt', 'w') as file:
             pass
         with self.construct_environment():
             with capturer.CaptureOutput(merged=False, relay=False) as captured:
                 with __main__.App(argv=[
                         'find-unused-requirements', 'karr_lab_build_utils',
-                        '--ignore-file', 'karr_lab_build_utils/templates/*',
                 ]) as app:
                     app.run()
                     self.assertRegex(captured.stdout.get_text(), 'All of the dependencies appear to be necessary')

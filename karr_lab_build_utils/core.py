@@ -1907,10 +1907,9 @@ class BuildHelper(object):
 
         find_missing_requirements = config.get('static_analyses', {}).get('find_missing_requirements', True)
         find_unused_requirements = config.get('static_analyses', {}).get('find_unused_requirements', True)
-        ignore_files = config.get('static_analyses', {}).get('ignore_files', [])
 
         if find_missing_requirements:
-            missing_reqs = self.find_missing_requirements(self.repo_name, ignore_files=ignore_files)
+            missing_reqs = self.find_missing_requirements(self.repo_name)
             if missing_reqs:
                 errors.append('The following requirements are missing:\n  {}'.format(
                     '\n  '.join(missing_req[0] for missing_req in missing_reqs)))
@@ -1918,7 +1917,7 @@ class BuildHelper(object):
             missing_reqs = []
 
         if find_unused_requirements:
-            unused_reqs = self.find_unused_requirements(self.repo_name, ignore_files=ignore_files)
+            unused_reqs = self.find_unused_requirements(self.repo_name)
             if unused_reqs:
                 msg = 'The following requirements appear to be unused:\n  {}'.format('\n  '.join(unused_reqs))
                 warnings.warn(msg, UserWarning)
@@ -2664,13 +2663,12 @@ class BuildHelper(object):
             other_opts.append('--verbose')
         return epylint.lint(package_name, msg_opts + report_opts + other_opts)
 
-    def find_missing_requirements(self, package_name, dirname='.', ignore_files=None):
+    def find_missing_requirements(self, package_name, dirname='.'):
         """ Finding missing requirements
 
         Args:
             package_name (:obj:`str`): name of the package to analyze
             dirname (:obj:`str`, optional): path to package
-            ignore_files (:obj:`list`, optional): files to ignore
 
         Returns:
             :obj:`list`: list of missing dependencies and their occurences in the code
@@ -2678,6 +2676,9 @@ class BuildHelper(object):
         import pkg_utils
         # pkg_utils is imported locally so that we can use karr_lab_build_utils to properly calculate its coverage;
         # :todo: figure out how to fix this
+
+        config = self.get_build_config()
+        ignore_files = config.get('static_analyses', {}).get('ignore_files', [])
 
         options = attrdict.AttrDict()
         options.paths = [package_name]
@@ -2700,7 +2701,6 @@ class BuildHelper(object):
         missing = list(filter(lambda m: m[0].replace('-', '_') not in all_deps, missing))
 
         # ignore expected missing requirements
-        config = self.get_build_config()
         ignore_reqs = config.get('static_analyses', {}).get('ignore_missing_requirements', [])
         for miss in list(missing):
             if miss[0] in ignore_reqs:
@@ -2711,13 +2711,12 @@ class BuildHelper(object):
 
         return missing
 
-    def find_unused_requirements(self, package_name, dirname='.', ignore_files=None):
+    def find_unused_requirements(self, package_name, dirname='.'):
         """ Finding unused_requirements
 
         Args:
             package_name (:obj:`str`): name of the package to analyze
             dirname (:obj:`str`, optional): path to package
-            ignore_files (:obj:`list`, optional): files to ignore
 
         Returns:
             :obj:`list`: name of the unused dependencies
@@ -2725,6 +2724,9 @@ class BuildHelper(object):
         import pkg_utils
         # pkg_utils is imported locally so that we can use karr_lab_build_utils to properly calculate its coverage;
         # :todo: figure out how to fix this
+
+        config = self.get_build_config()
+        ignore_files = config.get('static_analyses', {}).get('ignore_files', [])
 
         options = attrdict.AttrDict()
         options.paths = [package_name]
@@ -2758,7 +2760,6 @@ class BuildHelper(object):
         unuseds = [unused.replace('-', '_') for unused in unuseds]
 
         # ignore expected unused requirements
-        config = self.get_build_config()
         ignore_reqs = config.get('static_analyses', {}).get('ignore_unused_requirements', [])
         unuseds = list(set(unuseds).difference(set(ignore_reqs)))
 

@@ -899,9 +899,6 @@ class FindMissingRequirementsController(cement.Controller):
                 type=str, help='Package name')),
             (['--dirname'], dict(
                 type=str, default='.', help='Path to package')),
-            (['--ignore-files'], dict(
-                action="append", default=[], help='Paths to ignore')),
-
         ]
 
     @cement.ex(hide=True)
@@ -909,7 +906,7 @@ class FindMissingRequirementsController(cement.Controller):
         args = self.app.pargs
         buildHelper = BuildHelper()
         missing = buildHelper.find_missing_requirements(
-            args.package_name, dirname=args.dirname, ignore_files=args.ignore_files)
+            args.package_name, dirname=args.dirname)
         missing = sorted(missing, key=lambda m: m[0])
         if missing:
             print('The following dependencies should likely be added to requirements.txt')
@@ -936,8 +933,6 @@ class FindUnusedRequirementsController(cement.Controller):
                 type=str, help='Package name')),
             (['--dirname'], dict(
                 type=str, default='.', help='Path to package')),
-            (['--ignore-file'], dict(
-                dest='ignore_files', action="append", default=[], help='Paths to ignore')),
         ]
 
     @cement.ex(hide=True)
@@ -945,8 +940,7 @@ class FindUnusedRequirementsController(cement.Controller):
         args = self.app.pargs
         buildHelper = BuildHelper()
         unuseds = buildHelper.find_unused_requirements(
-            args.package_name, dirname=args.dirname,
-            ignore_files=args.ignore_files)
+            args.package_name, dirname=args.dirname)
         if unuseds:
             print('The following requirements from requirements.txt may not be necessary:')
             for name in sorted(unuseds):
