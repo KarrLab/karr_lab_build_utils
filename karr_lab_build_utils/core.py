@@ -2699,6 +2699,13 @@ class BuildHelper(object):
                 all_deps += opt_deps
         missing = list(filter(lambda m: m[0].replace('-', '_') not in all_deps, missing))
 
+        # ignore expected missing requirements
+        config = self.get_build_config()
+        ignore_reqs = config.get('static_analyses', {}).get('ignore_missing_requirements', [])
+        for miss in list(missing):
+            if miss[0] in ignore_reqs:
+                missing.remove(miss)
+
         # sort missing
         missing.sort(key=natsort.natsort_keygen(key=lambda m: m[0], alg=natsort.IGNORECASE))
 
@@ -2749,6 +2756,11 @@ class BuildHelper(object):
 
         # return canonical names
         unuseds = [unused.replace('-', '_') for unused in unuseds]
+
+        # ignore expected unused requirements
+        config = self.get_build_config()
+        ignore_reqs = config.get('static_analyses', {}).get('ignore_unused_requirements', [])
+        unuseds = list(set(unuseds).difference(set(ignore_reqs)))
 
         # sort unuseds
         unuseds.sort(key=natsort.natsort_keygen(alg=natsort.IGNORECASE))

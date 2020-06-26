@@ -916,8 +916,8 @@ class FindMissingRequirementsController(cement.Controller):
             for name, uses in missing:
                 for use in uses:
                     for filename, lineno in use.locations:
-                        print('  {:s}:{:d} dist={:s} module={:s}'.format(
-                            os.path.relpath(filename), lineno, name, use.modname))
+                        print('  {:s} in {:s}:{:d} (due to `{:s}`)'.format(
+                            name, os.path.relpath(filename), lineno, use.modname))
         else:
             print('requirements.txt appears to contain all of the dependencies')
 
