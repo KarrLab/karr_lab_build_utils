@@ -1709,7 +1709,7 @@ class BuildHelper(object):
             :obj:`dict` of :obj:`str`, :obj:`str`: dictionary which maps names of untriggered packages to the reasons 
                 why they weren't triggered
             :obj:`dict`: status of a set of results
-            :obj:`Exception`: exception from `make_and_archive_reports`
+            :obj:`dict`: exception from `make_and_archive_reports`
         """
         try:
             static_analyses = self.make_and_archive_reports(dry_run=dry_run)
@@ -1718,7 +1718,8 @@ class BuildHelper(object):
         except Exception as exception:
             static_analyses = {'missing_requirements': [], 'unused_requirements': []}
             other_error = True
-            other_exception = exception
+            other_exception = {'exception': exception}
+            _, _, other_exception['traceback'] = sys.exc_info()
 
         triggered_packages, not_triggered_packages = self.trigger_tests_of_downstream_dependencies(dry_run=dry_run)
         status = self.send_email_notifications(installation_error, tests_error, other_error, static_analyses, dry_run=dry_run)

@@ -826,7 +826,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
             'is_other_error': True,
             'is_new_downstream_error': True,
         }
-        with mock.patch.object(core.BuildHelper, 'make_and_archive_reports', return_value=None):
+        with mock.patch.object(core.BuildHelper, 'make_and_archive_reports', side_effect=Exception('Another error')):
             with mock.patch.object(core.BuildHelper, 'trigger_tests_of_downstream_dependencies', return_value=down_pkgs_return):
                 with mock.patch.object(core.BuildHelper, 'send_email_notifications', return_value=notify_return):
                     with self.construct_environment():
