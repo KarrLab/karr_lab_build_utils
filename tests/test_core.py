@@ -845,7 +845,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                                 self.assertRegex(captured.stdout.get_text(), '  New error')
                                 self.assertRegex(captured.stdout.get_text(), '  Other error')
                                 self.assertRegex(captured.stdout.get_text(), '  Downstream error')
-                                self.assertEqual(captured.stderr.get_text(), '')
+                                self.assertNotEqual(captured.stderr.get_text(), '')
 
         def make_and_archive_reports():
             raise Exception()
@@ -875,7 +875,7 @@ class TestKarrLabBuildUtils(unittest.TestCase):
                                         app.run()
                                     self.assertRegex(captured.stdout.get_text(), '1 notifications were sent')
                                     self.assertRegex(captured.stdout.get_text(), '  Other error')
-                                    self.assertEqual(captured.stderr.get_text(), '')
+                                    self.assertNotEqual(captured.stderr.get_text(), '')
 
     def test_get_test_results(self):
         build_helper = self.construct_build_helper(build_num=1)
