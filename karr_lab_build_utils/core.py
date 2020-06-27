@@ -2067,7 +2067,9 @@ class BuildHelper(object):
         # save coverage data to xml
         xml_cov_filename = 'coverage.xml'
 
-        workman = coverage.Coverage(data_file=os.path.join(coverage_dirname, '.coverage'))
+        config = self.get_build_config()
+        ignore_files = config.get('static_analyses', {}).get('ignore_files', [])
+        workman = coverage.Coverage(data_file=os.path.join(coverage_dirname, '.coverage'), omit=ignore_files)
         workman.load()
         workman.get_data()
         workman.xml_report(outfile=xml_cov_filename)
