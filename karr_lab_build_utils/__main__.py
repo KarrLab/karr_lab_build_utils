@@ -11,6 +11,7 @@ from karr_lab_build_utils.core import BuildHelper, BuildHelperError
 import karr_lab_build_utils
 import os
 import sys
+import traceback
 
 
 class BaseController(cement.Controller):
@@ -615,9 +616,10 @@ class DoPostTestTasksController(cement.Controller):
             print('No notifications were sent.')
 
         if status['is_other_error']:
-            if other_exception:
+            if other_exception:                
+                traceback.print_tb(other_exception['traceback'])
                 raise SystemExit('Post-test tasks were not successful: {}'.format(
-                    other_exception['exception'])).with_traceback(other_exception['traceback'])
+                    other_exception['exception']))
             else:
                 raise SystemExit('Post-test tasks were not successful')
 

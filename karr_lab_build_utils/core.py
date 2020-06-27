@@ -1718,8 +1718,10 @@ class BuildHelper(object):
         except Exception as exception:
             static_analyses = {'missing_requirements': [], 'unused_requirements': []}
             other_error = True
-            other_exception = {'exception': exception}
-            _, _, other_exception['traceback'] = sys.exc_info()
+            other_exception = {
+                'exception': exception,
+                'traceback': sys.exc_info()[2],
+            }
 
         triggered_packages, not_triggered_packages = self.trigger_tests_of_downstream_dependencies(dry_run=dry_run)
         status = self.send_email_notifications(installation_error, tests_error, other_error, static_analyses, dry_run=dry_run)
