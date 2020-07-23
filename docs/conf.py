@@ -138,6 +138,8 @@ pygments_style = 'sphinx'
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = False
 
+autoclass_content = 'both'
+
 
 # -- section/figure/table numbering options -------------------------------
 numfig = True
