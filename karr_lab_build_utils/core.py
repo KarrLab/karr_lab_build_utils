@@ -247,7 +247,7 @@ class BuildHelper(object):
         self.code_climate_token = os.getenv('CODECLIMATE_REPO_TOKEN')
 
         # setup logging
-        self.logger = logger = logging.getLogger()
+        self.logger = logger = logging.getLogger('karr_lab_build_utils')
         logger.setLevel(logging.INFO)
 
         log_dir = os.path.expanduser('~/.wc/log/')
