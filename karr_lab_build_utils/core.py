@@ -1866,6 +1866,7 @@ class BuildHelper(object):
         msg.add_header('Content-Type', 'text/html')
         msg.set_payload(body, 'utf8')
 
+        """
         if not dry_run:
             smtp = smtplib.SMTP(self.email_hostname)
             smtp.ehlo()
@@ -1876,6 +1877,7 @@ class BuildHelper(object):
             except Exception as error:
                 warnings.warn('Unable to send notification: {}'.format(str(error)), UserWarning)
             smtp.quit()
+        """    
 
     def make_and_archive_reports(self, coverage_dirname='tests/reports', dry_run=False):
         """ Make and archive reports:
