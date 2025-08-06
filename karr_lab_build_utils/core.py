@@ -1897,7 +1897,7 @@ class BuildHelper(object):
 
         """ test reports """
         # Upload test report to history server
-        self.archive_test_report()
+        #self.archive_test_report()
 
         """ coverage """
         # Merge coverage reports
