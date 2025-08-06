@@ -1930,7 +1930,7 @@ class BuildHelper(object):
 
         """ documentation """
         self.make_documentation()
-        self.upload_documentation_to_docs_server()
+        #self.upload_documentation_to_docs_server()
 
         """ Log environment """
         self.log_environment()
