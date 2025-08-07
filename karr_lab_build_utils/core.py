@@ -1929,7 +1929,7 @@ class BuildHelper(object):
             unused_reqs = []
 
         """ documentation """
-        self.make_documentation()
+        #self.make_documentation()
         #self.upload_documentation_to_docs_server()
 
         """ Log environment """
